@@ -301,7 +301,7 @@ const useCases = [
                     </span>
                   </h1>
                   <p className="text-xl text-gray-600 leading-relaxed animate-slide-in-up delay-500">
-                    Testing Testing Testing auction platform delivers intelligent bidding, real-time analytics, and secure
+                     auction platform delivers intelligent bidding, real-time analytics, and secure
                     transactions for businesses of all sizes.
                   </p>
                 </div>

@@ -167,8 +167,8 @@ function Navigation({
     },
     {
       title: "Get Started",
-      href: "https://briskon-website.onrender.com/get-started", // <- NEW
-      external: true,
+      href: "/get-started", // <- NEW
+      external: false,
       items: [
         {
           title: "On-Premise Installation",

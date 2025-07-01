@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -10,8 +10,8 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+} from "@/components/ui/navigation-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu,
   FileText,
@@ -26,54 +26,67 @@ import {
   Zap,
   Award,
   Home,
-} from "lucide-react"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { usePathname } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
+} from "lucide-react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 
-function Navigation({ highlightSolutions = false }: { highlightSolutions?: boolean }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const [activeSection, setActiveSection] = useState("")
-  const pathname = usePathname()
-  const isHomePage = pathname === "/"
-  const { user, logout, isAuthenticated } = useAuth()
+function Navigation({
+  highlightSolutions = false,
+}: {
+  highlightSolutions?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+  const { user, logout, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
+      setScrolled(window.scrollY > 20);
 
       // Only track sections on homepage
-      if (!isHomePage) return
+      if (!isHomePage) return;
 
       const sections = [
         { id: "hero", element: document.querySelector("#hero") },
-        { id: "platform-overview", element: document.querySelector("#platform-overview") },
-        { id: "auction-types", element: document.querySelector("#auction-types") },
-        { id: "deployment-options", element: document.querySelector("#deployment-options") },
-      ]
+        {
+          id: "platform-overview",
+          element: document.querySelector("#platform-overview"),
+        },
+        {
+          id: "auction-types",
+          element: document.querySelector("#auction-types"),
+        },
+        {
+          id: "deployment-options",
+          element: document.querySelector("#deployment-options"),
+        },
+      ];
 
-      const scrollPosition = window.scrollY + 100 // Offset for header
+      const scrollPosition = window.scrollY + 100; // Offset for header
 
       for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i]
+        const section = sections[i];
         if (section.element) {
-          const rect = section.element.getBoundingClientRect()
-          const elementTop = rect.top + window.scrollY
+          const rect = section.element.getBoundingClientRect();
+          const elementTop = rect.top + window.scrollY;
 
           if (scrollPosition >= elementTop) {
-            setActiveSection(section.id)
-            break
+            setActiveSection(section.id);
+            break;
           }
         }
       }
-    }
+    };
 
-    window.addEventListener("scroll", handleScroll)
-    handleScroll() // Initial call
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [isHomePage])
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Initial call
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHomePage]);
 
   // Detailed navigation items (simplified)
   const detailedNavItems = [
@@ -154,6 +167,8 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
     },
     {
       title: "Get Started",
+      href: "https://briskon-website.onrender.com/get-started", // <- NEW
+      external: true,
       items: [
         {
           title: "On-Premise Installation",
@@ -179,16 +194,16 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
         },
       ],
     },
-  ]
+  ];
 
   const handleSectionClick = (href: string) => {
     if (href.startsWith("#")) {
-      const element = document.querySelector(href)
+      const element = document.querySelector(href);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth" })
+        element.scrollIntoView({ behavior: "smooth" });
       }
     }
-  }
+  };
 
   const onDashboard = () => {
     if (user?.role === "both") {
@@ -206,7 +221,7 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
         "fixed top-0 z-50 w-full transition-all duration-300 ease-in-out",
         "bg-white/95 backdrop-blur-sm border-b border-neutral-200",
         "dark:bg-neutral-900/95 dark:border-neutral-800",
-        scrolled && "shadow-soft",
+        scrolled && "shadow-soft"
       )}
     >
       <div className="container mx-auto px-4">
@@ -239,7 +254,7 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                       "dark:text-neutral-200 dark:hover:text-neutral-100 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800 dark:focus:text-neutral-100",
                       isHomePage &&
                         activeSection === "hero" &&
-                        "bg-neutral-100 text-brand-600 dark:bg-neutral-800 dark:text-brand-400",
+                        "bg-neutral-100 text-brand-600 dark:bg-neutral-800 dark:text-brand-400"
                     )}
                   >
                     <Home className="h-4 w-4 mr-2 transition-transform group-hover:scale-110 group-hover:rotate-3" />
@@ -251,7 +266,7 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
               {/* Detailed Navigation Items */}
               {detailedNavItems.map((item) => (
                 <NavigationMenuItem key={item.title}>
-                  <NavigationMenuTrigger
+                  {/* <NavigationMenuTrigger
                     className={cn(
                       "h-9 px-3 py-1.5 text-sm font-medium transition-all duration-200",
                       "text-neutral-700 hover:text-brand-500 hover:bg-neutral-100",
@@ -265,7 +280,30 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                     )}
                   >
                     {item.title}
+                  </NavigationMenuTrigger> */}
+                  <NavigationMenuTrigger>
+                    <Link
+                      href={item.href || "#"}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                      onClick={(e) => {
+                        // Allow dropdown on hover, but navigate on actual click
+                        if (!item.href) e.preventDefault();
+                      }}
+                      className={cn(
+                        "h-9 px-3 py-1.5 text-sm font-medium transition-all duration-200",
+                        "text-neutral-700 hover:text-brand-500 hover:bg-neutral-100",
+                        "dark:text-neutral-200 dark:hover:text-neutral-100 dark:hover:bg-neutral-800",
+                        "data-[state=open]:bg-neutral-100 data-[state=open]:text-brand-600",
+                        "dark:data-[state=open]:bg-neutral-800 dark:data-[state=open]:text-brand-400",
+                        "focus:bg-neutral-100 focus:text-brand-600 dark:focus:bg-neutral-800 dark:focus:text-brand-400",
+                        "border-0 bg-transparent"
+                      )}
+                    >
+                      {item.title}
+                    </Link>
                   </NavigationMenuTrigger>
+
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-6 w-[500px] md:w-[600px] bg-white border border-neutral-200 rounded-lg shadow-large dark:bg-neutral-800 dark:border-neutral-700">
                       <div className="grid gap-2">
@@ -276,7 +314,11 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                                 href={subItem.href}
                                 className="group flex items-center gap-3 rounded-lg p-3 transition-smooth hover:bg-neutral-50 hover:shadow-soft dark:hover:bg-neutral-700 card-hover"
                               >
-                                {subItem.icon && <div className="flex-shrink-0 hover-lift">{subItem.icon}</div>}
+                                {subItem.icon && (
+                                  <div className="flex-shrink-0 hover-lift">
+                                    {subItem.icon}
+                                  </div>
+                                )}
                                 <div className="flex-1">
                                   <div className="text-sm font-medium text-neutral-900 group-hover:text-brand-600 transition-colors dark:text-neutral-100 dark:group-hover:text-brand-400">
                                     {subItem.title}
@@ -291,12 +333,19 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                             {subItem.subtypes && (
                               <div className="ml-8 mt-2 space-y-1 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700">
                                 {subItem.subtypes.map((subtype) => (
-                                  <NavigationMenuLink key={subtype.href} asChild>
+                                  <NavigationMenuLink
+                                    key={subtype.href}
+                                    asChild
+                                  >
                                     <Link
                                       href={subtype.href}
                                       className="group flex items-center gap-2 rounded-md p-2 transition-all duration-200 hover:bg-neutral-50 dark:hover:bg-neutral-700"
                                     >
-                                      {subtype.icon && <div className="flex-shrink-0">{subtype.icon}</div>}
+                                      {subtype.icon && (
+                                        <div className="flex-shrink-0">
+                                          {subtype.icon}
+                                        </div>
+                                      )}
                                       <div className="flex-1">
                                         <div className="text-xs font-medium text-neutral-700 group-hover:text-brand-600 transition-colors dark:text-neutral-300 dark:group-hover:text-brand-400">
                                           {subtype.title}
@@ -380,11 +429,18 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[320px] sm:w-[400px] p-0 bg-white dark:bg-neutral-900">
+              <SheetContent
+                side="right"
+                className="w-[320px] sm:w-[400px] p-0 bg-white dark:bg-neutral-900"
+              >
                 <div className="flex flex-col h-full">
                   {/* Mobile Header */}
                   <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-                    <Link href="/" className="flex items-center space-x-3" onClick={() => setIsOpen(false)}>
+                    <Link
+                      href="/"
+                      className="flex items-center space-x-3"
+                      onClick={() => setIsOpen(false)}
+                    >
                       <Image
                         src="/images/briskon-logo.png"
                         alt="Auction Platform"
@@ -411,7 +467,9 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             Welcome back, {user?.fname}
                           </div>
-                          <div className="text-xs text-neutral-600 dark:text-neutral-400">{user?.role} account</div>
+                          <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                            {user?.role} account
+                          </div>
                         </div>
                       )}
 
@@ -421,7 +479,7 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                           "flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100 hover:text-brand-600 transition-all duration-200 dark:hover:bg-neutral-800 dark:hover:text-brand-400",
                           isHomePage &&
                             activeSection === "hero" &&
-                            "bg-neutral-100 text-brand-600 dark:bg-neutral-800 dark:text-brand-400",
+                            "bg-neutral-100 text-brand-600 dark:bg-neutral-800 dark:text-brand-400"
                         )}
                         onClick={() => setIsOpen(false)}
                       >
@@ -443,7 +501,11 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                                   className="group flex items-center gap-3 rounded-lg p-3 transition-smooth hover:bg-neutral-50 hover:shadow-soft dark:hover:bg-neutral-700 card-hover"
                                   onClick={() => setIsOpen(false)}
                                 >
-                                  {item.icon && <div className="flex-shrink-0 hover-lift">{item.icon}</div>}
+                                  {item.icon && (
+                                    <div className="flex-shrink-0 hover-lift">
+                                      {item.icon}
+                                    </div>
+                                  )}
                                   <div>
                                     <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                       {item.title}
@@ -463,7 +525,11 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                                         className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100 transition-all duration-200 dark:hover:bg-neutral-800"
                                         onClick={() => setIsOpen(false)}
                                       >
-                                        {subtype.icon && <div className="flex-shrink-0">{subtype.icon}</div>}
+                                        {subtype.icon && (
+                                          <div className="flex-shrink-0">
+                                            {subtype.icon}
+                                          </div>
+                                        )}
                                         <div>
                                           <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                                             {subtype.title}
@@ -490,7 +556,9 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                             onClick={() => setIsOpen(false)}
                           >
                             <FileText className="h-4 w-4" />
-                            <span className="text-sm font-medium">Resources</span>
+                            <span className="text-sm font-medium">
+                              Resources
+                            </span>
                           </Link>
                           <Link
                             href="/login"
@@ -504,7 +572,9 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
                             className="flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100 hover:text-brand-600 transition-all duration-200 dark:hover:bg-neutral-800 dark:hover:text-brand-400"
                             onClick={() => setIsOpen(false)}
                           >
-                            <span className="text-sm font-medium">Contact Sales</span>
+                            <span className="text-sm font-medium">
+                              Contact Sales
+                            </span>
                           </Link>
                         </div>
                       </div>
@@ -513,8 +583,14 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
 
                   {/* Mobile CTA */}
                   <div className="p-6 border-t border-neutral-200 dark:border-neutral-800">
-                    <Button className="w-full bg-brand-500 hover:bg-brand-600 text-white" asChild>
-                      <Link href="/get-started" onClick={() => setIsOpen(false)}>
+                    <Button
+                      className="w-full bg-brand-500 hover:bg-brand-600 text-white"
+                      asChild
+                    >
+                      <Link
+                        href="/get-started"
+                        onClick={() => setIsOpen(false)}
+                      >
                         Get Started
                       </Link>
                     </Button>
@@ -533,7 +609,7 @@ function Navigation({ highlightSolutions = false }: { highlightSolutions?: boole
         </div>
       </div>
     </header>
-  )
+  );
 }
 
-export default Navigation
+export default Navigation;

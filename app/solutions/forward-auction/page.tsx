@@ -150,7 +150,7 @@ export default function ForwardAuctionPage() {
       icon: <Target className="h-6 w-6" />,
       details:
         "Our AI-powered system helps optimize starting prices and categorization for maximum visibility.",
-      image: "/DemoImage.jpg", //  step image
+      image: "/images/registration.jpg", //  step image
     },
     {
       title: "Auction Goes Live",
@@ -159,7 +159,7 @@ export default function ForwardAuctionPage() {
       icon: <Play className="h-6 w-6" />,
       details:
         "Real-time bidding with instant notifications and automatic bid increments.",
-      image: "/DemoImage.jpg", //  step imag
+      image: "/images/lives.jpg", //  step imag
     },
     {
       title: "Competitive Bidding",
@@ -168,7 +168,7 @@ export default function ForwardAuctionPage() {
       icon: <TrendingUp className="h-6 w-6" />,
       details:
         "Advanced bidding strategies including proxy bidding and last-minute extensions.",
-      image: "/DemoImage.jpg", //  step imag
+      image: "/images/compititive.jpg", //  step imag
     },
     {
       title: "Auction Closes",
@@ -177,7 +177,7 @@ export default function ForwardAuctionPage() {
       icon: <Award className="h-6 w-6" />,
       details:
         "Secure payment processing and automated winner notifications with next steps.",
-      image: "/DemoImage.jpg", //  step imag
+      image: "/images/closed.jpg", //  step imag
     },
   ];
 
@@ -504,16 +504,16 @@ export default function ForwardAuctionPage() {
                   </div>
                 </div>
               </div> */}
-              <div className="relative">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="relative self-stretch h-full">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col">
                   <Image
                     src={auctionSteps[activeStep].image}
                     alt={auctionSteps[activeStep].title}
                     width={600}
                     height={400}
-                    className="w-full h-64 object-cover rounded-t-2xl"
+                    className="w-full h-96 object-cover rounded-t-2xl"
                   />
-                  <div className="p-8">
+                  <div className="p-8"> 
                     <div className="text-center mb-6">
                       <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         {auctionSteps[activeStep].icon}

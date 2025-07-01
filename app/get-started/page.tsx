@@ -147,7 +147,7 @@ export default function GetStartedPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-20">
+      <section className="bg-gradient-to-br from-slate-700 via-blue-700 to-slate-600 text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -176,7 +176,7 @@ export default function GetStartedPage() {
               </p>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8 mb-16">
+            {/* <div className="grid lg:grid-cols-3 gap-8 mb-16">
               {engagementModels.map((model, index) => (
                 <Card
                   key={index}
@@ -232,13 +232,13 @@ export default function GetStartedPage() {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
 
       {/* Subscription Plans */}
-      <section className="py-20 bg-slate-50">
+      {/* <section className="py-20 bg-slate-50">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
@@ -303,7 +303,7 @@ export default function GetStartedPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Implementation Process */}
       <section className="py-20 bg-white">

@@ -300,10 +300,10 @@ export default function RegisterPage() {
             <CardHeader className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-10 text-center relative">
               <div className="absolute inset-0 bg-grid-gray-200/[0.1] bg-[size:20px_20px]"></div>
               <div className="absolute -top-4 right-6 w-10 h-10 bg-blue-200/30 rounded-full animate-pulse"></div>
-              <CardTitle className="text-3xl font-bold text-gray-900 mb-2 z-10 relative">Create Your Account</CardTitle>
-              <CardDescription className="text-gray-600 text-lg z-10 relative">
+              {/* <CardTitle className="text-3xl font-bold text-gray-900 mb-2 z-10 relative">Create Your Account</CardTitle> */}
+              {/* <CardDescription className="text-gray-600 text-lg z-10 relative">
                 Choose your role and join thousands of successful traders
-              </CardDescription>
+              </CardDescription> */}
             </CardHeader>
             <form onSubmit={handleRegister}>
               <CardContent className="p-10 space-y-8">

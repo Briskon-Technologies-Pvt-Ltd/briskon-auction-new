@@ -336,8 +336,8 @@ export default function CustomDevelopmentPage() {
                     {package_.description}
                   </CardDescription>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{package_.price}</span>
-                    <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{package_.timeline}</div>
+                    {/* <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{package_.price}</span> */}
+                    {/* <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{package_.timeline}</div> */}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -371,7 +371,7 @@ export default function CustomDevelopmentPage() {
       </section>
 
       {/* Development Areas */}
-      <section className="py-20 bg-white dark:bg-slate-900">
+      {/* <section className="py-20 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Custom Development Areas</h2>
@@ -403,7 +403,7 @@ export default function CustomDevelopmentPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Development Process */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-800 dark:to-slate-700">

@@ -596,25 +596,41 @@ export default function RegisterPage() {
                       {[
                         { value: "individual", label: "Individual" },
                         { value: "organization", label: "Organization" },
-                      ].map((item) => (
-                        <div key={item.value} className="relative">
-                          <RadioGroupItem
-                            value={item.value}
-                            id={item.value}
-                            className="peer sr-only"
-                          />
-                          <Label
-                            htmlFor={item.value}
-                            className={`flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 w-full ${
-                              formData.sellerType === item.value
-                                ? "border-gray-300 bg-gray-50 shadow-md hover:shadow-lg"
-                                : "border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300"
-                            }`}
-                          >
-                            {item.label}
-                          </Label>
-                        </div>
-                      ))}
+                      ].map((item) => {
+                        // Determine gradient color for hover based on selected account type
+                        const isSelected = formData.sellerType === item.value;
+                        const isSeller = formData.accountType === "seller";
+                        const isBoth = formData.accountType === "both";
+
+                        let hoverGradient = "";
+                        if (isSeller)
+                          hoverGradient =
+                            "hover:bg-gradient-to-r hover:from-purple-200 hover:to-violet-300 ";
+                        else if (isBoth)
+                          hoverGradient =
+                            "hover:bg-gradient-to-r hover:from-blue-200 hover:to-indigo-300 ";
+                        // hover:text-white
+                        return (
+                          <div key={item.value} className="relative">
+                            <RadioGroupItem
+                              value={item.value}
+                              id={item.value}
+                              className="peer sr-only"
+                            />
+                            <Label
+                              htmlFor={item.value}
+                              className={`flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 w-full
+          ${
+            isSelected
+            // ? "border-gray-300 bg-gray-100 shadow-md"
+            // : "border-gray-200 bg-white"
+          } ${hoverGradient}`}
+                            >
+                              {item.label}
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </RadioGroup>
 
                     {formData.sellerType === "organization" && (

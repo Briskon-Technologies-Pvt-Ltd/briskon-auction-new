@@ -17,13 +17,13 @@ export function Footer() {
       <div className="container mx-auto px-4 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Left: Logo Only */}
-          <div className="lg:col-span-1 flex justify-center lg:justify-start">
+          <div className="lg:col-span-1 flex justify-center lg:justify-start -mt-64">
             <Link href="/" className="flex items-center">
               <Image
                 src="/images/briskon-auction-vertical-logo-white.png"
                 alt="Briskon Auction"
-                width={250}
-                height={250}
+                width={150}
+                height={150}
                 className="object-contain"
               />
             </Link>
@@ -237,7 +237,6 @@ export function Footer() {
                 <MapPin className="w-5 h-5 text-gray-500 mt-1" />
                 <p>
                   1750, 15th Main, 38th Cross, 1st Stage, 5th Block, HBR Layout,
-                  <br />
                   Bangalore-560043, India
                 </p>
               </div>

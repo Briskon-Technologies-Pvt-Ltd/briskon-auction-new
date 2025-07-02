@@ -285,8 +285,8 @@ export default function OnPremisePage() {
                   <CardTitle className="text-2xl text-slate-900 dark:text-slate-100">{option.title}</CardTitle>
                   <CardDescription className="text-slate-600 dark:text-slate-300">{option.description}</CardDescription>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{option.price}</span>
-                    <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{option.timeline}</div>
+                    {/* <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{option.price}</span> */}
+                    {/* <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{option.timeline}</div> */}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -320,7 +320,7 @@ export default function OnPremisePage() {
       </section>
 
       {/* Technical Specifications */}
-      <section className="py-20 bg-white dark:bg-slate-900">
+      {/* <section className="py-20 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Technical Specifications</h2>
@@ -351,7 +351,7 @@ export default function OnPremisePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Implementation Process */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700">

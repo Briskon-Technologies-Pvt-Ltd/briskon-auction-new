@@ -597,19 +597,23 @@ export default function RegisterPage() {
                         { value: "individual", label: "Individual" },
                         { value: "organization", label: "Organization" },
                       ].map((item) => {
-                        // Determine gradient color for hover based on selected account type
                         const isSelected = formData.sellerType === item.value;
                         const isSeller = formData.accountType === "seller";
                         const isBoth = formData.accountType === "both";
 
-                        let hoverGradient = "";
-                        if (isSeller)
-                          hoverGradient =
-                            "hover:bg-gradient-to-r hover:from-purple-200 hover:to-violet-300 ";
-                        else if (isBoth)
-                          hoverGradient =
-                            "hover:bg-gradient-to-r hover:from-blue-200 hover:to-indigo-300 ";
-                        // hover:text-white
+                        // Define gradient classes
+                        const selectedGradient = isSeller
+                          ? "bg-gradient-to-r from-purple-200 to-violet-300 "
+                          : isBoth
+                          ? "bg-gradient-to-r from-blue-200 to-indigo-300 "
+                          : "";
+
+                        const hoverGradient = isSeller
+                          ? "hover:bg-gradient-to-r hover:from-purple-200 hover:to-violet-300 "
+                          : isBoth
+                          ? "hover:bg-gradient-to-r hover:from-blue-200 hover:to-indigo-300 "
+                          : "";
+
                         return (
                           <div key={item.value} className="relative">
                             <RadioGroupItem
@@ -622,9 +626,9 @@ export default function RegisterPage() {
                               className={`flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 w-full
           ${
             isSelected
-            // ? "border-gray-300 bg-gray-100 shadow-md"
-            // : "border-gray-200 bg-white"
-          } ${hoverGradient}`}
+              ? ` ${selectedGradient} `
+              : `border-gray-200 bg-white ${hoverGradient}`
+          }`}
                             >
                               {item.label}
                             </Label>

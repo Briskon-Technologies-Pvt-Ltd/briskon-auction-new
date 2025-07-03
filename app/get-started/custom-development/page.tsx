@@ -454,7 +454,7 @@ export default function CustomDevelopmentPage() {
       </section>
 
       {/* Custom Examples */}
-      <section className="py-20 bg-white dark:bg-slate-900">
+      {/* <section className="py-20 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Custom Development Examples</h2>
@@ -500,7 +500,7 @@ export default function CustomDevelopmentPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ Section */}
       <section className="py-20 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-700">

@@ -90,7 +90,7 @@
 // }
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -102,16 +102,16 @@ import { supabase } from "@/lib/supabaseClient";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string | ReactNode} | null>(null);
+  // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  // useEffect(() => {
+  //   const handleMouseMove = (e: MouseEvent) => {
+  //     setMousePosition({ x: e.clientX, y: e.clientY });
+  //   };
+  //   window.addEventListener("mousemove", handleMouseMove);
+  //   return () => window.removeEventListener("mousemove", handleMouseMove);
+  // }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,11 +123,25 @@ export default function ForgotPasswordPage() {
       .select("email")
       .eq("email", email);
 
-    if (userCheckError || !users || users.length === 0) {
-      setMessage({ type: "error", text: "No user found with this email address." });
-      setLoading(false);
-      return;
-    }
+   
+
+if (userCheckError || !users || users.length === 0) {
+  setMessage({
+    type: "error",
+    text: (
+      <>
+        Invalid user.{" "}
+        <a href="/register" style={{ color: "blue", textDecoration: "underline" }}>
+          Please sign up
+        </a>
+        
+      </>
+    ),
+  });
+  setLoading(false);
+  return;
+}
+
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -146,9 +160,9 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-blue-50 relative overflow-hidden px-4">
       <div
         className="absolute inset-0 opacity-20 transition-all duration-300"
-        style={{
-          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.15), transparent 40%)`,
-        }}
+        // style={{
+        //   background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.15), transparent 40%)`,
+        // }}
       />
       <div className="absolute inset-0 bg-grid-gray-200/[0.05] bg-[size:30px_30px]" />
 

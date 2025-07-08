@@ -158,7 +158,10 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("auctions")
-      .select("*")
+      .select(`
+    *,
+    seller:profiles!seller_id (fname, location)
+  `)
       .order("createdat", { ascending: false });
 
     if (error) {

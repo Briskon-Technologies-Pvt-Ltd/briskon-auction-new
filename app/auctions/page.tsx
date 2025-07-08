@@ -5,7 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUser } from "@supabase/auth-helpers-react";
+
+
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Clock,
@@ -37,6 +47,7 @@ type AuctionItem = {
   auctiontype: "forward" | "reverse";
   status: "live" | "upcoming" | "closed";
   location: string;
+  fname: string;
   featured?: boolean;
   verified?: boolean;
   currentBid?: number;
@@ -59,6 +70,8 @@ type AuctionItem = {
   productdocuments?: string[]; // Array of Supabase Storage URLs
   createdat?: string; // Added for sorting consistency
   auctionsubtype?: string; // Added to handle sealed auctions
+  scheduledstart?: string; // <-- match what comes from the DB
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
 };
 
 const categories = [
@@ -103,9 +116,7 @@ function LiveTimer({ time }: { time: string }) {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setTimeLeft(
-        `${hours > 0 ? hours + "h " : ""}${minutes}m ${seconds}s`
-      );
+      setTimeLeft(`${hours > 0 ? hours + "h " : ""}${minutes}m ${seconds}s`);
     }
     update();
     const interval = setInterval(update, 1000);
@@ -118,6 +129,27 @@ function LiveTimer({ time }: { time: string }) {
       {timeLeft}
     </span>
   );
+}
+function formatDateTime(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  };
+  return date.toLocaleString("en-US", options);
+}
+
+function getEndDate(
+  start: Date,
+  duration: { days?: number; hours?: number; minutes?: number }
+) {
+  const end = new Date(start);
+  if (duration.days) end.setDate(end.getDate() + duration.days);
+  if (duration.hours) end.setHours(end.getHours() + duration.hours);
+  if (duration.minutes) end.setMinutes(end.getMinutes() + duration.minutes);
+  return end;
 }
 
 export default function AuctionsPage() {
@@ -141,13 +173,14 @@ export default function AuctionsPage() {
           // Calculate start and end times
           const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
           const duration = a.auctionduration
-            ? ((durationObj) => (
-                ((durationObj.days || 0) * 24 * 60 * 60) +
-                ((durationObj.hours || 0) * 60 * 60) +
-                ((durationObj.minutes || 0) * 60)
-              ))(a.auctionduration)
+            ? ((durationObj) =>
+                (durationObj.days || 0) * 24 * 60 * 60 +
+                (durationObj.hours || 0) * 60 * 60 +
+                (durationObj.minutes || 0) * 60)(a.auctionduration)
             : 0;
-          const end = start ? new Date(start.getTime() + duration * 1000) : null;
+          const end = start
+            ? new Date(start.getTime() + duration * 1000)
+            : null;
           const now = new Date();
 
           let status: "live" | "upcoming" | "closed" = "upcoming";
@@ -161,14 +194,15 @@ export default function AuctionsPage() {
             id: a.id,
             title: a.productname || a.title || "Untitled Auction",
             category: a.categoryid || "",
-            image: Array.isArray(a.productimages) && a.productimages.length > 0
-              ? a.productimages[0] // Use first URL from productimages
-              : "/placeholder.svg",
+            image:
+              Array.isArray(a.productimages) && a.productimages.length > 0
+                ? a.productimages[0] // Use first URL from productimages
+                : "/placeholder.svg",
             auctiontype: a.auctiontype,
             status,
-            location: a.location || "",
-            scheduledStart: a.scheduledstart || "",
-            auctionDuration: a.auctionduration || "",
+            // location: a.location || "",
+            scheduledstart: a.scheduledstart || "",
+            auctionduration: a.auctionduration || "",
             featured: a.featured || false,
             verified: a.verified || false,
             currentBid: a.currentbid ?? undefined,
@@ -185,12 +219,14 @@ export default function AuctionsPage() {
             finalBid: a.finalbid ?? undefined,
             endedAgo: "", // You can calculate this if you have end time
             winner: a.winner || "",
-            views: a.views ?? undefined,
+            views: a.views,
             watchers: a.watchers ?? undefined,
             productimages: a.productimages || [], // Array of Supabase Storage URLs
             productdocuments: a.productdocuments || [], // Array of Supabase Storage URLs
             createdat: a.createdat || "", // For sorting if needed
             auctionsubtype: a.auctionsubtype || undefined, // Map auctionsubtype
+            location: a.profiles?.location || a.location || "",
+            fname: a.profiles?.fname || "", // add this
           };
         });
         setAllAuctionItems(mapped);
@@ -200,7 +236,7 @@ export default function AuctionsPage() {
     };
     fetchAuctions();
   }, []);
-
+  console.log();
   const filterAndSortAuctions = (status: "live" | "upcoming" | "closed") => {
     let items = allAuctionItems.filter((item) => item.status === status);
 
@@ -211,7 +247,8 @@ export default function AuctionsPage() {
     }
     if (selectedCategory !== "all") {
       items = items.filter(
-        (item) => item.category.toLowerCase().replace(/\s+/g, "-") === selectedCategory
+        (item) =>
+          item.category.toLowerCase().replace(/\s+/g, "-") === selectedCategory
       );
     }
     if (selectedLocation !== "all") {
@@ -230,22 +267,27 @@ export default function AuctionsPage() {
       } else if (sortBy === "price-high") {
         items.sort(
           (a, b) =>
-            (b.currentBid || b.targetPrice || 0) - (a.currentBid || a.targetPrice || 0)
+            (b.currentBid || b.targetPrice || 0) -
+            (a.currentBid || a.targetPrice || 0)
         );
       } else if (sortBy === "price-low") {
         items.sort(
           (a, b) =>
-            (a.currentBid || a.targetPrice || 0) - (b.currentBid || b.targetPrice || 0)
+            (a.currentBid || a.targetPrice || 0) -
+            (b.currentBid || b.targetPrice || 0)
         );
       } else if (sortBy === "most-bids") {
         items.sort(
-          (a, b) => (b.bidders || b.proposals || 0) - (a.bidders || a.proposals || 0)
+          (a, b) =>
+            (b.bidders || b.proposals || 0) - (a.bidders || a.proposals || 0)
         );
       } else if (sortBy === "most-watched") {
         items.sort((a, b) => (b.watchers || 0) - (a.watchers || 0));
       } else if (sortBy === "newest") {
         items.sort((a, b) =>
-          a.createdat && b.createdat ? b.createdat.localeCompare(a.createdat) : 0
+          a.createdat && b.createdat
+            ? b.createdat.localeCompare(a.createdat)
+            : 0
         );
       }
     }
@@ -255,269 +297,364 @@ export default function AuctionsPage() {
 
   const liveAuctions = useMemo(
     () => filterAndSortAuctions("live"),
-    [searchTerm, selectedCategory, selectedLocation, selectedauctiontype, sortBy, allAuctionItems]
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      sortBy,
+      allAuctionItems,
+    ]
   );
   const upcomingAuctions = useMemo(
     () => filterAndSortAuctions("upcoming"),
-    [searchTerm, selectedCategory, selectedLocation, selectedauctiontype, sortBy, allAuctionItems]
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      sortBy,
+      allAuctionItems,
+    ]
   );
   const closedAuctions = useMemo(
     () => filterAndSortAuctions("closed"),
-    [searchTerm, selectedCategory, selectedLocation, selectedauctiontype, sortBy, allAuctionItems]
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      sortBy,
+      allAuctionItems,
+    ]
   );
 
   const AuctionCard = ({ auction }: { auction: AuctionItem }) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+      const { user, isLoading } = useAuth();
+  const isLoggedIn = !!user;
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  useEffect(() => {
-    if (auction.productimages && auction.productimages.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) =>
-          prev === auction.productimages!.length - 1 ? 0 : prev + 1
-        );
-      }, 5000); // Change image every 5 seconds
-      return () => clearInterval(interval);
-    }
-  }, [auction.productimages]);
+    useEffect(() => {
+      if (auction.productimages && auction.productimages.length > 1) {
+        const interval = setInterval(() => {
+          setCurrentImageIndex((prev) =>
+            prev === auction.productimages!.length - 1 ? 0 : prev + 1
+          );
+        }, 5000); // Change image every 5 seconds
+        return () => clearInterval(interval);
+      }
+    }, [auction.productimages]);
 
-  const currentImage = useMemo(() => {
-    return auction.productimages && auction.productimages.length > 0
-      ? auction.productimages[currentImageIndex]
-      : auction.image || "/placeholder.svg";
-  }, [auction.productimages, currentImageIndex, auction.image]);
+    const currentImage = useMemo(() => {
+      return auction.productimages && auction.productimages.length > 0
+        ? auction.productimages[currentImageIndex]
+        : auction.image || "/placeholder.svg";
+    }, [auction.productimages, currentImageIndex, auction.image]);
 
-  const auctionPath = auction.auctiontype === "reverse" ? `/auctions/reverse/${auction.id}` : `/auctions/${auction.id}`;
+    const auctionPath =
+      auction.auctiontype === "reverse"
+        ? `/auctions/reverse/${auction.id}`
+        : `/auctions/${auction.id}`;
 
-  return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group relative border border-gray-200 bg-white dark:bg-gray-800">
-      {auction.featured && (
-        <div className="absolute top-2 left-2 z-10">
-          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold">
-            FEATURED
-          </Badge>
-        </div>
-      )}
-
-      <div className="relative">
-        <Image
-          src={currentImage}
-          alt={auction.title}
-          width={400}
-          height={300}
-          className="w-full h-48 object-cover"
-        />
-        {/* Status Badge */}
-        <div className="absolute top-2 right-2">
-          {auction.status === "live" && (
-            <Badge className="bg-green-500 text-white animate-pulse">
-              <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
-              LIVE
+    return (
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group relative border border-gray-200 bg-white dark:bg-gray-800">
+        {auction.featured && (
+          <div className="absolute top-2 left-2 z-10">
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold">
+              FEATURED
             </Badge>
-          )}
-          {auction.status === "upcoming" && (
-            <Badge className="bg-blue-500 text-white">
-              <Calendar className="h-3 w-3 mr-1" />
-              UPCOMING
-            </Badge>
-          )}
-          {auction.status === "closed" && (
-            <Badge className="bg-gray-500 text-white">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              CLOSED
-            </Badge>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Auction Type Badge */}
-        <div className="absolute bottom-2 left-2">
-          <Badge
-            variant="secondary"
-            className="flex items-center gap-1 bg-white/90 backdrop-blur-sm"
-          >
-            {auction.auctiontype === "forward" ? (
-              <TrendingUp className="h-3 w-3 text-green-500" />
-            ) : (
-              <TrendingDown className="h-3 w-3 text-blue-500" />
+        <div className="relative">
+          <div className="absolute top-0 left-0  bg-black bg-opacity-70 text-white px-3 py-2 rounded-md z-20 flex items-center">
+            {auction.auctionsubtype}
+          </div>
+          {/* added new */}
+          <Link href={auctionPath} className="block">
+            <Image
+              src={currentImage}
+              alt={auction.title}
+              width={400}
+              height={300}
+              className="object-cover w-full h-auto transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+            />
+          </Link>
+          {/* Status Badge */}
+          <div className="absolute top-2 right-2">
+            {auction.status === "live" && (
+              <Badge className="bg-green-500 text-white animate-pulse">
+                <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
+                LIVE
+              </Badge>
             )}
-            {auction.auctiontype === "forward" ? "Selling" : "Buying"}
-          </Badge>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm"
-          >
-            <Heart className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm"
-          >
-            <Share2 className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
-
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {auction.category}
-            </Badge>
-            {auction.verified && (
-              <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+            {auction.status === "upcoming" && (
+              <Badge className="bg-blue-500 text-white">
+                <Calendar className="h-3 w-3 mr-1" />
+                UPCOMING
+              </Badge>
+            )}
+            {auction.status === "closed" && (
+              <Badge className="bg-gray-500 text-white">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Verified
+                CLOSED
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Eye className="h-3 w-3" />
-            {auction.views}
+
+          {/* Auction Type Badge */}
+          <div className="absolute bottom-2 left-2">
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1 bg-white/90 backdrop-blur-sm"
+            >
+              {auction.auctiontype === "forward" ? (
+                <TrendingUp className="h-3 w-3 text-green-500" />
+              ) : (
+                <TrendingDown className="h-3 w-3 text-blue-500" />
+              )}
+              {auction.auctiontype === "forward" ? "Selling" : "Buying"}
+            </Badge>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm"
+            >
+              <Heart className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm"
+            >
+              <Share2 className="h-3 w-3" />
+            </Button>
           </div>
         </div>
 
-        <h3 className="font-semibold mb-2 text-sm line-clamp-2 group-hover:text-brand-600 transition-colors">
-          {auction.title}
-        </h3>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {auction.category}
+              </Badge>
+              {auction.verified && (
+                <Badge
+                  variant="outline"
+                  className="text-xs text-green-600 border-green-200"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Verified
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <Eye className="h-3 w-3" />
+              {auction.views ?? 0}
+            </div>
+          </div>
 
-        <div className="flex items-center gap-1 mb-3 text-xs text-gray-600">
-          <MapPin className="h-3 w-3" />
-          {auction.location}
-        </div>
+          <h3 className="font-semibold mb-2 text-sm line-clamp-2 group-hover:text-brand-600 transition-colors">
+            {auction.title}
+          </h3>
 
-        {/* Common Auction Details */}
-        <div className="space-y-2 mb-4">
-          {auction.status === "live" && auction.timeLeft && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Time Left</span>
-              <LiveTimer time={auction.timeLeft} />
+          <div className="flex items-center gap-1 mb-3 text-xs text-gray-600">
+            <MapPin className="h-3 w-3" />
+            {auction.location}
+            {auction.fname && <span className="ml-1">by {auction.fname}</span>}
+          </div>
+
+          {/* add start and end time */}
+          {auction.scheduledstart && auction.auctionduration && (
+            <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs font-medium">Starts:</span>
+                <span>{formatDateTime(new Date(auction.scheduledstart))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs font-medium">Ends:</span>
+
+                <span>
+                  {formatDateTime(
+                    getEndDate(
+                      new Date(auction.scheduledstart),
+                      auction.auctionduration
+                    )
+                  )}
+                </span>
+              </div>
             </div>
           )}
-          {auction.status === "upcoming" && auction.startsIn && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Starts In</span>
-              <LiveTimer time={auction.startsIn} />
-            </div>
-          )}
-          {(auction.status === "live" || auction.status === "closed") &&
-            auction.bidders !== undefined && (
+          {/* Common Auction Details */}
+          <div className="space-y-2 mb-4">
+            {auction.status === "live" && auction.timeLeft && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">Bidders</span>
+                <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                  Ends In
+                </span>
+                <LiveTimer time={auction.timeLeft} />
+              </div>
+            )}
+            {auction.status === "upcoming" && auction.startsIn && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Starts In</span>
+                <LiveTimer time={auction.startsIn} />
+              </div>
+            )}
+
+            {(auction.status === "live" || auction.status === "closed") &&
+              auction.bidders !== undefined && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Bidders</span>
+                  <span className="font-semibold flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {auction.bidders}
+                  </span>
+                </div>
+              )}
+
+            {auction.watchers && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Watching</span>
                 <span className="font-semibold flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {auction.bidders}
+                  <Eye className="h-3 w-3" />
+                  {auction.watchers}
                 </span>
               </div>
             )}
-          {auction.watchers && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Watching</span>
-              <span className="font-semibold flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {auction.watchers}
+          </div>
+
+          {/* Type-Specific Details */}
+          {auction.auctiontype === "forward" && (
+            <>
+              {(auction.seller || auction.rating) && (
+                <div className="flex items-center gap-1 mb-3">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs text-gray-600">
+                    {auction.rating} • {auction.seller}
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2 mb-4">
+                {auction.status === "live" &&
+                  auction.auctionsubtype === "sealed" && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Status</span>
+                      <span className="font-bold text-gray-800">
+                        Sealed Auction
+                      </span>
+                    </div>
+                  )}
+                {auction.status === "live" &&
+                  auction.auctionsubtype !== "sealed" &&
+                  auction.currentBid !== undefined && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Current Bid</span>
+                      <span className="font-bold text-green-600">
+                        {auction.bidders === 0
+                          ? "N/A"
+                          : `$${auction.currentBid.toLocaleString()}`}
+                      </span>
+                    </div>
+                  )}
+                {auction.status === "upcoming" &&
+                  auction.startingBid !== undefined && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">
+                        Starting Bid
+                      </span>
+                      <span className="font-bold text-blue-600">
+                        ${auction.startingBid.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+              </div>
+            </>
+          )}
+
+          {auction.auctiontype === "reverse" && (
+            <>
+              {auction.buyer && (
+                <div className="flex items-center gap-1 mb-3">
+                  <Briefcase className="h-3 w-3 text-blue-500" />
+                  <span className="text-xs text-gray-600">
+                    Buyer: {auction.buyer}
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2 mb-4">
+                {auction.targetPrice !== undefined && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Target Budget</span>
+                    <span className="font-bold text-blue-600">
+                      ${auction.targetPrice.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {auction.status === "live" && auction.deadline && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Deadline</span>
+                    <span className="font-semibold text-red-600 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {auction.deadline}
+                    </span>
+                  </div>
+                )}
+                {auction.proposals !== undefined && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Proposals</span>
+                    <span className="font-semibold flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {auction.proposals}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {auction.status === "closed" && auction.winner && (
+            <div className="flex justify-between items-center text-xs mb-4 p-2 bg-green-50 rounded">
+              <span className="text-gray-600">Winner</span>
+              <span className="font-semibold text-green-600">
+                {auction.winner}
               </span>
             </div>
           )}
-        </div>
 
-        {/* Type-Specific Details */}
-        {auction.auctiontype === "forward" && (
-          <>
-            {(auction.seller || auction.rating) && (
-              <div className="flex items-center gap-1 mb-3">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                <span className="text-xs text-gray-600">
-                  {auction.rating} • {auction.seller}
-                </span>
-              </div>
-            )}
-            <div className="space-y-2 mb-4">
-              {auction.status === "live" && auction.auctionsubtype === "sealed" && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Status</span>
-                  <span className="font-bold text-gray-800">Sealed Auction</span>
-                </div>
-              )}
-              {auction.status === "live" && auction.auctionsubtype !== "sealed" && auction.currentBid !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Current Bid</span>
-                  <span className="font-bold text-green-600">
-                    {auction.bidders === 0 ? "N/A" : `$${auction.currentBid.toLocaleString()}`}
-                  </span>
-                </div>
-              )}
-              {auction.status === "upcoming" && auction.startingBid !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Starting Bid</span>
-                  <span className="font-bold text-blue-600">${auction.startingBid.toLocaleString()}</span>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {auction.auctiontype === "reverse" && (
-          <>
-            {auction.buyer && (
-              <div className="flex items-center gap-1 mb-3">
-                <Briefcase className="h-3 w-3 text-blue-500" />
-                <span className="text-xs text-gray-600">Buyer: {auction.buyer}</span>
-              </div>
-            )}
-            <div className="space-y-2 mb-4">
-              {auction.targetPrice !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Target Budget</span>
-                  <span className="font-bold text-blue-600">${auction.targetPrice.toLocaleString()}</span>
-                </div>
-              )}
-              {auction.status === "live" && auction.deadline && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Deadline</span>
-                  <span className="font-semibold text-red-600 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {auction.deadline}
-                  </span>
-                </div>
-              )}
-              {auction.proposals !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600">Proposals</span>
-                  <span className="font-semibold flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    {auction.proposals}
-                  </span>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {auction.status === "closed" && auction.winner && (
-          <div className="flex justify-between items-center text-xs mb-4 p-2 bg-green-50 rounded">
-            <span className="text-gray-600">Winner</span>
-            <span className="font-semibold text-green-600">{auction.winner}</span>
-          </div>
-        )}
-
-        <Button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
-          size="sm"
-          asChild
-        >
-          <Link href={auctionPath}>
-            {auction.status === "live" ? "Place Bid" : "View Auction"}
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
+          {/* <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
+            size="sm"
+            asChild
+          >
+            <Link href={auctionPath}>
+              {auction.status === "live" ? "Place Bid" : "View Auction"}
+            </Link>
+          </Button> */}
+          
+          
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
+            size="sm"
+            asChild
+          >
+            
+            <Link href={auctionPath}>
+      {auction.status === "live"
+        ? isLoggedIn
+          ? "View & Bid"
+          : "View Auction"
+        : "View Auction"}
+    </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
   return (
     <div className="min-h-screen py-20 bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4">
@@ -531,17 +668,22 @@ export default function AuctionsPage() {
             Discover Amazing Deals
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Join thousands of buyers and sellers in our dynamic marketplace. Find unique items, great deals, and business opportunities.
+            Join thousands of buyers and sellers in our dynamic marketplace.
+            Find unique items, great deals, and business opportunities.
           </p>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
             <div className="text-center">
-              <div className="text-2xl font-bold text-brand-600">{liveAuctions.length}</div>
+              <div className="text-2xl font-bold text-brand-600">
+                {liveAuctions.length}
+              </div>
               <div className="text-sm text-gray-600">Live Auctions</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{upcomingAuctions.length}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {upcomingAuctions.length}
+              </div>
               <div className="text-sm text-gray-600">Starting Soon</div>
             </div>
             <div className="text-center">
@@ -572,7 +714,10 @@ export default function AuctionsPage() {
 
               {/* Quick Filters */}
               <div className="flex gap-2 flex-wrap">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -585,7 +730,10 @@ export default function AuctionsPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedauctiontype} onValueChange={setSelectedauctiontype}>
+                <Select
+                  value={selectedauctiontype}
+                  onValueChange={setSelectedauctiontype}
+                >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
@@ -598,14 +746,14 @@ export default function AuctionsPage() {
                   </SelectContent>
                 </Select>
 
-                <Button
+                {/* <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
                   className="flex items-center gap-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
                 >
                   <Filter className="h-4 w-4" />
                   More Filters
-                </Button>
+                </Button> */}
               </div>
 
               {/* View Toggle */}
@@ -640,7 +788,10 @@ export default function AuctionsPage() {
             {/* Extended Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <Select
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Location" />
                   </SelectTrigger>
@@ -659,8 +810,12 @@ export default function AuctionsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ending-soon">Ending Soon</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">
+                      Price: High to Low
+                    </SelectItem>
+                    <SelectItem value="price-low">
+                      Price: Low to High
+                    </SelectItem>
                     <SelectItem value="most-bids">Most Bids</SelectItem>
                     <SelectItem value="most-watched">Most Watched</SelectItem>
                     <SelectItem value="newest">Newest First</SelectItem>
@@ -726,7 +881,9 @@ export default function AuctionsPage() {
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">
                   No live auctions found
                 </h3>
-                <p className="text-gray-500">Try adjusting your filters or check back later.</p>
+                <p className="text-gray-500">
+                  Try adjusting your filters or check back later.
+                </p>
               </div>
             )}
           </TabsContent>
@@ -752,7 +909,9 @@ export default function AuctionsPage() {
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">
                   No upcoming auctions found
                 </h3>
-                <p className="text-gray-500">Try adjusting your filters or check back later.</p>
+                <p className="text-gray-500">
+                  Try adjusting your filters or check back later.
+                </p>
               </div>
             )}
           </TabsContent>
@@ -778,7 +937,9 @@ export default function AuctionsPage() {
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">
                   No closed auctions found
                 </h3>
-                <p className="text-gray-500">Try adjusting your filters or check back later.</p>
+                <p className="text-gray-500">
+                  Try adjusting your filters or check back later.
+                </p>
               </div>
             )}
           </TabsContent>

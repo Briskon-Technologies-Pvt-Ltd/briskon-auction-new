@@ -25,6 +25,27 @@ import { useAuth } from "@/hooks/use-auth";
 import { LoginPrompt } from "@/components/login-prompt";
 import { ReactNode } from "react";
 
+// start and end time logic
+function formatDateTime(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  };
+  return date.toLocaleString("en-US", options);
+}
+
+function getEndDate(start: Date, duration: { days?: number; hours?: number; minutes?: number }) {
+  const end = new Date(start);
+  if (duration.days) end.setDate(end.getDate() + duration.days);
+  if (duration.hours) end.setHours(end.getHours() + duration.hours);
+  if (duration.minutes) end.setMinutes(end.getMinutes() + duration.minutes);
+  return end;
+}
+
+
 // Dummy calculateTimeLeft function (replace with actual implementation if needed)
 const calculateTimeLeft = (endDate: Date): string => {
   const now = new Date();
@@ -136,6 +157,15 @@ export default function AuctionDetailPage() {
 
   const { isAuthenticated, user } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  
+useEffect(() => {
+    if (!auctionId) return;
+    fetch(`/api/views/${auctionId}`, {
+      method: "POST",
+    });
+  }, [auctionId]);
+
 
   useEffect(() => {
     const fetchAuctionDetails = async () => {
@@ -374,7 +404,7 @@ export default function AuctionDetailPage() {
       auction?.auctionsubtype === "sealed" &&
       (auction?.participants?.includes(user?.id ?? "") ?? false)
     );
-
+    
   return (
     <div className="min-h-screen py-20">
       <div className="container mx-auto px-4">

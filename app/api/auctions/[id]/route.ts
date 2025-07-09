@@ -364,3 +364,36 @@ function calculateTimeLeft(endDate: Date): string {
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   return `${days}d ${hours}h ${minutes}m`;
 }
+//////
+
+
+export async function POST(request: Request, { params }: { params: { id: string } }) {
+  const auctionId = params.id;
+
+  // Get current views
+  const { data, error } = await supabase
+    .from("auctions")
+    .select("views")
+    .eq("id", auctionId)
+    .single();
+
+  if (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
+
+  const currentViews = data?.views ?? 0;
+
+  // Update views with +1
+  const { data: updatedData, error: updateError } = await supabase
+    .from("auctions")
+    .update({ views: currentViews + 1 })
+    .eq("id", auctionId)
+    .select()
+    .single();
+
+  if (updateError) {
+    return NextResponse.json({ success: false, error: updateError.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ success: true, views: updatedData.views });
+}

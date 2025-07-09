@@ -4,7 +4,14 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  /* overflow-y: scroll; */
+  width: 100vw;
+  overflow-x: hidden;
 }
+html {
+  overflow-y: scroll;
+}
+
 
 @layer utilities {
   .text-balance {

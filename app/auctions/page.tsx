@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/router";
 import { useUser } from "@supabase/auth-helpers-react";
+
 // import { TrendingDown } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,9 @@ import {
   Clock,
   Users,
   Search,
+  Facebook,
+  Instagram,
+  Twitter,
   Star,
   Calendar,
   CheckCircle,
@@ -36,6 +40,7 @@ import {
   Eye,
   Heart,
   Share2,
+  Share,
   Timer,
   X,
   Hourglass,
@@ -105,8 +110,8 @@ const locations = [
   { value: "Seattle, USA", label: "Seattle, USA" },
   { value: "Bordeaux, France", label: "Bordeaux, France" },
 ];
-const languages = [
-  { value: "all", label: "Auction Style" },
+const subtypes = [
+  { value: "all", label: "All Subtypes" },
   { value: "sealed", label: "Sealed" },
   { value: "silent", label: "Silent" },
   { value: "dutch", label: "Dutch" },
@@ -169,20 +174,26 @@ export default function AuctionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
+  const [locations, setLocations] = useState([
+    { value: "all", label: "All Locations" },
+  ]);
   const [selectedauctiontype, setSelectedauctiontype] = useState("all");
   const [sortBy, setSortBy] = useState("ending-soon");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedSubtype, setSelectedSubtype] = useState("all");
   const [allAuctionItems, setAllAuctionItems] = useState<AuctionItem[]>([]);
+  // const [showShareMenu, setShowShareMenu] = useState(false);
   const [auctionStyleSearch, setAuctionStyleSearch] = useState("");
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
-
-  const filteredLanguages = languages.filter((lang) =>
-    lang.label.toLowerCase().includes(auctionStyleSearch.toLowerCase())
-  );
-  // Extract unique categories from allAuctionItems whenever they update
+  const mergedCategories = [
+    ...categories,
+    ...dbCategories.filter(
+      (dbCat) => !categories.some((cat) => cat.value === dbCat.value)
+    ),
+  ];
   useEffect(() => {
     if (allAuctionItems.length === 0) return;
 
@@ -196,6 +207,24 @@ export default function AuctionsPage() {
     }));
 
     setDbCategories([{ value: "all", label: "All Categories" }, ...dbCats]);
+  }, [allAuctionItems]);
+  useEffect(() => {
+    if (allAuctionItems.length === 0) return;
+
+    const uniqueLocations = Array.from(
+      new Set(
+        allAuctionItems
+          .map((item) => item.location)
+          .filter((loc) => loc && loc !== "")
+      )
+    );
+
+    const dbLocations = uniqueLocations.map((loc) => ({
+      value: loc,
+      label: loc.charAt(0).toUpperCase() + loc.slice(1),
+    }));
+
+    setLocations([{ value: "all", label: "All Locations" }, ...dbLocations]);
   }, [allAuctionItems]);
 
   useEffect(() => {
@@ -227,12 +256,6 @@ export default function AuctionsPage() {
           }
 
           /////////////////////////////////////////////////////////
-          const mergedCategories = [
-            ...categories,
-            ...dbCategories.filter(
-              (dbCat) => !categories.some((cat) => cat.value === dbCat.value)
-            ),
-          ];
 
           return {
             id: a.id,
@@ -244,7 +267,7 @@ export default function AuctionsPage() {
                 : "/placeholder.svg",
             auctiontype: a.auctiontype,
             status,
-            // location: a.location || "",
+            // location: a.profiles?.location || "",
             scheduledstart: a.scheduledstart || "",
             auctionduration: a.auctionduration || "",
             featured: a.featured || false,
@@ -252,7 +275,9 @@ export default function AuctionsPage() {
             currentBid: a.currentbid ?? undefined,
             timeLeft: end && status === "live" ? end.toISOString() : "",
             bidders: a.bidcount ?? undefined,
-            seller: a.createdby || "",
+            // seller: a.createdby || "",
+            seller: a.seller || "", // This is now a UUID
+            fname: a.profiles?.fname || "",
             rating: a.rating ?? undefined,
             targetPrice: a.targetprice ?? undefined,
             deadline: "", // You can calculate this if you have end time
@@ -270,7 +295,7 @@ export default function AuctionsPage() {
             createdat: a.createdat || "", // For sorting if needed
             auctionsubtype: a.auctionsubtype || undefined, // Map auctionsubtype
             location: a.profiles?.location || a.location || "",
-            fname: a.profiles?.fname || "", // add this
+            // fname: a.profiles?.fname || "", // add this
           };
         });
         setAllAuctionItems(mapped);
@@ -301,6 +326,9 @@ export default function AuctionsPage() {
     }
     if (selectedauctiontype !== "all") {
       items = items.filter((item) => item.auctiontype === selectedauctiontype);
+    }
+    if (selectedSubtype !== "all") {
+      items = items.filter((item) => item.auctionsubtype === selectedSubtype);
     }
 
     // Sorting logic
@@ -347,6 +375,7 @@ export default function AuctionsPage() {
       selectedCategory,
       selectedLocation,
       selectedauctiontype,
+      selectedSubtype,
       sortBy,
       allAuctionItems,
     ]
@@ -358,6 +387,55 @@ export default function AuctionsPage() {
       selectedCategory,
       selectedLocation,
       selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const liveForwardAuctions = useMemo(
+    () => filterAndSortAuctions("live", "forward"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const liveReverseAuctions = useMemo(
+    () => filterAndSortAuctions("live", "reverse"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const upcomingForwardAuctions = useMemo(
+    () => filterAndSortAuctions("upcoming", "forward"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const upcomingReverseAuctions = useMemo(
+    () => filterAndSortAuctions("upcoming", "reverse"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
       sortBy,
       allAuctionItems,
     ]
@@ -369,6 +447,7 @@ export default function AuctionsPage() {
       selectedCategory,
       selectedLocation,
       selectedauctiontype,
+      selectedSubtype,
       sortBy,
       allAuctionItems,
     ]
@@ -377,6 +456,7 @@ export default function AuctionsPage() {
     const { user } = useAuth();
     const isLoggedIn = !!user;
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [showShareMenu, setShowShareMenu] = useState(false);
 
     useEffect(() => {
       if (auction.productimages && auction.productimages.length > 1) {
@@ -410,7 +490,6 @@ export default function AuctionsPage() {
             </Badge>
           </div>
         )}
-
         {/* Image Section with consistent aspect ratio */}
         <div className="relative w-full aspect-[4/3] group overflow-hidden rounded-t">
           {/* Subtype Badge */}
@@ -459,18 +538,44 @@ export default function AuctionsPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-            {/* <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
-              <Heart className="h-3 w-3" />
-            </Button> */}
+          {/* <div className="relative"> */}
+          <div className="absolute bottom-2 right-2 flex gap-1 group-hover:opacity-100 transition-opacity duration-300 z-20">
             <Button
               size="sm"
               variant="secondary"
-              className="h-8 w-8 p-0 bg-white/90"
+              className="h-8 w-8 p-0 bg-white/90 flex items-center justify-center"
+              onClick={() => setShowShareMenu(!showShareMenu)}
             >
-              <Share2 className="h-3 w-3" />
+              <Share2 className="h-4 w-4" />
             </Button>
           </div>
+
+          {showShareMenu && (
+            <div className="absolute bottom-12 right-2 bg-white border shadow-lg rounded-md p-2 z-30 flex gap-3">
+              <a
+                href="https://www.facebook.com/sharer/sharer.php?u=https://yourdomain.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Facebook className="w-5 h-5 text-blue-600 hover:scale-110 transition" />
+              </a>
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Instagram className="w-5 h-5 text-pink-500 hover:scale-110 transition" />
+              </a>
+              <a
+                href="https://twitter.com/intent/tweet?url=https://yourdomain.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Twitter className="w-5 h-5 text-blue-400 hover:scale-110 transition" />
+              </a>
+            </div>
+          )}
+          {/* </div> */}
 
           {/* Image */}
           <Link href={auctionPath} className="block h-full w-full">
@@ -522,7 +627,7 @@ export default function AuctionsPage() {
           {/* <div className="flex items-center gap-1 mb-3 text-xs text-gray-600">
           <MapPin className="h-3 w-3" />
           {auction.location}
-        </div> */}
+         </div> */}
 
           {/* Timings */}
           {auction.scheduledstart && auction.auctionduration && (
@@ -614,20 +719,20 @@ export default function AuctionsPage() {
                     <PersonStanding className="w-4 h-4 text-green-500" />
                     <span className="text-xs text-gray-600">
                       {" "}
-                      {auction.seller}
+                      {auction.fname}
                     </span>
                   </div>
                 </div>
               )}
               {/* sealed and silent   */}
-              {(auction.auctionsubtype === "sealed" ||
-                auction.auctionsubtype === "silent") && (
-                <div className="mb-2">
-                  <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
+              <div className="mb-2 min-h-[18px]">
+                {(auction.auctionsubtype === "sealed" ||
+                  auction.auctionsubtype === "silent") && (
+                  <span className="text-xs text-gray-600 font-semibold ml-[2.5px] pb-2">
                     Bids are confidential until opening
                   </span>
-                </div>
-              )}
+                )}
+              </div>
 
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
@@ -745,25 +850,36 @@ export default function AuctionsPage() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-brand-600">
-                {liveAuctions.length}
+            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+              <div className="text-xl font-bold text-brand-600">
+                {liveForwardAuctions.length}
               </div>
-              <div className="text-sm text-gray-600">Live Auctions</div>
+              <div className="text-sm text-gray-600">Live Forward Auctions</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {upcomingAuctions.length}
+
+            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+              <div className="text-xl font-bold text-green-600">
+                {liveReverseAuctions.length}
               </div>
-              <div className="text-sm text-gray-600">Starting Soon</div>
+              <div className="text-sm text-gray-600">Live Reverse Auctions</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">1,247</div>
-              <div className="text-sm text-gray-600">Active Users</div>
+
+            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+              <div className="text-xl font-bold text-blue-600">
+                {upcomingForwardAuctions.length}
+              </div>
+              <div className="text-sm text-gray-600">
+                Upcoming Forward Auctions
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">$2.4M</div>
-              <div className="text-sm text-gray-600">Total Volume</div>
+
+            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+              <div className="text-xl font-bold text-purple-600">
+                {upcomingReverseAuctions.length}
+              </div>
+              <div className="text-sm text-gray-600">
+                Upcoming Reverse Auctions
+              </div>
             </div>
           </div>
         </div>
@@ -815,7 +931,7 @@ export default function AuctionsPage() {
                         <SelectValue placeholder="Category" />
                       </SelectTrigger>
                       <SelectContent className="z-50">
-                        {dbCategories.map((category) => (
+                        {mergedCategories.map((category) => (
                           <SelectItem
                             key={category.value}
                             value={category.value}
@@ -834,19 +950,16 @@ export default function AuctionsPage() {
                 {/* Type auction style */}
                 {/* <div className="flex gap-2 flex-wrap"> */}
                 <Select
-                  value={selectedauctiontype}
-                  onValueChange={setSelectedauctiontype}
+                  value={selectedSubtype}
+                  onValueChange={setSelectedSubtype}
                 >
                   <SelectTrigger className="w-40 h-12 max-w-full">
                     <SelectValue placeholder="Auction style" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    {languages.map((auctionsubtype) => (
-                      <SelectItem
-                        key={auctionsubtype.value}
-                        value={auctionsubtype.value}
-                      >
-                        {auctionsubtype.label}
+                    {subtypes.map((subtype) => (
+                      <SelectItem key={subtype.value} value={subtype.value}>
+                        {subtype.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

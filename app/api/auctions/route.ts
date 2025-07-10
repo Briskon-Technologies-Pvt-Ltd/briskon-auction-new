@@ -159,14 +159,15 @@ export async function GET() {
     const { data, error } = await supabase
       .from("auctions")
       .select(`
-    *,
-    seller:profiles!seller_id (fname, location)
-  `)
+        *,
+        profiles:seller (fname, lname, location)
+      `)
       .order("createdat", { ascending: false });
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
+
     return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json(
@@ -175,3 +176,4 @@ export async function GET() {
     );
   }
 }
+

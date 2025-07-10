@@ -178,7 +178,6 @@ export default function AuctionsPage() {
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
-  
 
   const filteredLanguages = languages.filter((lang) =>
     lang.label.toLowerCase().includes(auctionStyleSearch.toLowerCase())
@@ -234,7 +233,7 @@ export default function AuctionsPage() {
               (dbCat) => !categories.some((cat) => cat.value === dbCat.value)
             ),
           ];
-          
+
           return {
             id: a.id,
             title: a.productname || a.title || "Untitled Auction",
@@ -413,7 +412,7 @@ export default function AuctionsPage() {
         )}
 
         {/* Image Section with consistent aspect ratio */}
-        <div className="relative w-full aspect-[4/3] group">
+        <div className="relative w-full aspect-[4/3] group overflow-hidden rounded-t">
           {/* Subtype Badge */}
           <div className="absolute top-0 left-0 bg-slate-900 bg-opacity-80 text-white text-[12px] px-2 py-1 rounded z-20">
             {auction.auctionsubtype
@@ -423,30 +422,32 @@ export default function AuctionsPage() {
           </div>
 
           {/* Status Badge */}
-          <div className="absolute top-2 right-2 ">
+          <div className="absolute top-2 right-2 z-20">
             {auction.status === "live" && (
-              <Badge className="bg-green-500 text-white animate-pulse">
-                <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
+              <Badge className="bg-green-500 text-white animate-pulse flex items-center gap-1">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
                 LIVE
               </Badge>
             )}
             {auction.status === "upcoming" && (
-              <Badge className="bg-blue-500 text-white">
-                <Calendar className="h-3 w-3 mr-1" />
+              <Badge className="bg-blue-500 text-white flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
                 UPCOMING
               </Badge>
             )}
             {auction.status === "closed" && (
-              <Badge className="bg-gray-500 text-white">
-                <CheckCircle className="h-3 w-3 mr-1" />
+              <Badge className="bg-gray-500 text-white flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
                 CLOSED
               </Badge>
             )}
           </div>
 
           {/* Type Badge */}
-          <div className="absolute bottom-2 left-2">
-            <Badge className="flex items-center gap-1 bg-white/90 backdrop-blur-sm">
+          <div className="absolute bottom-2 left-2 z-20">
+            <Badge
+            variant="secondary" 
+            className="flex items-center gap-1 bg-white/90 backdrop-blur-sm">
               {auction.auctiontype === "forward" ? (
                 <TrendingUp className="h-3 w-3 text-green-500" />
               ) : (
@@ -457,11 +458,11 @@ export default function AuctionsPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Button size="sm" className="h-8 w-8 p-0 bg-white/90">
+          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+            <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
               <Heart className="h-3 w-3" />
             </Button>
-            <Button size="sm" className="h-8 w-8 p-0 bg-white/90">
+            <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
               <Share2 className="h-3 w-3" />
             </Button>
           </div>
@@ -472,7 +473,7 @@ export default function AuctionsPage() {
               src={currentImage}
               alt={auction.title}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer rounded-t"
+              className="object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
             />
           </Link>
         </div>
@@ -507,7 +508,6 @@ export default function AuctionsPage() {
               {auction.views ?? 0}
             </div>
           </div>
-
           {/* Title */}
           <h3 className="font-semibold mb-2 text-sm line-clamp-2 min-h-[40px] group-hover:text-brand-600 transition-colors">
             {auction.title}

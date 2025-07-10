@@ -111,7 +111,7 @@ const locations = [
   { value: "Bordeaux, France", label: "Bordeaux, France" },
 ];
 const subtypes = [
-  { value: "all", label: "All Subtypes" },
+  { value: "all", label: "All Styles" },
   { value: "sealed", label: "Sealed" },
   { value: "silent", label: "Silent" },
   { value: "dutch", label: "Dutch" },

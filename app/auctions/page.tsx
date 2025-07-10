@@ -446,8 +446,9 @@ export default function AuctionsPage() {
           {/* Type Badge */}
           <div className="absolute bottom-2 left-2 z-20">
             <Badge
-            variant="secondary" 
-            className="flex items-center gap-1 bg-white/90 backdrop-blur-sm">
+              variant="secondary"
+              className="flex items-center gap-1 bg-white/90 backdrop-blur-sm"
+            >
               {auction.auctiontype === "forward" ? (
                 <TrendingUp className="h-3 w-3 text-green-500" />
               ) : (
@@ -459,10 +460,14 @@ export default function AuctionsPage() {
 
           {/* Quick Actions */}
           <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-            <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
+            {/* <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
               <Heart className="h-3 w-3" />
-            </Button>
-            <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90">
+            </Button> */}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90"
+            >
               <Share2 className="h-3 w-3" />
             </Button>
           </div>
@@ -503,10 +508,10 @@ export default function AuctionsPage() {
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+            {/* <div className="flex items-center gap-1 text-xs text-gray-500">
               <Eye className="h-3 w-3" />
               {auction.views ?? 0}
-            </div>
+            </div> */}
           </div>
           {/* Title */}
           <h3 className="font-semibold mb-2 text-sm line-clamp-2 min-h-[40px] group-hover:text-brand-600 transition-colors">
@@ -614,16 +619,26 @@ export default function AuctionsPage() {
                   </div>
                 </div>
               )}
+              {/* sealed and silent   */}
+              {(auction.auctionsubtype === "sealed" ||
+                auction.auctionsubtype === "silent") && (
+                <div className="mb-2">
+                  <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
+                    Bids are confidential until opening
+                  </span>
+                </div>
+              )}
+
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
                 auction.currentBid !== undefined && (
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-600 ml-[2.5px]">
-                      Current Bid
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
+                      Current Bid:
                     </span>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
                       {auction.bidders === 0
-                        ? "No Bids Placed   "
+                        ? `${auction.currentBid}`
                         : `$${auction.currentBid.toLocaleString()}`}
                     </span>
                   </div>
@@ -855,7 +870,7 @@ export default function AuctionsPage() {
                   </SelectContent>
                 </Select>
 
-                <Button
+                {/* <Button
                   variant={viewMode === "grid" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
@@ -866,8 +881,8 @@ export default function AuctionsPage() {
                   }
                 >
                   <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant={viewMode === "list" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setViewMode("list")}
@@ -878,7 +893,7 @@ export default function AuctionsPage() {
                   }
                 >
                   <List className="h-4 w-4" />
-                </Button>
+                </Button> */}
               </div>
             </div>
           </CardContent>

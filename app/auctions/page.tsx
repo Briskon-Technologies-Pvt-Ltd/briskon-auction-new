@@ -628,7 +628,20 @@ export default function AuctionsPage() {
           <MapPin className="h-3 w-3" />
           {auction.location}
          </div> */}
-
+         {auction.auctiontype === "forward" && (
+          <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
+            {/* Seller Row */}
+            {auction.fname && (
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <PersonStanding className="w-3 h-3 text-green-500" />
+                  <span className="font-medium">Seller:</span>
+                </div>
+                <span className="font-medium">{auction.fname}</span>
+              </div>
+            )}
+          </div>
+             )}
           {/* Timings */}
           {auction.scheduledstart && auction.auctionduration && (
             <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
@@ -708,22 +721,6 @@ export default function AuctionsPage() {
           {/* Forward-specific details */}
           {auction.auctiontype === "forward" && (
             <>
-              {(auction.seller || auction.rating) && (
-                <div className="flex items-center gap-1 mb-3">
-                  {/* <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> */}
-                  {/* <span className="text-xs text-gray-600">
-                    {auction.rating} •
-                    {auction.seller}
-                  </span> */}
-                  <div className="flex items-center gap-1">
-                    <PersonStanding className="w-4 h-4 text-green-500" />
-                    <span className="text-xs text-gray-600">
-                      {" "}
-                      {auction.fname}
-                    </span>
-                  </div>
-                </div>
-              )}
               {/* sealed and silent   */}
               <div className="mb-2 min-h-[18px]">
                 {(auction.auctionsubtype === "sealed" ||

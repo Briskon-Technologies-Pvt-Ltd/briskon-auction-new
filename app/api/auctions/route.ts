@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       enablenotifications,
       notificationtypes,
       enableanalytics,
+      seller,
       reserveprice,
       createdby,
       status,
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
       ismultilot: ismultilot || false,
       productname,
       productdescription,
+      
       productimages: productimages || [], // Array of URLs
       productdocuments: productdocuments || [], // Array of URLs
       lots: parseJson(JSON.stringify(lots)),
@@ -136,6 +138,8 @@ export async function POST(request: Request) {
       templateid: null,
       categoryid: null,
       subcategoryid: null,
+      // seller: createdby,
+       seller: seller || null,
     };
 
     // Insert into Supabase

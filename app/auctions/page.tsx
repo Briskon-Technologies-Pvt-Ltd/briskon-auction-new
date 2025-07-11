@@ -27,6 +27,7 @@ import {
   Instagram,
   Twitter,
   Star,
+  CalendarPlus,
   Calendar,
   CheckCircle,
   MapPin,
@@ -47,6 +48,7 @@ import {
   Gavel,
   CircleStop,
   PersonStanding,
+  Currency,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -71,6 +73,7 @@ type AuctionItem = {
   deadline?: string;
   proposals?: number;
   buyer?: string;
+  currency?: string;
   startingBid?: number;
   startsIn?: string;
   finalBid?: number;
@@ -122,6 +125,15 @@ const auctiontypes = [
   { value: "forward", label: "Forward Auctions" },
   { value: "reverse", label: "Reverse Auctions" },
 ];
+// const currencySymbols: { [key: string]: string } = {
+//   USD: '$',
+//   INR: '₹',
+//   EUR: '€',
+//   GBP: '£',
+//   JPY: '¥',
+//   // Add more as needed
+// };
+// const currencySymbol = auction.currency ? currencySymbols[auction.currency] ?? '' : '';
 
 function LiveTimer({ time }: { time: string }) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -174,6 +186,7 @@ export default function AuctionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
+
   const [locations, setLocations] = useState([
     { value: "all", label: "All Locations" },
   ]);
@@ -185,6 +198,9 @@ export default function AuctionsPage() {
   const [allAuctionItems, setAllAuctionItems] = useState<AuctionItem[]>([]);
   // const [showShareMenu, setShowShareMenu] = useState(false);
   const [auctionStyleSearch, setAuctionStyleSearch] = useState("");
+  const [visibleLive, setVisibleLive] = useState(8);
+  const [visibleUpcoming, setVisibleUpcoming] = useState(8);
+  const [visibleClosed, setVisibleClosed] = useState(8);
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
@@ -194,6 +210,7 @@ export default function AuctionsPage() {
       (dbCat) => !categories.some((cat) => cat.value === dbCat.value)
     ),
   ];
+
   useEffect(() => {
     if (allAuctionItems.length === 0) return;
 
@@ -289,6 +306,7 @@ export default function AuctionsPage() {
             endedAgo: "", // You can calculate this if you have end time
             winner: a.winner || "",
             views: a.views,
+            currency: a.currency,
             watchers: a.watchers ?? undefined,
             productimages: a.productimages || [], // Array of Supabase Storage URLs
             productdocuments: a.productdocuments || [], // Array of Supabase Storage URLs
@@ -457,6 +475,18 @@ export default function AuctionsPage() {
     const isLoggedIn = !!user;
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showShareMenu, setShowShareMenu] = useState(false);
+    const currencySymbols: { [key: string]: string } = {
+      USD: "$",
+      INR: "₹",
+      EUR: "€",
+      GBP: "£",
+      JPY: "¥",
+      CAD: "CA$",
+      // Add more if needed
+    };
+    const currencySymbol = auction.currency
+      ? currencySymbols[auction.currency] ?? ""
+      : "";
 
     useEffect(() => {
       if (auction.productimages && auction.productimages.length > 1) {
@@ -575,7 +605,58 @@ export default function AuctionsPage() {
               </a>
             </div>
           )}
-          {/* </div> */}
+          <div className="absolute bottom-2 right-2 flex gap-1 group-hover:opacity-100 transition-opacity duration-300 z-20">
+            {/* Calendar Button */}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 flex items-center justify-center"
+              onClick={() => {
+                window.open(
+                  `https://www.google.com/calendar/render?action=TEMPLATE&text=Auction+Event&dates=20250711T180000Z/20250711T190000Z&details=Join+the+auction+at+https://yourdomain.com&location=https://yourdomain.com`,
+                  "_blank"
+                );
+              }}
+            >
+              <CalendarPlus className="h-4 w-4 text-green-600" />
+            </Button>
+
+            {/* Share Button */}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 flex items-center justify-center"
+              onClick={() => setShowShareMenu(!showShareMenu)}
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {showShareMenu && (
+            <div className="absolute bottom-12 right-2 bg-white border shadow-lg rounded-md p-2 z-30 flex gap-3">
+              <a
+                href="https://www.facebook.com/sharer/sharer.php?u=https://yourdomain.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Facebook className="w-5 h-5 text-blue-600 hover:scale-110 transition" />
+              </a>
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Instagram className="w-5 h-5 text-pink-500 hover:scale-110 transition" />
+              </a>
+              <a
+                href="https://twitter.com/intent/tweet?url=https://yourdomain.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Twitter className="w-5 h-5 text-blue-400 hover:scale-110 transition" />
+              </a>
+            </div>
+          )}
 
           {/* Image */}
           <Link href={auctionPath} className="block h-full w-full">
@@ -628,20 +709,20 @@ export default function AuctionsPage() {
           <MapPin className="h-3 w-3" />
           {auction.location}
          </div> */}
-         {auction.auctiontype === "forward" && (
-          <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
-            {/* Seller Row */}
-            {auction.fname && (
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1">
-                  <PersonStanding className="w-3 h-3 text-green-500" />
-                  <span className="font-medium">Seller:</span>
+          {auction.auctiontype === "forward" && (
+            <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
+              {/* Seller Row */}
+              {auction.fname && (
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1">
+                    <PersonStanding className="w-3 h-3 text-green-500" />
+                    <span className="font-medium">Seller:</span>
+                  </div>
+                  <span className="font-medium">{auction.fname}</span>
                 </div>
-                <span className="font-medium">{auction.fname}</span>
-              </div>
-            )}
-          </div>
-             )}
+              )}
+            </div>
+          )}
           {/* Timings */}
           {auction.scheduledstart && auction.auctionduration && (
             <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
@@ -722,30 +803,34 @@ export default function AuctionsPage() {
           {auction.auctiontype === "forward" && (
             <>
               {/* sealed and silent   */}
-              <div className="mb-2 min-h-[18px]">
-                {(auction.auctionsubtype === "sealed" ||
-                  auction.auctionsubtype === "silent") && (
-                  <span className="text-xs text-gray-600 font-semibold ml-[2.5px] pb-2">
-                    Bids are confidential until opening
-                  </span>
-                )}
+              <div className="mb-2">
+                {auction.status == "live" &&
+                  (auction.auctionsubtype === "sealed" ||
+                    auction.auctionsubtype === "silent") && (
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px] pb-2">
+                      Bids are confidential until opening
+                    </span>
+                  )}
               </div>
 
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
+                auction.auctionsubtype !== "silent" &&
                 auction.currentBid !== undefined && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
                       Current Bid:
                     </span>
-                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
-                      {auction.bidders === 0
-                        ? `${auction.currentBid}`
-                        : `$${auction.currentBid.toLocaleString()}`}
+                    <span className="font-bold text-blue-600">
+                      {currencySymbol}
+                      {auction.currentBid.toLocaleString()}
                     </span>
                   </div>
                 )}
+
               {auction.status === "upcoming" &&
+                auction.auctionsubtype !== "sealed" &&
+                auction.auctionsubtype !== "silent" &&
                 auction.startingBid !== undefined && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-600">Starting Bid</span>
@@ -815,7 +900,9 @@ export default function AuctionsPage() {
               asChild
             >
               <Link href={auctionPath}>
-                {auction.status === "live"
+                {auction.status === "closed"
+                  ? "Auction Summary"
+                  : auction.status === "live"
                   ? isLoggedIn
                     ? "View & Bid"
                     : "View Auction"
@@ -826,6 +913,26 @@ export default function AuctionsPage() {
         </CardContent>
       </Card>
     );
+  };
+  const handleLoadMore = (tab: "live" | "upcoming" | "closed") => {
+    if (tab === "live") {
+      setVisibleLive((prev) => {
+        const next = prev + 8;
+        return next >= liveAuctions.length ? liveAuctions.length : next;
+      });
+    }
+    if (tab === "upcoming") {
+      setVisibleUpcoming((prev) => {
+        const next = prev + 8;
+        return next >= upcomingAuctions.length ? upcomingAuctions.length : next;
+      });
+    }
+    if (tab === "closed") {
+      setVisibleClosed((prev) => {
+        const next = prev + 8;
+        return next >= closedAuctions.length ? closedAuctions.length : next;
+      });
+    }
   };
 
   return (
@@ -848,21 +955,24 @@ export default function AuctionsPage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
             <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
-              <div className="text-xl font-bold text-brand-600">
+              <div className="text-xl font-bold text-orange-600 flex items-center justify-center gap-1">
+                <TrendingUp className="h-4 w-4 text-gray-600" />
                 {liveForwardAuctions.length}
               </div>
               <div className="text-sm text-gray-600">Live Forward Auctions</div>
             </div>
 
             <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
-              <div className="text-xl font-bold text-green-600">
-                {liveReverseAuctions.length}
+              <div className="text-xl font-bold text-teal-600 flex items-center justify-center gap-1">
+                <TrendingDown className="h-4 w-4 text-gray-600" />
+                {liveForwardAuctions.length}
               </div>
               <div className="text-sm text-gray-600">Live Reverse Auctions</div>
             </div>
 
             <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
-              <div className="text-xl font-bold text-blue-600">
+              <div className="text-xl font-bold text-orange-600 flex items-center justify-center gap-1">
+                <TrendingUp className="h-4 w-4 text-gray-600" />
                 {upcomingForwardAuctions.length}
               </div>
               <div className="text-sm text-gray-600">
@@ -871,7 +981,8 @@ export default function AuctionsPage() {
             </div>
 
             <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
-              <div className="text-xl font-bold text-purple-600">
+              <div className="text-xl font-bold text-teal-600 flex items-center justify-center gap-1">
+                <TrendingDown className="h-4 w-4 text-gray-600" />
                 {upcomingReverseAuctions.length}
               </div>
               <div className="text-sm text-gray-600">
@@ -1038,13 +1149,9 @@ export default function AuctionsPage() {
           <TabsContent value="live" className="mt-8">
             {liveAuctions.length > 0 ? (
               <div
-                className={`grid gap-6 ${
-                  viewMode === "grid"
-                    ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    : "grid-cols-1"
-                }`}
+                className={`grid gap-6 ${"md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
               >
-                {liveAuctions.map((auction) => (
+                {liveAuctions.slice(0, visibleLive).map((auction) => (
                   <AuctionCard key={auction.id} auction={auction} />
                 ))}
               </div>
@@ -1061,18 +1168,26 @@ export default function AuctionsPage() {
                 </p>
               </div>
             )}
+            {visibleLive < liveAuctions.length && (
+              <div className="text-center mt-12">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-8 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
+                  onClick={() => handleLoadMore("live")}
+                >
+                  Load More Auctions
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="upcoming" className="mt-8">
             {upcomingAuctions.length > 0 ? (
               <div
-                className={`grid gap-6 ${
-                  viewMode === "grid"
-                    ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    : "grid-cols-1"
-                }`}
+                className={`grid gap-6 ${"md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
               >
-                {upcomingAuctions.map((auction) => (
+                {upcomingAuctions.slice(0, visibleUpcoming).map((auction) => (
                   <AuctionCard key={auction.id} auction={auction} />
                 ))}
               </div>
@@ -1089,18 +1204,26 @@ export default function AuctionsPage() {
                 </p>
               </div>
             )}
+            {visibleUpcoming < upcomingAuctions.length && (
+              <div className="text-center mt-12">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-8 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
+                  onClick={() => handleLoadMore("upcoming")}
+                >
+                  Load More Auctions
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="closed" className="mt-8">
             {closedAuctions.length > 0 ? (
               <div
-                className={`grid gap-6 ${
-                  viewMode === "grid"
-                    ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    : "grid-cols-1"
-                }`}
+                className={`grid gap-6 ${"md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
               >
-                {closedAuctions.map((auction) => (
+                {closedAuctions.slice(0, visibleClosed).map((auction) => (
                   <AuctionCard key={auction.id} auction={auction} />
                 ))}
               </div>
@@ -1117,19 +1240,20 @@ export default function AuctionsPage() {
                 </p>
               </div>
             )}
+            {visibleClosed < closedAuctions.length && (
+              <div className="text-center mt-12">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-8 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
+                  onClick={() => handleLoadMore("closed")}
+                >
+                  Load More Auctions
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
-
-        {/* Load More */}
-        <div className="text-center mt-12">
-          <Button
-            variant="outline"
-            size="lg"
-            className="px-8 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400"
-          >
-            Load More Auctions
-          </Button>
-        </div>
       </div>
     </div>
   );

@@ -91,14 +91,14 @@ type AuctionItem = {
 
 const categories = [
   { value: "all", label: "All Categories" },
-  { value: "electronics", label: "Electronics" },
-  { value: "fashion", label: "Fashion" },
-  { value: "watches", label: "Watches" },
-  { value: "collectibles", label: "Collectibles" },
-  { value: "automotive", label: "Automotive" },
-  { value: "services", label: "Services" },
-  { value: "office-supplies", label: "Office Supplies" },
-  { value: "technology", label: "Technology" },
+  // { value: "electronics", label: "Electronics" },
+  // { value: "fashion", label: "Fashion" },
+  // { value: "watches", label: "Watches" },
+  // { value: "collectibles", label: "Collectibles" },
+  // { value: "automotive", label: "Automotive" },
+  // { value: "services", label: "Services" },
+  // { value: "office-supplies", label: "Office Supplies" },
+  // { value: "technology", label: "Technology" },
 ];
 
 const locations = [
@@ -249,6 +249,7 @@ export default function AuctionsPage() {
       try {
         const res = await fetch("/api/auctions");
         const json = await res.json();
+        console.log("Fetched auctions:", json.data); // Debug log
         if (!json.success) return;
 
         const mapped: AuctionItem[] = (json.data || []).map((a: any) => {
@@ -825,6 +826,20 @@ export default function AuctionsPage() {
                       {currencySymbol}
                       {auction.currentBid.toLocaleString()}
                     </span>
+                  </div>
+                )}
+              {auction.status === "live" &&
+                auction.auctionsubtype !== "sealed" &&
+                auction.auctionsubtype !== "silent" &&
+                auction.currentBid !== undefined && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
+                      Starting Bid:
+                    </span>
+                    {/* <span className="font-bold text-blue-600">
+                      {currencySymbol}
+                      {auction.toLocaleString()}
+                    </span> */}
                   </div>
                 )}
 

@@ -32,6 +32,10 @@ interface Auction {
 }
 
 interface AuctionResponse extends Auction {
+  profiles?: {
+    fname: string;
+    location: string;
+  };
   timeLeft?: string;
 }
 
@@ -58,6 +62,8 @@ export async function GET(
       .select(`
         id,
         productname,
+         seller,
+      profiles:profiles!seller(fname, location),
         productdescription,
         productimages,
         productdocuments,
@@ -395,5 +401,5 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({ success: false, error: updateError.message }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, views: updatedData.views });
+  return NextResponse.json({ success: true, views: updatedData.views });  
 }

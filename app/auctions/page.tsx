@@ -769,6 +769,7 @@ export default function AuctionsPage() {
               </div>
             )}
 
+
             {auction.status === "upcoming" && auction.startsIn && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600 ml-[2.5px]">

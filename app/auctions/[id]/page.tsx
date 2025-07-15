@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import LiveTimer from "@/app/livetimer/page";
-// import { DateTime } from "luxon";
 import {
   Clock,
   Users,
@@ -195,10 +194,7 @@ export default function AuctionDetailPage() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("Loading...");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [answerInput, setAnswerInput] = useState<{
-    index: number;
-    value: string;
-  } | null>(null);
+  const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
   const router = useRouter();
   const [bids, setBids] = useState<
     { userid: string; amount: number; created_at: string }[]
@@ -211,7 +207,7 @@ export default function AuctionDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const isLoggedIn = !!user;
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
+  
   useEffect(() => {
     if (!auctionId) return;
     fetch(`/api/views/${auctionId}`, {
@@ -244,11 +240,7 @@ export default function AuctionDetailPage() {
         const participants = Array.isArray(json.data.participants)
           ? json.data.participants
           : [];
-        const updatedAuction: Auction = {
-          ...json.data,
-          id: auctionId,
-          participants,
-        }; // Ensure id is set
+        const updatedAuction = { ...json.data, participants };
         console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
 
@@ -274,17 +266,14 @@ export default function AuctionDetailPage() {
                 profileJson.data.email ||
                 bid.user_id
               : `User ${bid.user_id} (Profile not found)`;
-            const bidTimeIST = DateTime.fromISO(bid.created_at)
-              .setZone("Asia/Kolkata")
-              .toLocaleString({
-                hour12: true,
-                hour: "2-digit",
-                minute: "2-digit",
-              });
             return {
               bidder: bidderName,
               amount: bid.amount,
-              time: bidTimeIST,
+              time: new Date(bid.created_at).toLocaleString("en-US", {
+                hour12: true,
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
             };
           });
           const history = await Promise.all(historyPromises);
@@ -326,7 +315,6 @@ export default function AuctionDetailPage() {
 
     if (auction?.id) fetchBids();
   }, [auction?.id]);
-
   const handlePlaceBid = async () => {
     if (!isAuthenticated) {
       setShowLoginPrompt(true);
@@ -345,61 +333,67 @@ export default function AuctionDetailPage() {
       return;
     }
 
+    // Check for sealed auction participant restriction only
     if (
       auction?.auctionsubtype === "sealed" &&
-      auction?.participants?.some((p) => user?.id && p.includes(user.id ?? ""))
+      auction?.participants?.includes(user.id)
     ) {
       alert(
-        "You have already submitted a bid for this sealed auction and cannot bid again."
+        "You have already submitted a bid for this auction and cannot bid again."
       );
       return;
     }
 
-    const round = (val: number) =>
-      Math.round((val + Number.EPSILON) * 100) / 100;
-    const expectedBid = round(getMinimumBid());
-    const userAmount = round(Number(bidAmount));
+    // Minimum bid validation
     if (auction?.auctionsubtype === "sealed") {
-      if (userAmount < (auction.startprice ?? 0)) {
+      if (amount < (auction.startprice || 0)) {
         alert(
-          `Bid must be at least $${(auction.startprice ?? 0).toLocaleString()}`
+          `Bid must be at least $${(auction.startprice || 0).toLocaleString()}.`
         );
         return;
       }
-    } else if (userAmount !== expectedBid) {
-      let incrementDetails = "";
-      if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
-        incrementDetails = `Minimum increment: $${(
-          auction.minimumincrement ?? 0
-        ).toLocaleString()} (fixed)`;
-      } else if (
-        auction?.bidincrementtype === "percentage" &&
-        auction?.percent &&
-        auction?.currentbid
-      ) {
-        const increment = round(
-          (auction.currentbid ?? 0) * (auction.percent / 100)
-        );
-        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
-          auction.percent
-        }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
-      }
+    } else {
+      const round = (val: number) =>
+        Math.round((val + Number.EPSILON) * 100) / 100;
+      const expectedBid = round(getMinimumBid());
+      const userAmount = round(Number(bidAmount));
 
-      alert(
-        `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
-      );
-      return;
+      if (userAmount !== expectedBid) {
+        let incrementDetails = "";
+
+        if (
+          auction?.bidincrementtype === "fixed" &&
+          auction?.minimumincrement
+        ) {
+          incrementDetails = `Minimum increment: $${auction.minimumincrement.toLocaleString()} (fixed)`;
+        } else if (
+          auction?.bidincrementtype === "percentage" &&
+          auction?.percent &&
+          auction?.currentbid
+        ) {
+          const increment = round(auction.currentbid * (auction.percent / 100));
+          incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
+            auction.percent
+          }% of $${auction.currentbid.toLocaleString()})`;
+        }
+
+        alert(
+          `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+        );
+        return;
+      }
     }
 
     try {
       console.log("Placing bid:", { auctionId, userId: user.id, amount });
       const formData = new FormData();
-      formData.append("action", "bid");
-      formData.append("user_id", user.id ?? "");
-      formData.append("user_email", user.email ?? "");
+      formData.append("user_id", user.id);
+      formData.append("user_email", user.email);
       formData.append("amount", amount.toString());
-      const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
-      if (createdAt) formData.append("created_at", createdAt);
+      formData.append("created_at", new Date().toISOString());
+
+      // Optionally append images and documents if available (e.g., from a file input)
+      // Example: if (selectedImages) formData.append("images[0]", selectedImages[0]);
 
       const bidRes = await fetch(`/api/auctions/${auctionId}`, {
         method: "PUT",
@@ -409,24 +403,24 @@ export default function AuctionDetailPage() {
       if (!bidJson.success)
         throw new Error(bidJson.error || "Failed to record bid");
 
-      const auctionRes = await fetch(`/api/auctions/${auctionId}`);
+      const auctionRes = await fetch(`/api/auctions/${auctionId}`); // Refresh auction data
       const auctionJson = await auctionRes.json();
       if (!auctionJson.success)
         throw new Error(auctionJson.error || "Failed to fetch updated auction");
 
-      const startIST = DateTime.fromISO(auction.scheduledstart, {
-        zone: "utc",
-      }).setZone("Asia/Kolkata");
+      const start = new Date(auctionJson.data.scheduledstart || "");
       const duration = auctionJson.data.auctionduration
         ? ((d) =>
-            (d.days ?? 0) * 24 * 60 * 60 +
-            (d.hours ?? 0) * 60 * 60 +
-            (d.minutes ?? 0) * 60)(auctionJson.data.auctionduration)
+            (d.days || 0) * 24 * 60 * 60 +
+            (d.hours || 0) * 60 * 60 +
+            (d.minutes || 0) * 60)(auctionJson.data.auctionduration)
         : 0;
-      const endIST = startIST.plus({ seconds: duration });
+      const end = new Date(start.getTime() + duration * 1000);
+      const timeLeft = calculateTimeLeft(end);
 
-      setAuction({ ...auctionJson.data, id: auctionId });
+      setAuction({ ...auctionJson.data, timeLeft });
 
+      // Refetch bid history after successful bid
       const bidResUpdated = await fetch(`/api/bids/${auctionId}`);
       const bidJsonUpdated = await bidResUpdated.json();
       if (bidJsonUpdated.success) {
@@ -442,23 +436,20 @@ export default function AuctionDetailPage() {
             profileJson
           );
           const bidderName = profileJson.success
-            ? `${profileJson.data.fname ?? ""} ${
-                profileJson.data.lname ?? ""
+            ? `${profileJson.data.fname || ""} ${
+                profileJson.data.lname || ""
               }`.trim() ||
               profileJson.data.email ||
               bid.user_id
             : `User ${bid.user_id} (Profile not found)`;
-          const bidTimeIST = DateTime.fromISO(bid.created_at)
-            .setZone("Asia/Kolkata")
-            .toLocaleString({
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            });
           return {
             bidder: bidderName,
             amount: bid.amount,
-            time: bidTimeIST,
+            time: new Date(bid.created_at).toLocaleString("en-US", {
+              hour12: true,
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
           };
         });
         const history = await Promise.all(historyPromises);
@@ -709,7 +700,7 @@ export default function AuctionDetailPage() {
                       value="specifications"
                       className="hover:bg-gray-100 hover:text-primary transition-colors"
                     >
-                      Specifications
+                      Specification
                     </TabsTrigger>
                     {/* {isLoggedIn && (
                       <TabsTrigger
@@ -936,7 +927,7 @@ export default function AuctionDetailPage() {
           <div className="space-y-6">
             {/* Bidding Card */}
             <Card>
-              <div className="space-y-3 mb-5 px-4 gap-1">
+              <div className="space-y-3 mb-5 px-4 gap-2">
                 {/* Top Row: Left and Right Labels */}
                 <div className="flex mt-4 mb-2">
                   <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex gap-2">
@@ -980,22 +971,17 @@ export default function AuctionDetailPage() {
                     </span>
                   </div>
                 )}
-
-                <div className="space-y-1">
-                  {" "}
-                  {/* reduce from space-y-3 or space-y-2 */}
-                  {/* Starting Bid */}
-                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                    <div className="flex items-center gap-1">
-                      <Tag className="w-[11px] h-[11px] text-red-500" />
-                      <span>Starting Bid:</span>
-                    </div>
-                    <span className="font-semibold text-green-600 text-base">
-                      ${auction.startprice?.toLocaleString() || "N/A"}
-                    </span>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-1">
+                    <Tag className="w-[11px] h-[11px] text-red-500" />
+                    <span>Starting Bid:</span>
                   </div>
-                  {/* Current Bid */}
-                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                  <span className="font-semibold text-green-600 text-base">
+                    ${auction.startprice?.toLocaleString() || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Tag className="w-[11px] h-[11px] text-blue-500" />
                       <span>Current Bid:</span>
@@ -1004,8 +990,7 @@ export default function AuctionDetailPage() {
                       ${auction.currentbid?.toLocaleString() || "N/A"}
                     </span>
                   </div>
-                </div>
-
+                  </div>
                 {auction.scheduledstart && auction.auctionduration && (
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
@@ -1195,6 +1180,7 @@ export default function AuctionDetailPage() {
                 </CardContent>
               )}
             </Card>
+            {/* Bid Leaders Board */}
             <Card>
               <CardHeader className="pb-3">
                 <h3 className="text-base font-semibold text-gray-800 dark:text-white">

@@ -724,6 +724,7 @@ export default function AuctionsPage() {
               )}
             </div>
           )}
+          
           {/* Timings */}
           {auction.scheduledstart && auction.auctionduration && (
             <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
@@ -767,7 +768,7 @@ export default function AuctionsPage() {
                 <LiveTimer time={auction.timeLeft} />
               </div>
             )}
-              
+
             {auction.status === "upcoming" && auction.startsIn && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600 ml-[2.5px]">

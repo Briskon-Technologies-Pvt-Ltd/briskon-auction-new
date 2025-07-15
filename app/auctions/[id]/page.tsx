@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
+import LiveTimer from "@/app/livetimer/page";
+// import { DateTime } from "luxon";
 import {
   Clock,
   Users,
@@ -135,6 +137,11 @@ interface Auction {
     fname: string;
     location: string;
   };
+  bids?: {
+    userid: string;
+    username?: string;
+    amount: number;
+  }[];
   productimages?: string[];
   productdocuments?: string[];
   productdescription?: string;
@@ -144,6 +151,12 @@ interface Auction {
   bidcount?: number;
   createdby?: string; // Email of the user who created the auction
   timeLeft?: string;
+  starttime: string; // or Date, depending on your data
+  duration: {
+    days?: number;
+    hours?: number;
+    minutes?: number;
+  };
   questions?: {
     user: string;
     question: string;
@@ -178,9 +191,18 @@ export default function AuctionDetailPage() {
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newQuestion, setNewQuestion] = useState("");
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>("Loading...");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [answerInput, setAnswerInput] = useState<{
+    index: number;
+    value: string;
+  } | null>(null);
   const router = useRouter();
+  const [bids, setBids] = useState<
+    { userid: string; amount: number; created_at: string }[]
+  >([]);
 
   const [bidHistory, setBidHistory] = useState<
     { bidder: string; amount: number; time: string }[]
@@ -197,6 +219,7 @@ export default function AuctionDetailPage() {
     });
   }, [auctionId]);
   // slide show every five second
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) =>
@@ -221,7 +244,11 @@ export default function AuctionDetailPage() {
         const participants = Array.isArray(json.data.participants)
           ? json.data.participants
           : [];
-        const updatedAuction = { ...json.data, participants };
+        const updatedAuction: Auction = {
+          ...json.data,
+          id: auctionId,
+          participants,
+        }; // Ensure id is set
         console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
 
@@ -247,14 +274,17 @@ export default function AuctionDetailPage() {
                 profileJson.data.email ||
                 bid.user_id
               : `User ${bid.user_id} (Profile not found)`;
-            return {
-              bidder: bidderName,
-              amount: bid.amount,
-              time: new Date(bid.created_at).toLocaleString("en-US", {
+            const bidTimeIST = DateTime.fromISO(bid.created_at)
+              .setZone("Asia/Kolkata")
+              .toLocaleString({
                 hour12: true,
                 hour: "2-digit",
                 minute: "2-digit",
-              }),
+              });
+            return {
+              bidder: bidderName,
+              amount: bid.amount,
+              time: bidTimeIST,
             };
           });
           const history = await Promise.all(historyPromises);
@@ -272,6 +302,30 @@ export default function AuctionDetailPage() {
     };
     fetchAuctionDetails();
   }, [auctionId]);
+  // bid   leader board
+  useEffect(() => {
+    const fetchBids = async () => {
+      try {
+        const res = await fetch(`/api/bids/${auctionId}`);
+        const json = await res.json();
+
+        if (json.success && Array.isArray(json.data)) {
+          const sorted = json.data
+            .sort((a: any, b: any) => b.amount - a.amount)
+            .map((bid: any) => ({
+              userid: bid.user_id,
+              amount: bid.amount,
+              created_at: bid.created_at,
+            }));
+          setBids(sorted);
+        }
+      } catch (error) {
+        console.error("Failed to load bids:", error);
+      }
+    };
+
+    if (auction?.id) fetchBids();
+  }, [auction?.id]);
 
   const handlePlaceBid = async () => {
     if (!isAuthenticated) {
@@ -291,67 +345,61 @@ export default function AuctionDetailPage() {
       return;
     }
 
-    // Check for sealed auction participant restriction only
     if (
       auction?.auctionsubtype === "sealed" &&
-      auction?.participants?.includes(user.id)
+      auction?.participants?.some((p) => user?.id && p.includes(user.id ?? ""))
     ) {
       alert(
-        "You have already submitted a bid for this auction and cannot bid again."
+        "You have already submitted a bid for this sealed auction and cannot bid again."
       );
       return;
     }
 
-    // Minimum bid validation
+    const round = (val: number) =>
+      Math.round((val + Number.EPSILON) * 100) / 100;
+    const expectedBid = round(getMinimumBid());
+    const userAmount = round(Number(bidAmount));
     if (auction?.auctionsubtype === "sealed") {
-      if (amount < (auction.startprice || 0)) {
+      if (userAmount < (auction.startprice ?? 0)) {
         alert(
-          `Bid must be at least $${(auction.startprice || 0).toLocaleString()}.`
+          `Bid must be at least $${(auction.startprice ?? 0).toLocaleString()}`
         );
         return;
       }
-    } else {
-      const round = (val: number) =>
-        Math.round((val + Number.EPSILON) * 100) / 100;
-      const expectedBid = round(getMinimumBid());
-      const userAmount = round(Number(bidAmount));
-
-      if (userAmount !== expectedBid) {
-        let incrementDetails = "";
-
-        if (
-          auction?.bidincrementtype === "fixed" &&
-          auction?.minimumincrement
-        ) {
-          incrementDetails = `Minimum increment: $${auction.minimumincrement.toLocaleString()} (fixed)`;
-        } else if (
-          auction?.bidincrementtype === "percentage" &&
-          auction?.percent &&
-          auction?.currentbid
-        ) {
-          const increment = round(auction.currentbid * (auction.percent / 100));
-          incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
-            auction.percent
-          }% of $${auction.currentbid.toLocaleString()})`;
-        }
-
-        alert(
-          `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+    } else if (userAmount !== expectedBid) {
+      let incrementDetails = "";
+      if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
+        incrementDetails = `Minimum increment: $${(
+          auction.minimumincrement ?? 0
+        ).toLocaleString()} (fixed)`;
+      } else if (
+        auction?.bidincrementtype === "percentage" &&
+        auction?.percent &&
+        auction?.currentbid
+      ) {
+        const increment = round(
+          (auction.currentbid ?? 0) * (auction.percent / 100)
         );
-        return;
+        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
+          auction.percent
+        }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
       }
+
+      alert(
+        `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+      );
+      return;
     }
 
     try {
       console.log("Placing bid:", { auctionId, userId: user.id, amount });
       const formData = new FormData();
-      formData.append("user_id", user.id);
-      formData.append("user_email", user.email);
+      formData.append("action", "bid");
+      formData.append("user_id", user.id ?? "");
+      formData.append("user_email", user.email ?? "");
       formData.append("amount", amount.toString());
-      formData.append("created_at", new Date().toISOString());
-
-      // Optionally append images and documents if available (e.g., from a file input)
-      // Example: if (selectedImages) formData.append("images[0]", selectedImages[0]);
+      const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
+      if (createdAt) formData.append("created_at", createdAt);
 
       const bidRes = await fetch(`/api/auctions/${auctionId}`, {
         method: "PUT",
@@ -361,24 +409,24 @@ export default function AuctionDetailPage() {
       if (!bidJson.success)
         throw new Error(bidJson.error || "Failed to record bid");
 
-      const auctionRes = await fetch(`/api/auctions/${auctionId}`); // Refresh auction data
+      const auctionRes = await fetch(`/api/auctions/${auctionId}`);
       const auctionJson = await auctionRes.json();
       if (!auctionJson.success)
         throw new Error(auctionJson.error || "Failed to fetch updated auction");
 
-      const start = new Date(auctionJson.data.scheduledstart || "");
+      const startIST = DateTime.fromISO(auction.scheduledstart, {
+        zone: "utc",
+      }).setZone("Asia/Kolkata");
       const duration = auctionJson.data.auctionduration
         ? ((d) =>
-            (d.days || 0) * 24 * 60 * 60 +
-            (d.hours || 0) * 60 * 60 +
-            (d.minutes || 0) * 60)(auctionJson.data.auctionduration)
+            (d.days ?? 0) * 24 * 60 * 60 +
+            (d.hours ?? 0) * 60 * 60 +
+            (d.minutes ?? 0) * 60)(auctionJson.data.auctionduration)
         : 0;
-      const end = new Date(start.getTime() + duration * 1000);
-      const timeLeft = calculateTimeLeft(end);
+      const endIST = startIST.plus({ seconds: duration });
 
-      setAuction({ ...auctionJson.data, timeLeft });
+      setAuction({ ...auctionJson.data, id: auctionId });
 
-      // Refetch bid history after successful bid
       const bidResUpdated = await fetch(`/api/bids/${auctionId}`);
       const bidJsonUpdated = await bidResUpdated.json();
       if (bidJsonUpdated.success) {
@@ -394,20 +442,23 @@ export default function AuctionDetailPage() {
             profileJson
           );
           const bidderName = profileJson.success
-            ? `${profileJson.data.fname || ""} ${
-                profileJson.data.lname || ""
+            ? `${profileJson.data.fname ?? ""} ${
+                profileJson.data.lname ?? ""
               }`.trim() ||
               profileJson.data.email ||
               bid.user_id
             : `User ${bid.user_id} (Profile not found)`;
-          return {
-            bidder: bidderName,
-            amount: bid.amount,
-            time: new Date(bid.created_at).toLocaleString("en-US", {
+          const bidTimeIST = DateTime.fromISO(bid.created_at)
+            .setZone("Asia/Kolkata")
+            .toLocaleString({
               hour12: true,
               hour: "2-digit",
               minute: "2-digit",
-            }),
+            });
+          return {
+            bidder: bidderName,
+            amount: bid.amount,
+            time: bidTimeIST,
           };
         });
         const history = await Promise.all(historyPromises);
@@ -648,15 +699,38 @@ export default function AuctionDetailPage() {
               <CardContent>
                 <Tabs defaultValue="description" className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="description">Description</TabsTrigger>
-                    <TabsTrigger value="specifications">
-                      Specification
+                    <TabsTrigger
+                      value="description"
+                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                    >
+                      Description
                     </TabsTrigger>
+                    <TabsTrigger
+                      value="specifications"
+                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                    >
+                      Specifications
+                    </TabsTrigger>
+                    {/* {isLoggedIn && (
+                      <TabsTrigger
+                        value="bids"
+                        className="hover:bg-gray-100 hover:text-primary transition-colors"
+                      >
+                        Bid History
+                      </TabsTrigger>
+                    )} */}
                     {isLoggedIn && (
-                      <TabsTrigger value="bids">Bid History</TabsTrigger>
+                      <TabsTrigger
+                        value="qa"
+                        className="hover:bg-gray-100 hover:text-primary transition-colors"
+                      >
+                        Q&A
+                      </TabsTrigger>
                     )}
-                    {isLoggedIn && <TabsTrigger value="qa">Q&A</TabsTrigger>}
-                    <TabsTrigger value="documentation">
+                    <TabsTrigger
+                      value="documentation"
+                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                    >
                       Documentation
                     </TabsTrigger>
                   </TabsList>
@@ -862,18 +936,18 @@ export default function AuctionDetailPage() {
           <div className="space-y-6">
             {/* Bidding Card */}
             <Card>
-              <div className="space-y-3 mb-5 px-4 gap-2">
+              <div className="space-y-3 mb-5 px-4 gap-1">
                 {/* Top Row: Left and Right Labels */}
-                <div className="flex items-center justify-between mt-4 mb-2">
-                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    <Gavel className="w-5 h-5 text-blue-600" />
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Auction Detail:
-                    </span>
-                    <span className="text-xl font-bold text-gray-900 dark:text-white">
-                      {auction.productname || "Auction Item"}
+                <div className="flex mt-4 mb-2">
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex gap-2">
+                    <Gavel className="w-5 h-5 text-blue-600 animate-bounce" />
+                    <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      Auction Details:
                     </span>
                   </h2>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white ml-2">
+                    {auction.productname || "Auction Item"}
+                  </p>
                 </div>
 
                 {/* Start Date */}
@@ -881,7 +955,7 @@ export default function AuctionDetailPage() {
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Timer className="w-[12px] h[12px] text-green-500" />
-                      <span>Start Date:</span>
+                      <span>Starts:</span>
                     </div>
                     <span>
                       {formatDateTime(new Date(auction.scheduledstart))}
@@ -894,7 +968,7 @@ export default function AuctionDetailPage() {
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <CircleStop className="w-[11px] h-[11px] text-red-500" />
-                      <span>End Date:</span>
+                      <span>Ends:</span>
                     </div>
                     <span className="">
                       {formatDateTime(
@@ -907,25 +981,45 @@ export default function AuctionDetailPage() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                  <div className="flex items-center gap-1">
-                    <Tag className="w-[11px] h-[11px] text-red-500" />
-                    <span>Start Price:</span>
+                <div className="space-y-1">
+                  {" "}
+                  {/* reduce from space-y-3 or space-y-2 */}
+                  {/* Starting Bid */}
+                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Tag className="w-[11px] h-[11px] text-red-500" />
+                      <span>Starting Bid:</span>
+                    </div>
+                    <span className="font-semibold text-green-600 text-base">
+                      ${auction.startprice?.toLocaleString() || "N/A"}
+                    </span>
                   </div>
-                  <span className="font-semibold text-green-600 text-base">
-                    ${auction.startprice?.toLocaleString() || "N/A"}
-                  </span>
+                  {/* Current Bid */}
+                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Tag className="w-[11px] h-[11px] text-blue-500" />
+                      <span>Current Bid:</span>
+                    </div>
+                    <span className="font-semibold text-blue-600 text-base">
+                      ${auction.currentbid?.toLocaleString() || "N/A"}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                  <div className="flex items-center gap-1">
-                    <Hourglass className="w-[11px] h-[11px] text-red-500 " />
-                    <span>Ends In:</span>
+                {auction.scheduledstart && auction.auctionduration && (
+                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Hourglass className="w-[11px] h-[11px] text-red-500" />
+                      <span>Ends In:</span>
+                    </div>
+
+                    {/* LiveTimer rendered directly, not inside another <span> */}
+                    <LiveTimer
+                      startTime={auction.scheduledstart}
+                      duration={auction.auctionduration}
+                    />
                   </div>
-                  <span className="font-semibold text-red-600 text-base">
-                    {auction.timeLeft || "N/A"}
-                  </span>
-                </div>
+                )}
 
                 <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                   <span>Bidders:</span>
@@ -1035,7 +1129,7 @@ export default function AuctionDetailPage() {
                         }}
                       >
                         <Button
-                          className="w-full transition-smooth hover-lift transform-3d"
+                          className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
                           onClick={handlePlaceBid}
                           disabled={isButtonDisabled}
                           style={{
@@ -1075,7 +1169,7 @@ export default function AuctionDetailPage() {
                       )}
                     </div>
                   )}
-                  {auction?.auctionsubtype === "sealed" && (
+                  {isLoggedIn && auction?.auctionsubtype === "sealed" && (
                     <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                       <AlertCircle className="h-4 w-4" />
                       <span>
@@ -1101,6 +1195,59 @@ export default function AuctionDetailPage() {
                 </CardContent>
               )}
             </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <h3 className="text-base font-semibold text-gray-800 dark:text-white">
+                  Bid Leaders Board
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Top buyers ranked by bid amount
+                </p>
+              </CardHeader>
+
+              <CardContent className="overflow-x-auto">
+                <table className="min-w-full text-sm border border-gray-300">
+                  <thead className="bg-gray-900 text-white text-left">
+                    <tr>
+                      <th className="py-2 px-3 border-r border-white">
+                        Buyer Name
+                      </th>
+                      <th className="py-2 px-3">Bid Price ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-white border-t border-gray-300">
+                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        Rahul Sharma
+                      </td>
+                      <td className="py-2 px-3">1,10,000.00</td>
+                    </tr>
+                    <tr className="bg-green-300 font-semibold border-t border-gray-300">
+                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        Anita Verma
+                      </td>
+                      <td className="py-2 px-3">1,00,000.00</td>
+                    </tr>
+                    <tr className="bg-white border-t border-gray-300">
+                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        Mohit Agarwal
+                      </td>
+                      <td className="py-2 px-3">95,000.00</td>
+                    </tr>
+                    <tr className="bg-white border-t border-gray-300">
+                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        Sneha Patel
+                      </td>
+                      <td className="py-2 px-3">91,000.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
 
             {/* Seller Info */}
             <Card>
@@ -1116,8 +1263,8 @@ export default function AuctionDetailPage() {
               <CardContent className="space-y-2 text-sm text-gray-700 dark:text-gray-300 mt-2">
                 {/* Seller Row */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <PersonStanding className="w-3 h-3 text-green-500" />
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
+                    <PersonStanding className="w-3 h-3 text-green-500 " />
                     <span className="font-xs">Seller:</span>
                   </div>
                   <span className="font-medium">
@@ -1126,7 +1273,7 @@ export default function AuctionDetailPage() {
                 </div>
 
                 {/* Location Row */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
                   <div className="flex items-center gap-1">
                     <MapPin className="w-3 h-3text-blue-500" />
                     <span className="font-xs">Location:</span>
@@ -1137,25 +1284,22 @@ export default function AuctionDetailPage() {
                 </div>
 
                 {/* Completed Projects */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
                   <div className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-purple-500" />
-                    <span className="">Auctions</span>
+                    <span className="">Auctions:</span>
                   </div>
                   <span className="font-xs">0</span>
                 </div>
-
-                {/* Watchers */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3 text-yellow-500" />
-                    <span>Watchers</span>
-                  </div>
-                  <span className="font-xs">{auction.watchers || 0}</span>
-                </div>
-                <Button className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d">
-                  Login to view seller profile
-                </Button>
+                {isLoggedIn ? (
+                  <Button className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d">
+                    View seller profile
+                  </Button>
+                ) : (
+                  <Button className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d">
+                    Login to view seller profile
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

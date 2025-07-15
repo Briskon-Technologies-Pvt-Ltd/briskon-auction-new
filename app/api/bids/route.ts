@@ -15,18 +15,32 @@ interface Bid {
   created_at: string;
 }
 
-export async function GET(request: Request, { params }: { params: { auctionId: string } }) {
+export async function GET(
+  request: Request,
+  { params }: { params: { auctionId: string } }
+) {
   try {
     const { auctionId } = params;
 
     const { data, error } = await supabase
       .from("bids") // Adjust table name if different
-      .select("*") // Adjust fields as needed (e.g., "id, auction_id, user_id, amount, created_at")
+      .select(
+        `
+  id,
+  auction_id,
+  user_id,
+  amount,
+  created_at,
+`
+      ) // Adjust fields as needed (e.g., "id, auction_id, user_id, amount, created_at")
       .eq("auction_id", auctionId);
 
     if (error) {
       console.error("Supabase Error:", error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, data }, { status: 200 });

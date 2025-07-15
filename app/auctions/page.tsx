@@ -775,18 +775,7 @@ export default function AuctionsPage() {
                 <LiveTimer time={auction.startsIn} />
               </div>
             )}
-            {(auction.status === "live" || auction.status === "closed") &&
-              auction.bidders !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600 ml-[2.5px]">
-                    Bidders
-                  </span>
-                  <span className="font-semibold flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    {auction.bidders}
-                  </span>
-                </div>
-              )}
+
             {auction.watchers && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600 ml-[2.5px]">
@@ -813,21 +802,6 @@ export default function AuctionsPage() {
                     </span>
                   )}
               </div>
-
-              {auction.status === "live" &&
-                auction.auctionsubtype !== "sealed" &&
-                auction.auctionsubtype !== "silent" &&
-                auction.currentBid !== undefined && (
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
-                      Current Bid:
-                    </span>
-                    <span className="font-bold text-blue-600">
-                      {currencySymbol}
-                      {auction.currentBid.toLocaleString()}
-                    </span>
-                  </div>
-                )}
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
                 auction.auctionsubtype !== "silent" &&
@@ -840,6 +814,20 @@ export default function AuctionsPage() {
                       {currencySymbol}
                       {auction.toLocaleString()}
                     </span> */}
+                  </div>
+                )}
+              {auction.status === "live" &&
+                auction.auctionsubtype !== "sealed" &&
+                auction.auctionsubtype !== "silent" &&
+                auction.currentBid !== undefined && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
+                      Current Bid:
+                    </span>
+                    <span className="font-bold text-blue-600">
+                      {currencySymbol}
+                      {auction.currentBid.toLocaleString()}
+                    </span>
                   </div>
                 )}
 
@@ -856,6 +844,18 @@ export default function AuctionsPage() {
                 )}
             </>
           )}
+          {(auction.status === "live" || auction.status === "closed") &&
+            auction.bidders !== undefined && (
+              <div className="flex mt-auto justify-between items-center">
+                <span className="text-xs text-gray-600 ml-[2.5px]">
+                  Bidders
+                </span>
+                <span className="font-semibold flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {auction.bidders}
+                </span>
+              </div>
+            )}
 
           {/* Reverse-specific details */}
           {auction.auctiontype === "reverse" && (

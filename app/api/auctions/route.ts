@@ -128,6 +128,7 @@ export async function POST(request: Request) {
       enablenotifications: enablenotifications || false,
       notificationtypes: notificationtypes || [],
       enableanalytics: enableanalytics || false,
+      percent: body.percent ? parseFloat(body.percent) : null,
       reserveprice: reserveprice ? parseFloat(reserveprice) : null,
       createdby: createdby || "unknown",
       status: status || "pending",

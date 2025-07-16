@@ -80,6 +80,7 @@ type AuctionItem = {
   endedAgo?: string;
   winner?: string;
   views?: number;
+  percent?: number;
   watchers?: number;
   productimages?: string[]; // Array of Supabase Storage URLs
   productdocuments?: string[]; // Array of Supabase Storage URLs
@@ -307,6 +308,7 @@ export default function AuctionsPage() {
             endedAgo: "", // You can calculate this if you have end time
             winner: a.winner || "",
             views: a.views,
+            percent:a.percent, 
             currency: a.currency,
             watchers: a.watchers ?? undefined,
             productimages: a.productimages || [], // Array of Supabase Storage URLs
@@ -817,6 +819,7 @@ export default function AuctionsPage() {
                     </span>
                   </div>
                 )}
+                
 
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&

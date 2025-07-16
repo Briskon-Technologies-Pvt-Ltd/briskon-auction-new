@@ -58,7 +58,7 @@ export default function LiveTimer({ startTime, duration }: LiveTimerProps) {
   if (!label) return null;
 
   return (
-    <span className="font-semibold text-base text-green-600 flex items-center gap-1">
+    <span className="font-semibold text-base text-red-600 flex items-center gap-1">
       <Clock className="h-3 w-3" />
      {timeText}
     </span>

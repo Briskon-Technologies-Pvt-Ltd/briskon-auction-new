@@ -154,7 +154,7 @@ function LiveTimer({ time }: { time: string }) {
   }, [time]);
 
   return (
-    <span className="font-semibold text-green-600 flex items-center gap-1">
+    <span className="font-semibold text-red-600 flex items-center gap-1">
       <Clock className="h-3 w-3" />
       {timeLeft}
     </span>
@@ -326,8 +326,16 @@ export default function AuctionsPage() {
   }, []);
   console.log();
 
-  const filterAndSortAuctions = (status: "live" | "upcoming" | "closed") => {
-    let items = allAuctionItems.filter((item) => item.status === status);
+  const filterAndSortAuctions = (
+    status: "live" | "upcoming" | "closed",
+    auctiontype?: "forward" | "reverse"
+  ) => {
+    let items = allAuctionItems.filter((item) => {
+      return (
+        item.status === status &&
+        (auctiontype ? item.auctiontype === auctiontype : true)
+      );
+    });
 
     if (searchTerm) {
       items = items.filter((item) =>
@@ -724,7 +732,7 @@ export default function AuctionsPage() {
               )}
             </div>
           )}
-          
+
           {/* Timings */}
           {auction.scheduledstart && auction.auctionduration && (
             <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1 mb-2">
@@ -769,7 +777,6 @@ export default function AuctionsPage() {
               </div>
             )}
 
-
             {auction.status === "upcoming" && auction.startsIn && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600 ml-[2.5px]">
@@ -796,29 +803,21 @@ export default function AuctionsPage() {
           {auction.auctiontype === "forward" && (
             <>
               {/* sealed and silent   */}
-              <div className="mb-2">
-                {auction.status == "live" &&
-                  (auction.auctionsubtype === "sealed" ||
-                    auction.auctionsubtype === "silent") && (
-                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px] pb-2">
-                      Bids are confidential until opening
-                    </span>
-                  )}
-              </div>
-              {auction.status === "live" &&
-                auction.auctionsubtype !== "sealed" &&
-                auction.auctionsubtype !== "silent" &&
-                auction.currentBid !== undefined && (
+              {(auction.status === "live" || auction.status === "upcoming") &&
+                // auction.auctionsubtype !== "sealed" &&
+                // auction.auctionsubtype !== "silent" &&
+                auction.startingBid !== undefined && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-600 font-semibold ml-[2.5px]">
                       Starting Bid:
                     </span>
-                    {/* <span className="font-bold text-blue-600">
+                    <span className="font-bold text-green-600">
                       {currencySymbol}
-                      {auction.toLocaleString()}
-                    </span> */}
+                      {auction.startingBid.toLocaleString()}  
+                    </span>
                   </div>
                 )}
+
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
                 auction.auctionsubtype !== "silent" &&
@@ -833,32 +832,35 @@ export default function AuctionsPage() {
                     </span>
                   </div>
                 )}
+              {/* {(auction.auctionsubtype === "sealed" ||
+                auction.auctionsubtype === "silent") &&
+                auction.status === "live" && (
+                  <div className="h-[22px] mb-2" /> // fake current bid spacer
+                )} */}
+              <div className="mb-2 mt-[0px]">
+                {auction.status == "live" &&
+                  (auction.auctionsubtype === "sealed" ||
+                    auction.auctionsubtype === "silent") && (
+                    <span className="text-xs text-gray-600 font-semibold ml-[2.5px] pb-2">
+                      Bids are confidential until opening
+                    </span>
+                  )}
+              </div>
 
-              {auction.status === "upcoming" &&
-                auction.auctionsubtype !== "sealed" &&
-                auction.auctionsubtype !== "silent" &&
-                auction.startingBid !== undefined && (
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-600">Starting Bid</span>
-                    <span className="font-bold text-blue-600">
-                      ${auction.startingBid.toLocaleString()}
+              {(auction.status === "live" || auction.status === "closed") &&
+                auction.bidders !== undefined && (
+                  <div className="flex mt-auto justify-between items-center">
+                    <span className="text-xs text-gray-600 ml-[2.5px]">
+                      Bidders
+                    </span>
+                    <span className="font-semibold flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {auction.bidders}
                     </span>
                   </div>
                 )}
             </>
           )}
-          {(auction.status === "live" || auction.status === "closed") &&
-            auction.bidders !== undefined && (
-              <div className="flex mt-auto justify-between items-center">
-                <span className="text-xs text-gray-600 ml-[2.5px]">
-                  Bidders
-                </span>
-                <span className="font-semibold flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {auction.bidders}
-                </span>
-              </div>
-            )}
 
           {/* Reverse-specific details */}
           {auction.auctiontype === "reverse" && (

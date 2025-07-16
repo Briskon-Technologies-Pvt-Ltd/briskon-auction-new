@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import LiveTimer from "@/app/livetimer/page";
 import {
@@ -32,6 +38,7 @@ import {
   MapPin,
   User,
   Eye,
+  Award,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
@@ -194,7 +201,12 @@ export default function AuctionDetailPage() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("Loading...");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [answerInput, setAnswerInput] = useState<{
+    index: number;
+    value: string;
+  } | null>(null);
+  const [showAllBids, setShowAllBids] = useState(false);
   const router = useRouter();
   const [bids, setBids] = useState<
     { userid: string; amount: number; created_at: string }[]
@@ -207,7 +219,8 @@ export default function AuctionDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const isLoggedIn = !!user;
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  
+  const loggedInUser = "Anita Verma";
+
   useEffect(() => {
     if (!auctionId) return;
     fetch(`/api/views/${auctionId}`, {
@@ -689,54 +702,43 @@ export default function AuctionDetailPage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-5 gap-2 bg-gray-50 p-1 rounded-lg shadow-sm">
                     <TabsTrigger
                       value="description"
-                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                      className="transition-all duration-200 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 hover:scale-[1.03] data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800"
                     >
                       Description
                     </TabsTrigger>
                     <TabsTrigger
                       value="specifications"
-                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                      className="transition-all duration-200 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 hover:scale-[1.03] data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800"
                     >
                       Specifications
                     </TabsTrigger>
-                    {/* {isLoggedIn && (
-                      <TabsTrigger
-                        value="bids"
-                        className="hover:bg-gray-100 hover:text-primary transition-colors"
-                      >
-                        Bid History
-                      </TabsTrigger>
-                    )} */}
                     {isLoggedIn && (
                       <TabsTrigger
                         value="qa"
-                        className="hover:bg-gray-100 hover:text-primary transition-colors"
+                        className="transition-all duration-200 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 hover:scale-[1.03] data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800"
                       >
                         Q&A
                       </TabsTrigger>
                     )}
                     <TabsTrigger
                       value="documentation"
-                      className="hover:bg-gray-100 hover:text-primary transition-colors"
+                      className="transition-all duration-200 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 hover:scale-[1.03] data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800"
                     >
                       Documentation
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="description" className="mt-6">
-                    <div className="prose dark:prose-invert max-w-none">
-                      <p className="whitespace-pre-line">
-                        {auction.productdescription ||
-                          "No description available"}
-                      </p>
+                    <div className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                      {auction.productdescription || "No description available"}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="specifications" className="mt-6">
-                    <div className="space-y-4">
+                    <div className="space-y-4 text-xs text-gray-600 dark:text-gray-300">
                       {auction.attributes ||
                       auction.specifications ||
                       auction.sku ||
@@ -746,39 +748,48 @@ export default function AuctionDetailPage() {
                         <>
                           {auction.sku && (
                             <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">SKU</span>
-                              <span className="text-gray-600 dark:text-gray-300">
+                              <span className="text-sm font-bold text-gray-800 dark:text-white">
+                                SKU
+                              </span>
+                              <span className="text-xs text-gray-600 dark:text-gray-300">
                                 {auction.sku}
                               </span>
                             </div>
                           )}
                           {auction.brand && (
-                            <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Brand</span>
-                              <span className="text-gray-600 dark:text-gray-300">
+                            <div className="py-2 border-b">
+                              <span className="text-sm font-bold text-gray-800 dark:text-white block">
+                                Brand
+                              </span>
+                              <span className="text-xs text-gray-600 dark:text-gray-300">
                                 {auction.brand}
                               </span>
                             </div>
                           )}
+
                           {auction.model && (
                             <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Model</span>
-                              <span className="text-gray-600 dark:text-gray-300">
-                                {auction.model}
+                              <span className="text-sm font-bold text-gray-800 dark:text-white">
+                                Model
                               </span>
+                              <span>{auction.model}</span>
                             </div>
                           )}
                           {auction.reserveprice && (
                             <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Reserve Price</span>
-                              <span className="text-gray-600 dark:text-gray-300">
+                              <span className="text-xs font-bold text-gray-800 dark:text-white">
+                                Reserve Price
+                              </span>
+                              <span>
                                 ${auction.reserveprice.toLocaleString()}
                               </span>
                             </div>
                           )}
                           {auction.attributes && (
-                            <div className="flex flex-col py-2 border-b">
-                              <span className="font-medium">Attributes</span>
+                            <div className="py-2 border-b">
+                              <span className="block text-sm font-bold text-gray-800 dark:text-white mb-1">
+                                Attributes
+                              </span>
                               {renderKeyValueBlock(
                                 auction.attributes,
                                 "No attributes data"
@@ -786,8 +797,8 @@ export default function AuctionDetailPage() {
                             </div>
                           )}
                           {auction.specifications && (
-                            <div className="flex flex-col py-2 border-b">
-                              <span className="font-medium">
+                            <div className="py-2 border-b">
+                              <span className="block text-xs font-semibold text-gray-800 dark:text-white mb-1">
                                 Specifications
                               </span>
                               {renderKeyValueBlock(
@@ -798,41 +809,9 @@ export default function AuctionDetailPage() {
                           )}
                         </>
                       ) : (
-                        <p>No specifications available</p>
+                        <p className="text-sm">No specifications available</p>
                       )}
                     </div>
-                  </TabsContent>
-
-                  <TabsContent value="bids" className="mt-6">
-                    {!(
-                      auction.issilentauction ||
-                      auction.auctionsubtype === "sealed"
-                    ) && (
-                      <div className="space-y-3">
-                        {bidHistory.length > 0 ? (
-                          bidHistory.map((bid, index) => (
-                            <div
-                              key={index}
-                              className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded"
-                            >
-                              <div>
-                                <span className="font-medium">
-                                  {bid.bidder}
-                                </span>
-                                <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                  {bid.time}
-                                </span>
-                              </div>
-                              <span className="font-semibold text-green-600">
-                                ${bid.amount.toLocaleString()}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <p>No bid history available</p>
-                        )}
-                      </div>
-                    )}
                   </TabsContent>
 
                   <TabsContent value="qa" className="mt-6">
@@ -971,17 +950,17 @@ export default function AuctionDetailPage() {
                     </span>
                   </div>
                 )}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                  <div className="flex items-center gap-1">
-                    <Tag className="w-[11px] h-[11px] text-red-500" />
-                    <span>Starting Bid:</span>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center gap-1">
+                      <Tag className="w-[11px] h-[11px] text-red-500" />
+                      <span>Starting Bid:</span>
+                    </div>
+                    <span className="font-semibold text-green-600 text-base">
+                      ${auction.startprice?.toLocaleString() || "N/A"}
+                    </span>
                   </div>
-                  <span className="font-semibold text-green-600 text-base">
-                    ${auction.startprice?.toLocaleString() || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Tag className="w-[11px] h-[11px] text-blue-500" />
                       <span>Current Bid:</span>
@@ -990,7 +969,7 @@ export default function AuctionDetailPage() {
                       ${auction.currentbid?.toLocaleString() || "N/A"}
                     </span>
                   </div>
-                  </div>
+                </div>
                 {auction.scheduledstart && auction.auctionduration && (
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
@@ -1181,65 +1160,156 @@ export default function AuctionDetailPage() {
               )}
             </Card>
             {/* Bid Leaders Board */}
-            <Card>
-              <CardHeader className="pb-3">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-white">
-                  Bid Leaders Board
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Top buyers ranked by bid amount
-                </p>
-              </CardHeader>
+            {isLoggedIn && (
+              <>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-5 h-5 text-yellow-500 animate-bounce" />
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
+                          Bid Leaders Board
+                        </h3>
+                      </div>
+                    </div>
+                  </CardHeader>
 
-              <CardContent className="overflow-x-auto">
-                <table className="min-w-full text-sm border border-gray-300">
-                  <thead className="bg-gray-900 text-white text-left">
-                    <tr>
-                      <th className="py-2 px-3 border-r border-white">
-                        Buyer Name
-                      </th>
-                      <th className="py-2 px-3">Bid Price ($)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="bg-white border-t border-gray-300">
-                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-600" />
-                        Rahul Sharma
-                      </td>
-                      <td className="py-2 px-3">1,10,000.00</td>
-                    </tr>
-                    <tr className="bg-green-300 font-semibold border-t border-gray-300">
-                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-600" />
-                        Anita Verma
-                      </td>
-                      <td className="py-2 px-3">1,00,000.00</td>
-                    </tr>
-                    <tr className="bg-white border-t border-gray-300">
-                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-600" />
-                        Mohit Agarwal
-                      </td>
-                      <td className="py-2 px-3">95,000.00</td>
-                    </tr>
-                    <tr className="bg-white border-t border-gray-300">
-                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-600" />
-                        Sneha Patel
-                      </td>
-                      <td className="py-2 px-3">91,000.00</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
+                  <CardContent className="overflow-x-auto">
+                    <table className="min-w-full text-sm border border-gray-300">
+                      <thead className="bg-gray-900 text-white text-left">
+                        <tr>
+                          <th className="py-2 px-3 border-r border-white">
+                            Buyer Name
+                          </th>
+                          <th className="py-2 px-3">Bid Price ($)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            Sneha Patel
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            91,000.00
+                          </td>
+                        </tr>
+                        <tr
+                          className="bg-green-300 font-semibold border-t border-gray-300 cursor-pointer hover:bg-green-400 transition"
+                          onClick={() => setShowModal(true)}
+                        >
+                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <User className="w-4 h-4 text-gray-600" />
+                            {loggedInUser}
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            1,00,000.00
+                          </td>
+                        </tr>
+                        {/* <tr className="bg-green-300 font-semibold border-t border-gray-300">
+                        <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                          <User className="w-4 h-4 text-gray-600" />
+                          Anita Verma
+                        </td>
+                        <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                          1,00,000.00
+                        </td>
+                      </tr> */}
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            Rahul Sharma
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            1,10,000.00
+                          </td>
+                        </tr>
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            Manisha Patel
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            91,000.00
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
 
+                    {/* Static View All Bids Button */}
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={() => setShowAllBids((prev) => !prev)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
+                      >
+                        <span className="material-symbols-outlined text-sm"></span>
+                        {showAllBids ? "Hide Bids" : "View All Bids"}
+                      </button>
+                    </div>
+
+                    {/* Static All Bids Section */}
+                    {showAllBids && (
+                      <>
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
+                            Rohit Verma
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            89,500.00
+                          </td>
+                        </tr>
+
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
+                            Aisha Khan
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            88,000.00
+                          </td>
+                        </tr>
+
+                        <tr className="bg-white border-t border-gray-300">
+                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
+                            Kunal Joshi
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                            84,000.00
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                {/* Dialog (Pop-up) */}
+                <Dialog open={showModal} onOpenChange={setShowModal}>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Bid History - {loggedInUser}</DialogTitle>
+                    </DialogHeader>
+                    <ul className="text-sm text-gray-700 dark:text-gray-200 space-y-1 mt-2">
+                      <li>
+                        <span className="font-semibold">$1,00,000.00</span> — 15
+                        July 2025 @ 04:10 PM
+                      </li>
+                      <li>
+                        <span className="font-semibold">$85,000</span> — 12 July
+                        2025 @ 11:23 AM
+                      </li>
+                      <li>
+                        <span className="font-semibold">$79,000</span> — 09 July
+                        2025 @ 02:45 PM
+                      </li>
+                      <li>
+                        <span className="font-semibold">$72,000</span> — 05 July
+                        2025 @ 10:00 AM
+                      </li>
+                    </ul>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
             {/* Seller Info */}
             <Card>
-              <CardHeader className="pb-3 ">
+              <CardHeader className="pb-3">
                 <div className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  <User className="w-5 h-5 text-green-600" />
+                  <User className="w-5 h-5 text-green-600 animate-bounce" />
                   <CardTitle className="text-lg font-semibold tracking-wide">
                     Seller Information
                   </CardTitle>

@@ -700,7 +700,7 @@ export default function AuctionDetailPage() {
                       value="specifications"
                       className="hover:bg-gray-100 hover:text-primary transition-colors"
                     >
-                      Specification
+                      Specifications
                     </TabsTrigger>
                     {/* {isLoggedIn && (
                       <TabsTrigger

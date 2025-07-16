@@ -960,6 +960,29 @@ export default function AuctionDetailPage() {
                       ${auction.startprice?.toLocaleString() || "N/A"}
                     </span>
                   </div>
+                  {/* minimum bid increment */}
+                  {isLoggedIn && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 text-orange-500" />
+                        <span className="text-xs text-gray-600 dark:text-gray-300">
+                          Min Bid Increment:
+                        </span>
+                      </div>
+                      <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
+                        $
+                        {auction.bidincrementtype === "percentage" &&
+                        auction.percent &&
+                        auction.currentbid
+                          ? (
+                              auction.currentbid *
+                              (auction.percent / 100)
+                            ).toLocaleString()
+                          : auction.minimumincrement?.toLocaleString() || "100"}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Tag className="w-[11px] h-[11px] text-blue-500" />
@@ -1133,29 +1156,6 @@ export default function AuctionDetailPage() {
                       )}
                     </div>
                   )}
-                  {isLoggedIn && auction?.auctionsubtype === "sealed" && (
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>
-                        Minimum bid increment: $
-                        {auction.bidincrementtype === "percentage" &&
-                        auction.percent &&
-                        auction.currentbid &&
-                        !(
-                          auction.auctionsubtype === "sealed" ||
-                          auction.issilentauction
-                        )
-                          ? (
-                              auction.currentbid *
-                              (auction.percent / 100)
-                            ).toLocaleString()
-                          : auction.minimumincrement?.toLocaleString() || "100"}
-                        {" ("}
-                        {auction.bidincrementtype || "unknown"}
-                        {" increment)"}
-                      </span>
-                    </div>
-                  )}
                 </CardContent>
               )}
             </Card>
@@ -1167,7 +1167,7 @@ export default function AuctionDetailPage() {
                     <div className="flex items-center gap-2">
                       <Award className="w-5 h-5 text-yellow-500 animate-bounce" />
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                           Bid Leaders Board
                         </h3>
                       </div>

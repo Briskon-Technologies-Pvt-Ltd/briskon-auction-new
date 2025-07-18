@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       qualificationcriteria,
       termsandconditions,
       enabledispute,
+      currentbid,
       language,
       enablenotifications,
       notificationtypes,
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
       createdby: createdby || "unknown",
       status: status || "pending",
       createdat: new Date().toISOString(),
-      currentbid: 0,
+      currentBid: 0,
       bidcount: 0,
       participants: {},
       templateid: null,
@@ -167,6 +168,7 @@ export async function GET() {
         *,
         profiles:seller (fname, lname, location)
       `)
+      .eq(  "approved", true)
       .order("createdat", { ascending: false });
 
     if (error) {

@@ -49,6 +49,7 @@ import {
   CircleStop,
   PersonStanding,
   Currency,
+  AlertCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -70,6 +71,8 @@ type AuctionItem = {
   seller?: string;
   rating?: number;
   targetPrice?: number;
+  bidincrementtype?: "fixed" | "percentage";
+  minimumincrement?: number;
   deadline?: string;
   proposals?: number;
   buyer?: string;
@@ -77,6 +80,7 @@ type AuctionItem = {
   startingBid?: number;
   startsIn?: string;
   finalBid?: number;
+  ended?: boolean;
   endedAgo?: string;
   winner?: string;
   views?: number;
@@ -326,8 +330,8 @@ export default function AuctionsPage() {
     };
     fetchAuctions();
   }, []);
-  console.log();
 
+  
   const filterAndSortAuctions = (
     status: "live" | "upcoming" | "closed",
     auctiontype?: "forward" | "reverse"
@@ -819,7 +823,28 @@ export default function AuctionsPage() {
                     </span>
                   </div>
                 )}
-                
+
+                {isLoggedIn && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 text-orange-500" />
+                        <span className="text-xs text-gray-600 dark:text-gray-300">
+                          Min Bid Increment:
+                        </span>
+                      </div>
+                      <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
+                        $
+                        {auction.bidincrementtype === "percentage" &&
+                        auction.percent &&
+                        auction.currentBid
+                          ? (
+                              auction.currentBid *
+                              (auction.percent / 100)
+                            ).toLocaleString()
+                          : auction.minimumincrement?.toLocaleString() || "100"}
+                      </span>
+                    </div>
+                  )}
 
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&

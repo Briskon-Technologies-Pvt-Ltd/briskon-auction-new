@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
+import { DateTime } from "luxon";
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -37,6 +37,7 @@ interface AuctionResponse extends Auction {
     location: string;
   };
   timeLeft?: string;
+  sellerAuctionCount?: number;
 }
 
 interface Bid {
@@ -59,7 +60,8 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("auctions")
-      .select(`
+      .select(
+        `
         id,
         productname,
          seller,
@@ -89,42 +91,84 @@ export async function GET(
         targetprice,
         categoryid,
         subcategoryid,
-        auctiontype
-      `)
+        auctiontype,
+        question_count,
+        questions
+      `
+      )
       .eq("id", id)
       .single();
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 404 }
+      );
     }
 
     const auction = data as Auction;
+    let sellerAuctionCount = 0;
+    if (auction.createdby) {
+      const { count, error: countError } = await supabase
+        .from("auctions")
+        .select("*", { count: "exact", head: true })
+        .eq("createdby", auction.createdby);
+
+      if (countError) {
+        console.warn(
+          "Error fetching seller auction count:",
+          countError.message
+        );
+      } else {
+        sellerAuctionCount = count || 0;
+      }
+    }
     console.log("Raw auction data before processing:", auction);
 
     const processedAuction: AuctionResponse = {
       ...auction,
-      requireddocuments: auction.requireddocuments ? JSON.stringify(auction.requireddocuments) : null,
+      requireddocuments: auction.requireddocuments
+        ? JSON.stringify(auction.requireddocuments)
+        : null,
+         timeLeft: "", // will be overwritten below
+        sellerAuctionCount,
     };
 
     console.log("Processed auction data:", processedAuction);
 
-    if (!("timeLeft" in processedAuction)) {
-      const start = new Date(processedAuction.scheduledstart || new Date());
-      const duration = processedAuction.auctionduration
-        ? ((d) =>
-            ((d.days || 0) * 86400) +
-            ((d.hours || 0) * 3600) +
-            ((d.minutes || 0) * 60))(
-            typeof processedAuction.auctionduration === "string"
-              ? JSON.parse(processedAuction.auctionduration)
-              : processedAuction.auctionduration
-          )
-        : 0;
-      const end = new Date(start.getTime() + duration * 1000);
-      processedAuction.timeLeft = calculateTimeLeft(end);
-    }
+    const nowIST = DateTime.now().setZone("Asia/Kolkata");
+    const startIST = processedAuction.scheduledstart
+      ? DateTime.fromISO(processedAuction.scheduledstart).setZone(
+          "Asia/Kolkata"
+        )
+      : nowIST; // Use current IST if scheduledstart is null
+    const duration = processedAuction.auctionduration
+      ? ((d) =>
+          (d.days || 0) * 86400 +
+          (d.hours || 0) * 3600 +
+          (d.minutes || 0) * 60)(
+          typeof processedAuction.auctionduration === "string"
+            ? JSON.parse(processedAuction.auctionduration)
+            : processedAuction.auctionduration
+        )
+      : 0;
+    const endIST = startIST.plus({ seconds: duration });
 
-    return NextResponse.json({ success: true, data: processedAuction }, { status: 200 });
+    // Debug logs to verify times
+    console.log(
+      "Debug - Now IST:",
+      nowIST.toISO(),
+      "Start IST:",
+      startIST.toISO(),
+      "End IST:",
+      endIST.toISO()
+    );
+
+    processedAuction.timeLeft = calculateTimeLeft(endIST.toISO() ?? "");
+    return NextResponse.json(
+      { success: true, data: processedAuction },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Route Error:", error);
     return NextResponse.json(
@@ -134,192 +178,249 @@ export async function GET(
   }
 }
 
-export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  deduplicateAuctionParticipants();
   try {
     const params = await context.params; // Await params to handle promise
     const { id } = params;
+    console.log("Incoming Request Method:", request.method);
+    console.log(
+      "Incoming Request Headers:",
+      Object.fromEntries(request.headers.entries())
+    );
+    console.log("Request Content-Type:", request.headers.get("content-type"));
 
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (parseError) {
+      console.error("FormData Parsing Error:", parseError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request format: Could not parse as FormData",
+        },
+        { status: 400 }
+      );
+    }
+    console.log("Received FormData Entries:", [...formData.entries()]);
+    const action = formData.get("action") as string;
     // Parse the request body (assuming FormData from frontend)
-    const formData = await request.formData();
-    const user_id = formData.get("user_id") as string;
-    const user_email = formData.get("user_email") as string;
-    const amount = parseFloat(formData.get("amount") as string);
-    const created_at = formData.get("created_at") as string;
-
-    // Collect documents and images from FormData
-    const documents: { id: string; url: string }[] = [];
-    const images: { id: string; url: string }[] = [];
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith("documents[")) {
-        documents.push(JSON.parse(value as string));
-      } else if (key.startsWith("images[")) {
-        images.push(JSON.parse(value as string));
-      }
-    }
-
-    // Validate required fields
-    if (!user_id || !user_email || isNaN(amount) || !created_at) {
+    // const formData = await request.formData();
+    if (!action) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields for bid" },
+        { success: false, error: "Missing action parameter" },
         { status: 400 }
       );
     }
 
-    // Fetch current auction data including auctiontype
-    const { data: auctionData, error: fetchError } = await supabase
-      .from("auctions")
-      .select("startprice, currentbid, minimumincrement, percent, bidincrementtype, participants, bidcount, createdby, scheduledstart, auctionduration, auctionsubtype, targetprice, auctiontype")
-      .eq("id", id)
-      .single();
+    if (action === "bid") {
+      const user_id = formData.get("user_id") as string;
+      const user_email = formData.get("user_email") as string;
+      const amount = parseFloat(formData.get("amount") as string);
+      const created_at = formData.get("created_at") as string;
 
-    if (fetchError || !auctionData) {
-      return NextResponse.json(
-        { success: false, error: fetchError?.message || "Auction not found" },
-        { status: 404 }
-      );
-    }
+      const documents: { id: string; url: string }[] = [];
+      const images: { id: string; url: string }[] = [];
+      for (const [key, value] of formData.entries() as IterableIterator<
+        [string, FormDataEntryValue]
+      >) {
+        if (key.startsWith("documents[")) {
+          documents.push(JSON.parse(value as string));
+        } else if (key.startsWith("images[")) {
+          images.push(JSON.parse(value as string));
+        }
+      }
 
-    // Check auction status
-    const now = new Date("2025-06-29T13:28:00+05:00"); // Current time: 01:28 PM PKT
-    const start = new Date(auctionData.scheduledstart || now);
-    const duration = auctionData.auctionduration
-      ? ((d) => ((d.days || 0) * 86400) + ((d.hours || 0) * 3600) + ((d.minutes || 0) * 60))(
-          auctionData.auctionduration
+      if (!user_id || !user_email || isNaN(amount) || !created_at) {
+        return NextResponse.json(
+          { success: false, error: "Missing required fields for bid" },
+          { status: 400 }
+        );
+      }
+
+      const { data: auctionData, error: fetchError } = await supabase
+        .from("auctions")
+        .select(
+          "startprice, currentbid, minimumincrement, percent, bidincrementtype, participants, bidcount, createdby, scheduledstart, auctionduration, auctionsubtype, targetprice, auctiontype"
         )
-      : 0;
-    const end = new Date(start.getTime() + duration * 1000);
+        .eq("id", id)
+        .single();
 
-    if (now < start) {
-      return NextResponse.json(
-        { success: false, error: "Auction has not started yet" },
-        { status: 400 }
-      );
-    }
-    if (now > end) {
-      return NextResponse.json(
-        { success: false, error: "Auction has ended" },
-        { status: 400 }
-      );
-    }
-
-    // Validate bid amount based on auction type and subtype
-    const currentBid = auctionData.currentbid || auctionData.startprice || 0;
-    const targetPrice = auctionData.targetprice || 0;
-    let minimumIncrement = 0;
-
-    if (auctionData.bidincrementtype === "percentage" && auctionData.percent) {
-      minimumIncrement = currentBid * (auctionData.percent / 100);
-    } else if (auctionData.bidincrementtype === "fixed" && auctionData.minimumincrement) {
-      minimumIncrement = auctionData.minimumincrement;
-    }
-
-    if (auctionData.auctionsubtype === "sealed") {
-      // Sealed auction rules
-      if (!auctionData.bidcount || auctionData.bidcount === 0) {
-        if (auctionData.auctiontype === "forward") {
-          if (amount < (auctionData.startprice || 0)) {
-            return NextResponse.json(
-              { success: false, error: `First bid must be at least $${(auctionData.startprice || 0).toLocaleString()}` },
-              { status: 400 }
-            );
-          }
-        } else if (auctionData.auctiontype === "reverse") {
-          if (amount < targetPrice) {
-            return NextResponse.json(
-              { success: false, error: `First bid must be at least $${targetPrice.toLocaleString()}` },
-              { status: 400 }
-            );
-          }
-        }
-      } else {
-        // Subsequent bids in sealed auctions follow exact increment
-        if (auctionData.auctiontype === "forward") {
-          const expectedBid = currentBid + minimumIncrement;
-          if (amount !== expectedBid) {
-            return NextResponse.json(
-              { success: false, error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + minimum increment)` },
-              { status: 400 }
-            );
-          }
-        } else if (auctionData.auctiontype === "reverse") {
-          const expectedBid = currentBid - minimumIncrement;
-          if (amount !== expectedBid) {
-            return NextResponse.json(
-              { success: false, error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid - minimum increment)` },
-              { status: 400 }
-            );
-          }
-        }
+      if (fetchError || !auctionData) {
+        return NextResponse.json(
+          { success: false, error: fetchError?.message || "Auction not found" },
+          { status: 404 }
+        );
       }
-    } else {
-      // Non-sealed auctions
-      if (!auctionData.bidcount || auctionData.bidcount === 0) {
+
+      const nowIST = DateTime.now().setZone("Asia/Kolkata");
+      const startIST = auctionData.scheduledstart
+        ? DateTime.fromISO(auctionData.scheduledstart, { zone: "utc" }).setZone(
+            "Asia/Kolkata"
+          )
+        : nowIST;
+      const duration = auctionData.auctionduration
+        ? ((d) =>
+            (d.days || 0) * 86400 +
+            (d.hours || 0) * 3600 +
+            (d.minutes || 0) * 60)(auctionData.auctionduration)
+        : 0;
+      const endIST = startIST.plus({ seconds: duration });
+
+      console.log(
+        "Debug - Bid Check: Now IST:",
+        nowIST.toISO(),
+        "Start IST:",
+        startIST.toISO(),
+        "End IST:",
+        endIST.toISO()
+      );
+
+      if (nowIST < startIST) {
+        return NextResponse.json(
+          { success: false, error: "Auction has not started yet" },
+          { status: 400 }
+        );
+      }
+      if (nowIST > endIST) {
+        return NextResponse.json(
+          { success: false, error: "Auction has ended" },
+          { status: 400 }
+        );
+      }
+
+      const currentBid = auctionData.currentbid || auctionData.startprice || 0;
+      const targetPrice = auctionData.targetprice || 0;
+      let minimumIncrement = 0;
+
+      if (
+        auctionData.bidincrementtype === "percentage" &&
+        auctionData.percent
+      ) {
+        minimumIncrement = currentBid * (auctionData.percent / 100);
+      } else if (
+        auctionData.bidincrementtype === "fixed" &&
+        auctionData.minimumincrement
+      ) {
+        minimumIncrement = auctionData.minimumincrement;
+      }
+
+      if (auctionData.auctionsubtype === "sealed") {
         if (auctionData.auctiontype === "forward") {
           if (amount < (auctionData.startprice || 0)) {
             return NextResponse.json(
-              { success: false, error: `First bid must be at least $${(auctionData.startprice || 0).toLocaleString()}` },
+              {
+                success: false,
+                error: `Bid must be at least $${(
+                  auctionData.startprice || 0
+                ).toLocaleString()}`,
+              },
               { status: 400 }
             );
           }
         } else if (auctionData.auctiontype === "reverse") {
-          if (amount < targetPrice) {
+          if (amount > targetPrice) {
             return NextResponse.json(
-              { success: false, error: `First bid must be at least $${targetPrice.toLocaleString()}` },
+              {
+                success: false,
+                error: `Bid must be at most $${targetPrice.toLocaleString()}`,
+              },
               { status: 400 }
             );
           }
         }
       } else {
-        // Subsequent bids in non-sealed auctions follow exact increment
-        const roundToTwo = (val: number) => Math.round((val + Number.EPSILON) * 100) / 100;
-
+        const roundToTwo = (val: number) =>
+          Math.round((val + Number.EPSILON) * 100) / 100;
         const roundedAmount = roundToTwo(amount);
         const roundedCurrentBid = roundToTwo(currentBid);
         const roundedIncrement = roundToTwo(minimumIncrement);
-        if (auctionData.auctiontype === "forward") {
-          const expectedBid = roundToTwo(roundedCurrentBid + roundedIncrement);
-            console.log("Forward Auction");
-  console.log("Rounded Current Bid:", roundedCurrentBid);
-  console.log("Rounded Increment:", roundedIncrement);
-  console.log("Expected Bid:", expectedBid);
-  console.log("Rounded Amount from user:", roundedAmount);
-          if (roundedAmount !== expectedBid) {
-            return NextResponse.json(
-              { success: false, error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + minimum increment)` },
-              { status: 400 }
-            );
+
+        if (!auctionData.bidcount || auctionData.bidcount === 0) {
+          if (auctionData.auctiontype === "forward") {
+            if (amount < (auctionData.startprice || 0)) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `First bid must be at least $${(
+                    auctionData.startprice || 0
+                  ).toLocaleString()}`,
+                },
+                { status: 400 }
+              );
+            }
+          } else if (auctionData.auctiontype === "reverse") {
+            if (amount > targetPrice) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `First bid must be at most $${targetPrice.toLocaleString()}`,
+                },
+                { status: 400 }
+              );
+            }
           }
-        } else if (auctionData.auctiontype === "reverse") {
-          const expectedBid = roundToTwo(roundedCurrentBid - roundedIncrement);
-          if (roundedAmount !== expectedBid ) {
-            return NextResponse.json(
-              { success: false, error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid - minimum increment)` },
-              { status: 400 }
+        } else {
+          if (auctionData.auctiontype === "forward") {
+            const expectedBid = roundToTwo(
+              roundedCurrentBid + roundedIncrement
             );
+            if (roundedAmount !== expectedBid) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + minimum increment)`,
+                },
+                { status: 400 }
+              );
+            }
+          } else if (auctionData.auctiontype === "reverse") {
+            const expectedBid = roundToTwo(
+              roundedCurrentBid - roundedIncrement
+            );
+            if (roundedAmount > targetPrice) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `Bid must be at most $${targetPrice.toLocaleString()}`,
+                },
+                { status: 400 }
+              );
+            }
+            if (roundedAmount !== expectedBid) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid - minimum increment)`,
+                },
+                { status: 400 }
+              );
+            }
           }
         }
       }
-    }
 
-    // Check if user is the auction creator
-    if (user_email === auctionData.createdby) {
-      return NextResponse.json(
-        { success: false, error: "You cannot bid on your own auction" },
-        { status: 400 }
-      );
-    }
+      // Check if user is the auction creator
 
-    // Determine if this is the user's first bid (only restrict for sealed auctions)
-    const isFirstBid = auctionData.auctionsubtype !== "sealed" || !auctionData.participants?.includes(user_id);
-    const updatedParticipants = isFirstBid
-      ? [...(auctionData.participants || []), user_id]
-      : auctionData.participants;
-    const updatedBidCount = isFirstBid ? (auctionData.bidcount || 0) + 1 : auctionData.bidcount;
+      if (user_email === auctionData.createdby) {
+        return NextResponse.json(
+          { success: false, error: "You cannot bid on your own auction" },
+          { status: 400 }
+        );
+      }
 
-    // Insert bid into bids table with images and documents
-    const { error: bidError } = await supabase
-      .from("bids")
-      .insert({
+      const participants = auctionData.participants || [];
+      const updatedParticipants = participants.includes(user_id)
+        ? participants
+        : [...participants, user_id];
+
+      const updatedBidCount = (auctionData.bidcount || 0) + 1;
+
+      const { error: bidError } = await supabase.from("bids").insert({
         auction_id: id,
         user_id,
         amount,
@@ -328,31 +429,287 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         productdocuments: documents,
       });
 
-    if (bidError) {
-      return NextResponse.json({ success: false, error: bidError.message }, { status: 400 });
+      if (bidError) {
+        return NextResponse.json(
+          { success: false, error: bidError.message },
+          { status: 400 }
+        );
+      }
+
+      const { data, error: updateError } = await supabase
+        .from("auctions")
+        .update({
+          currentbid: amount,
+          currentbidder: user_email,
+          participants: updatedParticipants,
+          bidcount: updatedBidCount,
+          editable: false,
+        })
+        .eq("id", id)
+        .select();
+
+      if (updateError) {
+        return NextResponse.json(
+          { success: false, error: updateError.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(
+        { success: true, data: data[0] },
+        { status: 200 }
+      );
+    } else if (action === "postQuestion") {
+      const user_id = formData.get("user_id") as string;
+      const user_email = formData.get("user_email") as string;
+      const question = formData.get("question") as string;
+
+      if (!user_id || !user_email || !question) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required fields for posting question",
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: auctionData, error: fetchError } = await supabase
+        .from("auctions")
+        .select(
+          "participants, questions, question_count, createdby, scheduledstart, auctionduration"
+        )
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !auctionData) {
+        return NextResponse.json(
+          { success: false, error: fetchError?.message || "Auction not found" },
+          { status: 404 }
+        );
+      }
+
+      const nowIST = DateTime.now().setZone("Asia/Kolkata");
+      const startIST = auctionData.scheduledstart
+        ? DateTime.fromISO(auctionData.scheduledstart).setZone("Asia/Kolkata")
+        : nowIST;
+      const duration = auctionData.auctionduration
+        ? ((d) =>
+            (d.days || 0) * 86400 +
+            (d.hours || 0) * 3600 +
+            (d.minutes || 0) * 60)(auctionData.auctionduration)
+        : 0;
+      const endIST = startIST.plus({ seconds: duration });
+
+      if (nowIST < startIST || nowIST > endIST) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Questions can only be posted during the auction period",
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("fname, lname, email")
+        .eq("id", user_id)
+        .single();
+
+      if (profileError) {
+        return NextResponse.json(
+          { success: false, error: "Failed to fetch user profile" },
+          { status: 500 }
+        );
+      }
+
+      const userName = profileData
+        ? `${profileData.fname || ""} ${profileData.lname || ""}`.trim() ||
+          profileData.email ||
+          user_id
+        : user_id;
+
+      const newQuestion = {
+        user: userName,
+        question,
+        answer: null,
+        question_time: nowIST.toISO(),
+        answer_time: null,
+      };
+
+      const updatedQuestions = auctionData.questions
+        ? [...auctionData.questions, newQuestion]
+        : [newQuestion];
+      const updatedQuestionCount = (auctionData.question_count || 0) + 1;
+
+      const { error: updateError } = await supabase
+        .from("auctions")
+        .update({
+          questions: updatedQuestions,
+          question_count: updatedQuestionCount,
+        })
+        .eq("id", id);
+
+      if (updateError) {
+        return NextResponse.json(
+          { success: false, error: updateError.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            questions: updatedQuestions,
+            question_count: updatedQuestionCount,
+          },
+        },
+        { status: 200 }
+      );
+    } else if (action === "answerQuestion") {
+      const user_email = formData.get("user_email") as string;
+      const questionIndex = parseInt(formData.get("questionIndex") as string);
+      const answer = formData.get("answer") as string;
+
+      if (!user_email || isNaN(questionIndex) || !answer) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required fields for answering question",
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: auctionData, error: fetchError } = await supabase
+        .from("auctions")
+        .select("createdby, questions, scheduledstart, auctionduration")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !auctionData) {
+        return NextResponse.json(
+          { success: false, error: fetchError?.message || "Auction not found" },
+          { status: 404 }
+        );
+      }
+
+      const nowIST = DateTime.now().setZone("Asia/Kolkata");
+      const startIST = auctionData.scheduledstart
+        ? DateTime.fromISO(auctionData.scheduledstart).setZone("Asia/Kolkata")
+        : nowIST;
+      const duration = auctionData.auctionduration
+        ? ((d) =>
+            (d.days || 0) * 86400 +
+            (d.hours || 0) * 3600 +
+            (d.minutes || 0) * 60)(auctionData.auctionduration)
+        : 0;
+      const endIST = startIST.plus({ seconds: duration });
+
+      if (nowIST > endIST) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Cannot answer questions after auction ends",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (user_email !== auctionData.createdby) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Only the auction creator can answer questions",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (
+        !auctionData.questions ||
+        questionIndex < 0 ||
+        questionIndex >= auctionData.questions.length
+      ) {
+        return NextResponse.json(
+          { success: false, error: "Invalid question index" },
+          { status: 400 }
+        );
+      }
+
+      const updatedQuestions = [...auctionData.questions];
+      updatedQuestions[questionIndex] = {
+        ...updatedQuestions[questionIndex],
+        answer,
+        answer_time: nowIST.toISO(),
+      };
+
+      const { error: updateError } = await supabase
+        .from("auctions")
+        .update({ questions: updatedQuestions })
+        .eq("id", id);
+
+      if (updateError) {
+        return NextResponse.json(
+          { success: false, error: updateError.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(
+        { success: true, data: { questions: updatedQuestions } },
+        { status: 200 }
+      );
+    } else if (action === "markEnded") {
+      // New action to mark auction as ended
+      const { data: auctionData, error: fetchError } = await supabase
+        .from("auctions")
+        .select("ended")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !auctionData) {
+        return NextResponse.json(
+          { success: false, error: fetchError?.message || "Auction not found" },
+          { status: 404 }
+        );
+      }
+
+      if (auctionData.ended) {
+        return NextResponse.json(
+          { success: false, error: "Auction is already marked as ended" },
+          { status: 400 }
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from("auctions")
+        .update({ ended: true, editable: false }) // Mark as ended and not editable
+        .eq("id", id);
+
+      if (updateError) {
+        return NextResponse.json(
+          { success: false, error: updateError.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(
+        { success: true, data: { ended: true } },
+        { status: 200 }
+      );
     }
 
-    // Update auction with new bid details
-    const { data, error: updateError } = await supabase
-      .from("auctions")
-      .update({
-        currentbid: amount,
-        currentbidder: user_email,
-        participants: updatedParticipants,
-        bidcount: updatedBidCount,
-      })
-      .eq("id", id)
-      .select();
-
-    if (updateError) {
-      return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, data: data[0] }, { status: 200 });
+    return NextResponse.json(
+      { success: false, error: "Invalid action specified" },
+      { status: 400 }
+    );
   } catch (error) {
-    console.error("Bid update error:", error);
-    // Type guard to safely access error.message
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("PUT request error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { success: false, error: `Internal server error: ${errorMessage}` },
       { status: 500 }
@@ -360,46 +717,56 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   }
 }
 
-// Helper function to calculate time left
-function calculateTimeLeft(endDate: Date): string {
-  const now = new Date("2025-06-29T13:28:00+05:00"); // Current time: 01:28 PM PKT
-  const diff = endDate.getTime() - now.getTime();
-  if (diff <= 0) return "Auction ended";
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return `${days}d ${hours}h ${minutes}m`;
-}
-//////
+// Helper function to calculate time left in IST
+const calculateTimeLeft = (endDateISO: string): string => {
+  const nowIST = DateTime.now().setZone("Asia/Kolkata");
+  const endIST = DateTime.fromISO(endDateISO).setZone("Asia/Kolkata");
 
+  const diff = endIST
+    .diff(nowIST, ["days", "hours", "minutes", "seconds"])
+    .toObject();
+  if (
+    (diff.days ?? 0) <= 0 &&
+    (diff.hours ?? 0) <= 0 &&
+    (diff.minutes ?? 0) <= 0 &&
+    (diff.seconds ?? 0) <= 0
+  ) {
+    return "Auction ended";
+  }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const auctionId = params.id;
+  return `${diff.days ?? 0}d ${diff.hours ?? 0}h ${diff.minutes ?? 0}m`;
+};
 
-  // Get current views
-  const { data, error } = await supabase
+async function deduplicateAuctionParticipants() {
+  const { data: auctions, error } = await supabase
     .from("auctions")
-    .select("views")
-    .eq("id", auctionId)
-    .single();
+    .select("id, participants");
 
   if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    console.error("Failed to fetch auctions:", error.message);
+    return;
   }
 
-  const currentViews = data?.views ?? 0;
+  for (const auction of auctions) {
+    const original = auction.participants || [];
+    const deduplicated = Array.from(new Set(original));
 
-  // Update views with +1
-  const { data: updatedData, error: updateError } = await supabase
-    .from("auctions")
-    .update({ views: currentViews + 1 })
-    .eq("id", auctionId)
-    .select()
-    .single();
+    if (deduplicated.length !== original.length) {
+      const { error: updateError } = await supabase
+        .from("auctions")
+        .update({ participants: deduplicated })
+        .eq("id", auction.id);
 
-  if (updateError) {
-    return NextResponse.json({ success: false, error: updateError.message }, { status: 400 });
+      if (updateError) {
+        console.error(
+          `Failed to update auction ${auction.id}:`,
+          updateError.message
+        );
+      } else {
+        console.log(`✅ Deduplicated participants for auction ${auction.id}`);
+      }
+    }
   }
 
-  return NextResponse.json({ success: true, views: updatedData.views });  
+  console.log("🎉 Deduplication complete.");
 }

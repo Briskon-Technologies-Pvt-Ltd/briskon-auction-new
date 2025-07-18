@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DateTime } from "luxon";
 import {
   Dialog,
   DialogContent,
@@ -130,6 +131,7 @@ interface Auction {
   productname?: string;
   title?: string;
   categoryid?: string;
+  sellerAuctionCount?: number;
   auctiontype: "forward" | "reverse";
   currentbid?: number;
   bidincrementtype?: "fixed" | "percentage";
@@ -347,64 +349,43 @@ export default function AuctionDetailPage() {
     }
 
     // Check for sealed auction participant restriction only
-    if (
-      auction?.auctionsubtype === "sealed" &&
-      auction?.participants?.includes(user.id)
-    ) {
-      alert(
-        "You have already submitted a bid for this auction and cannot bid again."
-      );
+      if (auction?.auctionsubtype === "sealed" && auction?.participants?.some(p => user?.id && p.includes(user.id ?? ""))) {
+      alert("You have already submitted a bid for this sealed auction and cannot bid again.");
       return;
     }
 
     // Minimum bid validation
+   const round = (val: number) => Math.round((val + Number.EPSILON) * 100) / 100;
+    const expectedBid = round(getMinimumBid());
+    const userAmount = round(Number(bidAmount));
     if (auction?.auctionsubtype === "sealed") {
-      if (amount < (auction.startprice || 0)) {
-        alert(
-          `Bid must be at least $${(auction.startprice || 0).toLocaleString()}.`
-        );
+      if (userAmount < (auction.startprice ?? 0)) {
+        alert(`Bid must be at least $${(auction.startprice ?? 0).toLocaleString()}`);
         return;
       }
-    } else {
-      const round = (val: number) =>
-        Math.round((val + Number.EPSILON) * 100) / 100;
-      const expectedBid = round(getMinimumBid());
-      const userAmount = round(Number(bidAmount));
-
-      if (userAmount !== expectedBid) {
-        let incrementDetails = "";
-
-        if (
-          auction?.bidincrementtype === "fixed" &&
-          auction?.minimumincrement
-        ) {
-          incrementDetails = `Minimum increment: $${auction.minimumincrement.toLocaleString()} (fixed)`;
-        } else if (
-          auction?.bidincrementtype === "percentage" &&
-          auction?.percent &&
-          auction?.currentbid
-        ) {
-          const increment = round(auction.currentbid * (auction.percent / 100));
-          incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
-            auction.percent
-          }% of $${auction.currentbid.toLocaleString()})`;
-        }
-
-        alert(
-          `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
-        );
-        return;
+    } else if (userAmount !== expectedBid) {
+      let incrementDetails = "";
+      if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
+        incrementDetails = `Minimum increment: $${(auction.minimumincrement ?? 0).toLocaleString()} (fixed)`;
+      } else if (auction?.bidincrementtype === "percentage" && auction?.percent && auction?.currentbid) {
+        const increment = round((auction.currentbid ?? 0) * (auction.percent / 100));
+        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${auction.percent}% of $${(auction.currentbid ?? 0).toLocaleString()})`;
       }
+
+      alert(`Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`);
+        return;
     }
 
     try {
       console.log("Placing bid:", { auctionId, userId: user.id, amount });
       const formData = new FormData();
-      formData.append("user_id", user.id);
-      formData.append("user_email", user.email);
+      formData.append("action", "bid");
+      formData.append("user_id", user.id ?? "");
+      formData.append("user_email", user.email ?? "");
       formData.append("amount", amount.toString());
-      formData.append("created_at", new Date().toISOString());
-
+      // formData.append("created_at", new Date().toISOString());
+       const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
+      if (createdAt) formData.append("created_at", createdAt);
       // Optionally append images and documents if available (e.g., from a file input)
       // Example: if (selectedImages) formData.append("images[0]", selectedImages[0]);
 
@@ -442,27 +423,19 @@ export default function AuctionDetailPage() {
         const historyPromises = bids.map(async (bid: Bid) => {
           const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
           const profileJson = await profileRes.json();
-          console.log(
-            "Profile API Response for user_id",
-            bid.user_id,
-            " (Raw):",
-            profileJson
-          );
+          console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
           const bidderName = profileJson.success
-            ? `${profileJson.data.fname || ""} ${
-                profileJson.data.lname || ""
-              }`.trim() ||
-              profileJson.data.email ||
-              bid.user_id
+            ? `${profileJson.data.fname ?? ""} ${profileJson.data.lname ?? ""}`.trim() || profileJson.data.email || bid.user_id
             : `User ${bid.user_id} (Profile not found)`;
+          const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+            hour12: true,
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           return {
             bidder: bidderName,
             amount: bid.amount,
-            time: new Date(bid.created_at).toLocaleString("en-US", {
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            time: bidTimeIST,
           };
         });
         const history = await Promise.all(historyPromises);
@@ -470,15 +443,11 @@ export default function AuctionDetailPage() {
         setBidHistory(history);
       }
 
-      setBidAmount("");
+     setBidAmount("");
       alert(`Bid of $${amount.toLocaleString()} placed successfully!`);
     } catch (err) {
       console.error("Bid placement error:", err);
-      alert(
-        err instanceof Error
-          ? err.message
-          : "An error occurred while placing bid"
-      );
+      alert(err instanceof Error ? err.message : "An error occurred while placing bid");
     }
   };
 
@@ -909,13 +878,13 @@ export default function AuctionDetailPage() {
               <div className="space-y-3 mb-5 px-4 gap-2">
                 {/* Top Row: Left and Right Labels */}
                 <div className="flex mt-4 mb-2">
-                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex gap-2">
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
                     <Gavel className="w-5 h-5 text-blue-600 animate-bounce" />
-                    <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {/* <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       Auction Details:
-                    </span>
+                    </span> */}
                   </h2>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white ml-2">
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white ml-2">
                     {auction.productname || "Auction Item"}
                   </p>
                 </div>
@@ -1345,7 +1314,8 @@ export default function AuctionDetailPage() {
                     <CheckCircle className="w-3 h-3 text-purple-500" />
                     <span className="">Auctions:</span>
                   </div>
-                  <span className="font-xs">0</span>
+                  <span className="font-xs">{auction.sellerAuctionCount}</span>
+
                 </div>
                 {isLoggedIn ? (
                   <Button className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d">

@@ -96,14 +96,7 @@ type AuctionItem = {
 
 const categories = [
   { value: "all", label: "All Categories" },
-  // { value: "electronics", label: "Electronics" },
-  // { value: "fashion", label: "Fashion" },
-  // { value: "watches", label: "Watches" },
-  // { value: "collectibles", label: "Collectibles" },
-  // { value: "automotive", label: "Automotive" },
-  // { value: "services", label: "Services" },
-  // { value: "office-supplies", label: "Office Supplies" },
-  // { value: "technology", label: "Technology" },
+
 ];
 
 const locations = [
@@ -130,15 +123,6 @@ const auctiontypes = [
   { value: "forward", label: "Forward Auctions" },
   { value: "reverse", label: "Reverse Auctions" },
 ];
-// const currencySymbols: { [key: string]: string } = {
-//   USD: '$',
-//   INR: '₹',
-//   EUR: '€',
-//   GBP: '£',
-//   JPY: '¥',
-//   // Add more as needed
-// };
-// const currencySymbol = auction.currency ? currencySymbols[auction.currency] ?? '' : '';
 
 function LiveTimer({ time }: { time: string }) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -1138,31 +1122,6 @@ export default function AuctionsPage() {
                     <SelectItem value="newest">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
-
-                {/* <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                  className={
-                    viewMode === "grid"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-700"
-                      : "border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button> */}
-                {/* <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className={
-                    viewMode === "list"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-700"
-                      : "border-2 border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }
-                >
-                  <List className="h-4 w-4" />
-                </Button> */}
               </div>
             </div>
           </CardContent>

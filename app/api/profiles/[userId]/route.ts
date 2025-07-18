@@ -18,6 +18,10 @@ export async function GET(
   context: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.log("Current user ID:", user?.id);
     const params = await context.params;
     const { userId } = params;
 
@@ -31,7 +35,10 @@ export async function GET(
 
     if (error) {
       console.error("Supabase Error for userId", userId, ":", error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, data }, { status: 200 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { DateTime } from "luxon";
+import { cookies } from "next/headers";
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -419,6 +420,7 @@ export async function PUT(
         : [...participants, user_id];
 
       const updatedBidCount = (auctionData.bidcount || 0) + 1;
+      
 
       const { error: bidError } = await supabase.from("bids").insert({
         auction_id: id,

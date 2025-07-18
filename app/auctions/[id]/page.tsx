@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateTime } from "luxon";
+import BidLeadersBoard from "@/app/bid-Leader-board/page";
 import {
   Dialog,
   DialogContent,
@@ -145,11 +146,14 @@ interface Auction {
     fname: string;
     location: string;
   };
+  auctionId: string;
+  loggedInUserId: string;
   bids?: {
-    userid: string;
+    user_id: string;
     username?: string;
     amount: number;
   }[];
+
   productimages?: string[];
   productdocuments?: string[];
   productdescription?: string;
@@ -188,6 +192,9 @@ interface Bid {
   auction_id: string;
   user_id: string;
   amount: number;
+  profiles?: {
+    fname: string;
+  };
   created_at: string;
 }
 
@@ -349,31 +356,51 @@ export default function AuctionDetailPage() {
     }
 
     // Check for sealed auction participant restriction only
-      if (auction?.auctionsubtype === "sealed" && auction?.participants?.some(p => user?.id && p.includes(user.id ?? ""))) {
-      alert("You have already submitted a bid for this sealed auction and cannot bid again.");
+    if (
+      auction?.auctionsubtype === "sealed" &&
+      auction?.participants?.some((p) => user?.id && p.includes(user.id ?? ""))
+    ) {
+      alert(
+        "You have already submitted a bid for this sealed auction and cannot bid again."
+      );
       return;
     }
 
     // Minimum bid validation
-   const round = (val: number) => Math.round((val + Number.EPSILON) * 100) / 100;
+    const round = (val: number) =>
+      Math.round((val + Number.EPSILON) * 100) / 100;
     const expectedBid = round(getMinimumBid());
     const userAmount = round(Number(bidAmount));
     if (auction?.auctionsubtype === "sealed") {
       if (userAmount < (auction.startprice ?? 0)) {
-        alert(`Bid must be at least $${(auction.startprice ?? 0).toLocaleString()}`);
+        alert(
+          `Bid must be at least $${(auction.startprice ?? 0).toLocaleString()}`
+        );
         return;
       }
     } else if (userAmount !== expectedBid) {
       let incrementDetails = "";
       if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
-        incrementDetails = `Minimum increment: $${(auction.minimumincrement ?? 0).toLocaleString()} (fixed)`;
-      } else if (auction?.bidincrementtype === "percentage" && auction?.percent && auction?.currentbid) {
-        const increment = round((auction.currentbid ?? 0) * (auction.percent / 100));
-        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${auction.percent}% of $${(auction.currentbid ?? 0).toLocaleString()})`;
+        incrementDetails = `Minimum increment: $${(
+          auction.minimumincrement ?? 0
+        ).toLocaleString()} (fixed)`;
+      } else if (
+        auction?.bidincrementtype === "percentage" &&
+        auction?.percent &&
+        auction?.currentbid
+      ) {
+        const increment = round(
+          (auction.currentbid ?? 0) * (auction.percent / 100)
+        );
+        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
+          auction.percent
+        }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
       }
 
-      alert(`Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`);
-        return;
+      alert(
+        `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+      );
+      return;
     }
 
     try {
@@ -384,7 +411,7 @@ export default function AuctionDetailPage() {
       formData.append("user_email", user.email ?? "");
       formData.append("amount", amount.toString());
       // formData.append("created_at", new Date().toISOString());
-       const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
+      const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
       if (createdAt) formData.append("created_at", createdAt);
       // Optionally append images and documents if available (e.g., from a file input)
       // Example: if (selectedImages) formData.append("images[0]", selectedImages[0]);
@@ -423,15 +450,26 @@ export default function AuctionDetailPage() {
         const historyPromises = bids.map(async (bid: Bid) => {
           const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
           const profileJson = await profileRes.json();
-          console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
+          console.log(
+            "Profile API Response for user_id",
+            bid.user_id,
+            " (Raw):",
+            profileJson
+          );
           const bidderName = profileJson.success
-            ? `${profileJson.data.fname ?? ""} ${profileJson.data.lname ?? ""}`.trim() || profileJson.data.email || bid.user_id
+            ? `${profileJson.data.fname ?? ""} ${
+                profileJson.data.lname ?? ""
+              }`.trim() ||
+              profileJson.data.email ||
+              bid.user_id
             : `User ${bid.user_id} (Profile not found)`;
-          const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
-            hour12: true,
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const bidTimeIST = DateTime.fromISO(bid.created_at)
+            .setZone("Asia/Kolkata")
+            .toLocaleString({
+              hour12: true,
+              hour: "2-digit",
+              minute: "2-digit",
+            });
           return {
             bidder: bidderName,
             amount: bid.amount,
@@ -443,13 +481,20 @@ export default function AuctionDetailPage() {
         setBidHistory(history);
       }
 
-     setBidAmount("");
+      setBidAmount("");
       alert(`Bid of $${amount.toLocaleString()} placed successfully!`);
     } catch (err) {
       console.error("Bid placement error:", err);
-      alert(err instanceof Error ? err.message : "An error occurred while placing bid");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while placing bid"
+      );
     }
   };
+  // function BidLeadersBoard({ bids, loggedInUserId }: { bids: Bid[]; loggedInUserId: string }) {
+  // if (!bids.length) return <p>No bids yet.</p>;
+  // }
 
   const handleBuyNow = () => {
     if (!isAuthenticated) {
@@ -1129,151 +1174,15 @@ export default function AuctionDetailPage() {
               )}
             </Card>
             {/* Bid Leaders Board */}
-            {isLoggedIn && (
-              <>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-yellow-500 animate-bounce" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                          Bid Leaders Board
-                        </h3>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="overflow-x-auto">
-                    <table className="min-w-full text-sm border border-gray-300">
-                      <thead className="bg-gray-900 text-white text-left">
-                        <tr>
-                          <th className="py-2 px-3 border-r border-white">
-                            Buyer Name
-                          </th>
-                          <th className="py-2 px-3">Bid Price ($)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                            Sneha Patel
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            91,000.00
-                          </td>
-                        </tr>
-                        <tr
-                          className="bg-green-300 font-semibold border-t border-gray-300 cursor-pointer hover:bg-green-400 transition"
-                          onClick={() => setShowModal(true)}
-                        >
-                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                            <User className="w-4 h-4 text-gray-600" />
-                            {loggedInUser}
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            1,00,000.00
-                          </td>
-                        </tr>
-                        {/* <tr className="bg-green-300 font-semibold border-t border-gray-300">
-                        <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                          <User className="w-4 h-4 text-gray-600" />
-                          Anita Verma
-                        </td>
-                        <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                          1,00,000.00
-                        </td>
-                      </tr> */}
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                            Rahul Sharma
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            1,10,000.00
-                          </td>
-                        </tr>
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                            Manisha Patel
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            91,000.00
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    {/* Static View All Bids Button */}
-                    <div className="flex justify-end mt-3">
-                      <button
-                        onClick={() => setShowAllBids((prev) => !prev)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
-                      >
-                        <span className="material-symbols-outlined text-sm"></span>
-                        {showAllBids ? "Hide Bids" : "View All Bids"}
-                      </button>
-                    </div>
-
-                    {/* Static All Bids Section */}
-                    {showAllBids && (
-                      <>
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
-                            Rohit Verma
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            89,500.00
-                          </td>
-                        </tr>
-
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
-                            Aisha Khan
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            88,000.00
-                          </td>
-                        </tr>
-
-                        <tr className="bg-white border-t border-gray-300">
-                          <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
-                            Kunal Joshi
-                          </td>
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                            84,000.00
-                          </td>
-                        </tr>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-                {/* Dialog (Pop-up) */}
-                <Dialog open={showModal} onOpenChange={setShowModal}>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Bid History - {loggedInUser}</DialogTitle>
-                    </DialogHeader>
-                    <ul className="text-sm text-gray-700 dark:text-gray-200 space-y-1 mt-2">
-                      <li>
-                        <span className="font-semibold">$1,00,000.00</span> — 15
-                        July 2025 @ 04:10 PM
-                      </li>
-                      <li>
-                        <span className="font-semibold">$85,000</span> — 12 July
-                        2025 @ 11:23 AM
-                      </li>
-                      <li>
-                        <span className="font-semibold">$79,000</span> — 09 July
-                        2025 @ 02:45 PM
-                      </li>
-                      <li>
-                        <span className="font-semibold">$72,000</span> — 05 July
-                        2025 @ 10:00 AM
-                      </li>
-                    </ul>
-                  </DialogContent>
-                </Dialog>
-              </>
+            {isLoggedIn && user?.id && auctionId && (
+              <div className="mt-6">
+                <BidLeadersBoard
+                  auctionId={auctionId}
+                  loggedInUserId={user.id}
+                />
+              </div>
             )}
+
             {/* Seller Info */}
             <Card>
               <CardHeader className="pb-3">
@@ -1315,7 +1224,6 @@ export default function AuctionDetailPage() {
                     <span className="">Auctions:</span>
                   </div>
                   <span className="font-xs">{auction.sellerAuctionCount}</span>
-
                 </div>
                 {isLoggedIn ? (
                   <Button className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d">

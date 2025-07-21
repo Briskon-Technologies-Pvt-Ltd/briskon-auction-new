@@ -16,6 +16,7 @@ interface Auction {
   productimages?: string[]; // Array of URLs
   productdocuments?: string[]; // Array of URLs
   startprice?: number;
+  bidder_count?: number;
   currentbid?: number;
   minimumincrement?: number;
   percent?: number;
@@ -66,7 +67,7 @@ export async function GET(
         id,
         productname,
          seller,
-      profiles:profiles!seller(fname, location),
+         profiles:profiles!seller(fname, location),
         productdescription,
         productimages,
         productdocuments,
@@ -78,12 +79,14 @@ export async function GET(
         auctionduration,
         scheduledstart,
         bidcount,
+        bidder_count,
         participants,
         issilentauction,
         currentbidder,
         createdby,
         attributes,
         sku,
+        currency,
         brand,
         model,
         reserveprice,
@@ -246,7 +249,7 @@ export async function PUT(
       const { data: auctionData, error: fetchError } = await supabase
         .from("auctions")
         .select(
-          "startprice, currentbid, minimumincrement, percent, bidincrementtype, participants, bidcount, createdby, scheduledstart, auctionduration, auctionsubtype, targetprice, auctiontype"
+          "startprice, currentbid, minimumincrement, percent, currency, bidder_count, bidincrementtype, participants, bidcount, createdby, scheduledstart, auctionduration, auctionsubtype, targetprice, auctiontype"
         )
         .eq("id", id)
         .single();
@@ -438,21 +441,24 @@ export async function PUT(
         );
       }
 
-      const { data, error: updateError } = await supabase
-        .from("auctions")
-        .update({
-          currentbid: amount,
-          currentbidder: user_email,
-          participants: updatedParticipants,
-          bidcount: updatedBidCount,
-          editable: false,
-        })
-        .eq("id", id)
-        .select();
+const updatedUniqueBidderCount = updatedParticipants.length;
 
-      if (updateError) {
+const { data, error: auctionUpdateError } = await supabase
+  .from("auctions")
+  .update({
+    participants: updatedParticipants,
+    bidcount: updatedBidCount,
+    bidder_count: updatedUniqueBidderCount,
+    currentbid: amount,
+    currentbidder: user_email,
+    editable: false,
+  })
+  .eq("id", id)
+  .select();
+
+      if (auctionUpdateError) {
         return NextResponse.json(
-          { success: false, error: updateError.message },
+          { success: false, error: auctionUpdateError.message },
           { status: 500 }
         );
       }

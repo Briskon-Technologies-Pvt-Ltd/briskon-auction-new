@@ -12,7 +12,7 @@ import {
   Clock,
   Users,
   Gavel,
-  TrendingDown,
+  TrendingUp,
   Heart,
   Share2,
   AlertCircle,
@@ -26,263 +26,241 @@ import { LoginPrompt } from "@/components/login-prompt";
 import { ReactNode } from "react";
 import { DateTime } from "luxon";
 
-const calculateTimeLeft = (endDate: Date): string => {
-  const now = DateTime.now().setZone("Asia/Kolkata");
-  const end = DateTime.fromJSDate(endDate).setZone("Asia/Kolkata");
+// Updated calculateTimeLeft function to handle dynamic countdown
+const calculateTimeLeft = (targetDateIST: DateTime, nowIST: DateTime): string => {
+  const diff = Math.max(0, targetDateIST.toMillis() - nowIST.toMillis());
 
-  if (end <= now) return "Auction ended";
+  if (diff <= 0) return "Auction ended";
 
-  const diff = end.diff(now, ["days", "hours", "minutes"]).toObject();
-
-  return `${Math.floor(diff.days || 0)}d ${Math.floor(diff.hours || 0)}h ${Math.floor(diff.minutes || 0)}m`;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  return `${days > 0 ? `${days}d ` : ""}${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
 };
 
-  function renderKeyValueBlock(
-    data: string | Record<string, any> | undefined,
-    fallback: string
-  ): React.ReactNode {
-    try {
-      const parsed: any[] = typeof data === "string" ? JSON.parse(data) : data ?? [];
+function renderKeyValueBlock(
+  data: string | Record<string, any> | undefined,
+  fallback: string
+): React.ReactNode {
+  try {
+    const parsed: any[] =
+      typeof data === "string" ? JSON.parse(data) : data ?? [];
 
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        return <span className="text-gray-600 dark:text-gray-300 ml-4">{fallback}</span>;
-      }
-
+    if (!Array.isArray(parsed) || parsed.length === 0) {
       return (
-        <>
-          {parsed.map((attr, index) =>
-            attr.value ? (
-              <div key={index} className="text-gray-600 dark:text-gray-300 ml-4">
-                {attr.name}:{" "}
-                {attr.type === "color" ? (
-                  <span
-                    className="inline-block w-4 h-4 rounded-sm border ml-1"
-                    style={{ backgroundColor: attr.value }}
-                    title={attr.value}
-                  ></span>
-                ) : (
-                  attr.value
-                )}
-              </div>
-            ) : null
-          )}
-        </>
+        <span className="text-gray-600 dark:text-gray-300 ml-4">
+          {fallback}
+        </span>
       );
-    } catch {
-      return <span className="text-gray-600 dark:text-gray-300 ml-4">Invalid attributes data</span>;
     }
+
+    return (
+      <>
+        {parsed.map((attr, index) => (
+          attr.value ? (
+            <div key={index} className="text-gray-600 dark:text-gray-300 ml-4">
+              {attr.name}:{" "}
+              {attr.type === "color" ? (
+                <span className="inline-block w-4 h-4 rounded-sm border ml-1" style={{ backgroundColor: attr.value }} title={attr.value}></span>
+              ) : (
+                attr.value
+              )}
+            </div>
+          ) : null
+        ))}
+      </>
+    );
+  } catch {
+    return (
+      <span className="text-gray-600 dark:text-gray-300 ml-4">
+        Invalid attributes data
+      </span>
+    );
   }
+}
 
-  interface Auction {
-    id: string;
-    productname?: string;
-    title?: string;
-    categoryid?: string;
-    auctiontype: "forward";
-    auctionsubtype: "dutch";
-    currentbid?: number;
-    bidincrementtype?: "fixed" | "percentage";
-    minimumincrement?: number;
-    startprice?: number;
-    scheduledstart?: string;
-    auctionduration?: { days?: number; hours?: number; minutes?: number };
-    bidders?: number;
-    watchers?: number;
-    productimages?: string[];
-    productdocuments?: string[];
-    productdescription?: string;
-    specifications?: string;
-    buyNowPrice?: number;
-    participants?: string[];
-    bidcount?: number;
-    createdby?: string;
-    timeLeft?: string;
-    questions?: { user: string; question: string; answer?: string; time: string }[];
-    issilentauction?: boolean;
-    currentbidder?: string;
-    percent?: number;
-    attributes?: string;
-    sku?: string;
-    brand?: string;
-    model?: string;
-    reserveprice?: number;
-    ended?: boolean;
-  }
+// Updated Auction interface with productquantity
+interface Auction {
+  id: string;
+  productname?: string;
+  title?: string;
+  categoryid?: string;
+  auctiontype: "forward" | "reverse";
+  currentbid?: number;
+  bidincrementtype?: "fixed" | "percentage";
+  minimumincrement?: number;
+  startprice?: number;
+  scheduledstart?: string | null;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+  bidders?: number;
+  watchers?: number;
+  productimages?: string[];
+  productdocuments?: string[];
+  productdescription?: string;
+  specifications?: string;
+  buyNowPrice?: number;
+  participants?: string[];
+  bidcount?: number;
+  createdby?: string;
+  timeLeft?: string;
+  questions?: { user: string; question: string; answer: string | null; question_time: string | null; answer_time: string | null }[];
+  question_count?: number;
+  issilentauction?: boolean;
+  currentbidder?: string;
+  percent?: number;
+  attributes?: string;
+  sku?: string;
+  brand?: string;
+  model?: string;
+  reserveprice?: number;
+  auctionsubtype?: string;
+  productquantity?: number; // New field for quantity
+}
 
-  interface Bid {
-    id: string;
-    auction_id: string;
-    user_id: string;
-    amount: number;
-    created_at: string;
-  }
+// Bid interface
+interface Bid {
+  id: string;
+  auction_id: string;
+  user_id: string;
+  amount: number;
+  created_at: string;
+}
 
-  export default function DutchAuctionDetailPage() {
-    const params = useParams<{ id: string }>();
-    const auctionId = params.id;
+export default function AuctionDetailPage() {
+  const params = useParams<{ id: string }>();
+  const auctionId = params.id;
 
-    const [bidAmount, setBidAmount] = useState("");
-    const [watchlisted, setWatchlisted] = useState(false);
-    const [auction, setAuction] = useState<Auction | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [bidHistory, setBidHistory] = useState<{ bidder: string; amount: number; time: string }[]>([]);
-    const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-    const [timeLeft, setTimeLeft] = useState<string>("N/A");
-    const [isFloor, setIsFloor] = useState(false);
-    const [priceUpdateInterval, setPriceUpdateInterval] = useState<NodeJS.Timeout | null>(null);
-    const [newQuestion, setNewQuestion] = useState("");
-    const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
+  const [bidAmount, setBidAmount] = useState("");
+  const [watchlisted, setWatchlisted] = useState(false);
+  const [auction, setAuction] = useState<Auction | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [bidHistory, setBidHistory] = useState<{ bidder: string; amount: number; time: string }[]>([]);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>("Loading...");
 
-    const { isAuthenticated, user } = useAuth();
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-    useEffect(() => {
-      const savedPrice = localStorage.getItem(`dutchAuction_${auctionId}_currentPrice`);
-      const fetchAuctionDetails = async () => {
-        try {
-          setLoading(true);
-          const res = await fetch(`/api/auctions/dutch/${auctionId}`);
-          const json = await res.json();
-          console.log("Auction API Response (Raw):", json);
-          if (!json.success) throw new Error(json.error || "Failed to fetch auction");
-          if (json.data.auctionsubtype !== "dutch") throw new Error("This is not a Dutch auction");
-          const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
-          const updatedAuction = { ...json.data, participants, ended: json.data.ended || false };
-          console.log("Processed Auction Data:", updatedAuction);
-          setAuction(updatedAuction);
-          const initialPrice = savedPrice
-            ? parseFloat(savedPrice)
-            : updatedAuction.ended
-            ? updatedAuction.currentbid || updatedAuction.startprice || 0
-            : updatedAuction.startprice || 0;
-          setCurrentPrice(initialPrice);
-
-          // Check if initialPrice is at floor price
-          const increment = updatedAuction.bidincrementtype === "fixed" && updatedAuction.minimumincrement
-            ? updatedAuction.minimumincrement
-            : updatedAuction.bidincrementtype === "percentage" && updatedAuction.percent
-            ? (updatedAuction.startprice || 0) * (updatedAuction.percent / 100)
-            : 0;
-          const floorPrice = increment > 0 ? increment : 1; // Floor price is the minimum increment or 1
-          if (initialPrice <= floorPrice && !updatedAuction.ended) {
-            setIsFloor(true);
-          }
-
-          const bidRes = await fetch(`/api/bids/${auctionId}`);
-          const bidJson = await bidRes.json();
-          console.log("Bid API Response (Raw):", bidJson);
-          if (bidJson.success) {
-            const bids = bidJson.data || [];
-            console.log("Fetched Bids (Raw):", bids);
-            const historyPromises = bids.map(async (bid: Bid) => {
-              const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
-              const profileJson = await profileRes.json();
-              console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
-              const bidderName = profileJson.success
-                ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
-                : `User ${bid.user_id} (Profile not found)`;
-              return {
-                bidder: bidderName,
-                amount: bid.amount,
-                time: new Date(bid.created_at).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" }),
-              };
-            });
-            const history = await Promise.all(historyPromises);
-            console.log("Processed Bid History (Raw):", history);
-            setBidHistory(history);
-          } else {
-            console.log("No bid data available from API:", bidJson);
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "An error occurred");
-          console.error("Fetch Error:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchAuctionDetails();
-    }, [auctionId]);
-
-    useEffect(() => {
-      const handleBeforeUnload = () => {
-        if (currentPrice) {
-          localStorage.setItem(`dutchAuction_${auctionId}_currentPrice`, currentPrice.toString());
-        }
-      };
-      window.addEventListener("beforeunload", handleBeforeUnload);
-      return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [currentPrice, auctionId]);
-
-    useEffect(() => {
-      if (!auction || !auction.scheduledstart || auction.ended || !auction.startprice) return;
-
-      const start = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
-      const now = DateTime.now().setZone("Asia/Kolkata");
-      const duration = auction.auctionduration
-        ? ((d) => ((d.days || 0) * 24 * 60 * 60) + ((d.hours || 0) * 60 * 60) + ((d.minutes || 0) * 60))(
-            auction.auctionduration
-          )
-        : 0;
-      const end = start.plus({ seconds: duration });
-      console.log("Start:", start.toISO(), "End:", end.toISO(), "Now:", now.toISO(), "Duration:", duration);
-
-      // Set initial timeLeft and currentPrice
-      setTimeLeft(calculateTimeLeft(end.toJSDate()));
-      const minutesPassed = Math.floor(now.diff(start, "minutes").minutes);
-      const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
-        ? auction.minimumincrement
-        : auction.bidincrementtype === "percentage" && auction.percent
-        ? (auction.startprice || 0) * (auction.percent / 100)
-        : 0;
-      let initialPrice = auction.startprice || 0;
-      if (now >= start && !auction.ended) {
-        initialPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
-      }
-      setCurrentPrice(initialPrice);
-
-      if (now >= start && now <= end && !auction.ended) {
-        const interval = setInterval(() => {
-          const nowIST = DateTime.now().setZone("Asia/Kolkata");
-          const minutesPassed = Math.floor(nowIST.diff(start, "minutes").minutes);
-          let newPrice = auction.startprice || 0;
-          const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
-            ? auction.minimumincrement
-            : auction.bidincrementtype === "percentage" && auction.percent
-            ? (auction.startprice || 0) * (auction.percent / 100)
-            : 0;
-          newPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
-
-        setCurrentPrice(newPrice);
-        setTimeLeft(calculateTimeLeft(end.toJSDate()));
-        console.log("Updated Time Left:", calculateTimeLeft(end.toJSDate()), "Updated Price:", newPrice);
-        if (newPrice <= (increment > 0 ? increment : 1) && !auction.ended) {
-          setIsFloor(true);
-        }
-      }, 60 * 1000);
-
-      setPriceUpdateInterval(interval);
-      return () => clearInterval(interval);
-    } else if (now > end || auction.ended) {
-      handleAuctionEnd();
-    }
-  }, [auction, auction?.ended, auction?.scheduledstart, auction?.auctionduration, auction?.minimumincrement, auction?.percent, auction?.startprice]);
-
-  const handleAuctionEnd = async () => {
-    if (auction && !auction.ended) {
-      const res = await fetch(`/api/auctions/dutch/${auctionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ended: true }),
-      });
+useEffect(() => {
+  const fetchAuctionDetails = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/auctions/yankee/${auctionId}`);
       const json = await res.json();
-      if (json.success) {
-        setAuction((prev) => (prev ? { ...prev, ended: true } : null));
+      console.log("Auction API Response (Raw):", json);
+      if (!json.success) throw new Error(json.error || "Failed to fetch auction");
+      const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
+      const updatedAuction: Auction = { ...json.data, id: auctionId, participants };
+      console.log("Processed Auction Data:", updatedAuction);
+      setAuction(updatedAuction);
+
+      const bidRes = await fetch(`/api/bids/${auctionId}`);
+      const bidJson = await bidRes.json();
+      console.log("Bid API Response (Full):", bidJson); // Log full response for structure
+      if (bidJson.success) {
+        let bids = [];
+        // Try different possible paths for bids data
+        if (Array.isArray(bidJson.data.bids)) bids = bidJson.data.bids;
+        else if (Array.isArray(bidJson.bids)) bids = bidJson.bids; // Alternative structure
+        else if (Array.isArray(bidJson.data)) bids = bidJson.data; // Another possible structure
+        console.log("Extracted Bids:", bids);
+        if (bids.length === 0) {
+          console.warn("No bids found in response");
+          setBidHistory([]);
+          return;
+        }
+        const historyPromises = bids.map(async (bid: Bid) => {
+          try {
+            const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
+            const profileJson = await profileRes.json();
+            console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
+            const bidderName = profileJson.success
+              ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
+              : `User ${bid.user_id} (Profile not found)`;
+            const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+              hour12: true,
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            return {
+              bidder: bidderName,
+              amount: bid.amount,
+              time: bidTimeIST,
+            };
+          } catch (profileErr) {
+            console.error("Profile fetch error for user_id", bid.user_id, ":", profileErr);
+            const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+              hour12: true,
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            return {
+              bidder: `User ${bid.user_id} (Profile error)`,
+              amount: bid.amount,
+              time: bidTimeIST,
+            };
+          }
+        });
+        const history = await Promise.all(historyPromises);
+        console.log("Processed Bid History Before Sorting:", history);
+        const sortedHistory = history.sort((a, b) => b.amount - a.amount);
+        console.log("Processed Bid History After Sorting:", sortedHistory);
+        setBidHistory(sortedHistory);
+      } else {
+        console.log("No bid data available from API:", bidJson);
+        setBidHistory([]);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
     }
-    if (priceUpdateInterval) clearInterval(priceUpdateInterval);
   };
+  fetchAuctionDetails();
+}, [auctionId]);
+
+  // Dynamic time left and status update
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const updateTimeLeft = () => {
+      if (auction?.scheduledstart && auction.auctionduration) {
+        const nowIST = DateTime.now().setZone("Asia/Kolkata");
+        const startIST = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
+        const duration = ((d: any) => ((d.days ?? 0) * 24 * 60 * 60) + ((d.hours ?? 0) * 60 * 60) + ((d.minutes ?? 0) * 60))(auction.auctionduration);
+        const endIST = startIST.plus({ seconds: duration });
+        console.log("Time Calculation:", {
+          auctionScheduledStart: auction.scheduledstart,
+          nowIST: nowIST.toISO(),
+          startIST: startIST.toISO(),
+          endIST: endIST.toISO(),
+          duration,
+        });
+        let isAuctionNotStarted = nowIST < startIST;
+        let isAuctionEnded = false;
+        let calculatedTimeLeft = "";
+
+        if (isAuctionNotStarted) {
+          calculatedTimeLeft = calculateTimeLeft(startIST, nowIST);
+        } else {
+          isAuctionEnded = endIST < nowIST;
+          if (!isAuctionEnded) {
+            calculatedTimeLeft = calculateTimeLeft(endIST, nowIST);
+          }
+        }
+
+        setTimeLeft(calculatedTimeLeft || "Auction ended");
+      }
+    };
+
+    updateTimeLeft();
+    interval = setInterval(updateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [auction?.scheduledstart, auction?.auctionduration]);
 
   const handlePlaceBid = async () => {
     if (!isAuthenticated) {
@@ -296,89 +274,75 @@ const calculateTimeLeft = (endDate: Date): string => {
       return;
     }
 
-    if (auction?.ended) {
-      alert("This auction has already ended.");
-      return;
-    }
-
     const amount = Number(bidAmount);
-    console.log("Current Price before bid:", currentPrice, "Bid Amount:", amount);
-
-    if (!currentPrice || amount !== currentPrice) {
-      alert(`Bid must match the current price of $${currentPrice?.toLocaleString() || "N/A"}`);
+    if (isNaN(amount)) {
+      alert("Please enter a valid bid amount.");
       return;
     }
 
     try {
-      console.log("Placing bid:", { auctionId, userId: user.id, amount, currentPrice });
+      console.log("Placing bid:", { auctionId, userId: user.id, amount });
       const formData = new FormData();
       formData.append("action", "bid");
-      formData.append("user_id", user.id);
-      formData.append("user_email", user.email);
+      formData.append("user_id", user.id ?? "");
+      formData.append("user_email", user.email ?? "");
       formData.append("amount", amount.toString());
-      formData.append("created_at", new Date().toISOString());
-      formData.append("currentprice", currentPrice.toString());
+      const createdAt = DateTime.now().setZone("Asia/Kolkata").toUTC().toISO();
+      if (createdAt) formData.append("created_at", createdAt);
 
-      const bidRes = await fetch(`/api/auctions/dutch/${auctionId}`, {
+      const bidRes = await fetch(`/api/auctions/yankee/${auctionId}`, {
         method: "PUT",
         body: formData,
       });
       const bidJson = await bidRes.json();
       if (!bidJson.success) throw new Error(bidJson.error || "Failed to record bid");
 
-      const auctionRes = await fetch(`/api/auctions/dutch/${auctionId}`);
+      const auctionRes = await fetch(`/api/auctions/yankee/${auctionId}`);
       const auctionJson = await auctionRes.json();
       if (!auctionJson.success) throw new Error(auctionJson.error || "Failed to fetch updated auction");
 
-      const start = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
+      const startIST = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
       const duration = auctionJson.data.auctionduration
-        ? ((d) =>
-            ((d.days || 0) * 24 * 60 * 60) +
-            ((d.hours || 0) * 60 * 60) +
-            ((d.minutes || 0) * 60))(auctionJson.data.auctionduration)
+        ? ((d) => ((d.days ?? 0) * 24 * 60 * 60) + ((d.hours ?? 0) * 60 * 60) + ((d.minutes ?? 0) * 60))(auctionJson.data.auctionduration)
         : 0;
-      const end = start.plus({ seconds: duration });
-      const timeLeft = calculateTimeLeft(end.toJSDate());
+      const endIST = startIST.plus({ seconds: duration });
 
-      setAuction({ ...auctionJson.data, timeLeft });
-      setCurrentPrice(amount);
+      setAuction({ ...auctionJson.data, id: auctionId });
 
-      handleAuctionEnd();
-
-      const bidResUpdated = await fetch(`/api/bids/${auctionId}`);
+      const bidResUpdated = await fetch(`/api/auctions/yankee/${auctionId}`);
       const bidJsonUpdated = await bidResUpdated.json();
       if (bidJsonUpdated.success) {
-        const bids = bidJsonUpdated.data || [];
+        const bids = bidJsonUpdated.data.bids || [];
         console.log("Fetched Updated Bids (Raw):", bids);
         const historyPromises = bids.map(async (bid: Bid) => {
           const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
           const profileJson = await profileRes.json();
           console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
           const bidderName = profileJson.success
-            ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() ||
-              profileJson.data.email ||
-              bid.user_id
+            ? `${profileJson.data.fname ?? ""} ${profileJson.data.lname ?? ""}`.trim() || profileJson.data.email || bid.user_id
             : `User ${bid.user_id} (Profile not found)`;
+          const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+            hour12: true,
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           return {
             bidder: bidderName,
             amount: bid.amount,
-            time: new Date(bid.created_at).toLocaleString("en-US", {
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            time: bidTimeIST,
           };
         });
         const history = await Promise.all(historyPromises);
-        console.log("Processed Updated Bid History (Raw):", history);
-        setBidHistory(history);
+        const sortedHistory = history.sort((a, b) => b.amount - a.amount);
+        console.log("Processed Updated Bid History (Raw):", sortedHistory);
+        setBidHistory(sortedHistory);
       }
 
       setBidAmount("");
-      alert(`Bid of $${amount.toLocaleString()} placed successfully! Auction ended.`);
+      alert(`Bid of $${amount.toLocaleString()} placed successfully!`);
     } catch (err) {
       console.error("Bid placement error:", err);
-      alert(err instanceof Error ? err.message : "An error occurred while setting bid");
+      alert(err instanceof Error ? err.message : "An error occurred while placing bid");
     }
   };
 
@@ -403,18 +367,22 @@ const calculateTimeLeft = (endDate: Date): string => {
   };
 
   const getMinimumBid = () => {
-    return currentPrice || auction?.startprice || 0;
+    let minimumBid = auction?.startprice ?? 0;
+    if (auction?.bidcount && auction?.bidcount > 0 && auction?.currentbid) {
+      minimumBid = auction.currentbid ?? 0; // For Yankee, no increment; just use current bid as base
+    }
+    return Math.max(minimumBid, auction?.startprice ?? 0);
   };
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) =>
-      prev === 0 ? (auction?.productimages?.length || 1) - 1 : prev - 1
+      prev === 0 ? (auction?.productimages?.length ?? 1) - 1 : prev - 1
     );
   };
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) =>
-      prev === (auction?.productimages?.length || 1) - 1 ? 0 : prev + 1
+      prev === (auction?.productimages?.length ?? 1) - 1 ? 0 : prev + 1
     );
   };
 
@@ -437,7 +405,7 @@ const calculateTimeLeft = (endDate: Date): string => {
       formData.append("user_email", user?.email ?? "");
       formData.append("question", newQuestion);
 
-      const res = await fetch(`/api/auctions/dutch/${auctionId}`, {
+      const res = await fetch(`/api/auctions/yankee/${auctionId}`, {
         method: "PUT",
         body: formData,
       });
@@ -447,6 +415,7 @@ const calculateTimeLeft = (endDate: Date): string => {
       const updatedAuction: Auction = {
         ...auction!,
         questions: json.data.questions,
+        question_count: json.data.question_count,
       };
 
       setAuction(updatedAuction);
@@ -476,7 +445,7 @@ const calculateTimeLeft = (endDate: Date): string => {
       formData.append("questionIndex", answerInput.index.toString());
       formData.append("answer", answerInput.value);
 
-      const res = await fetch(`/api/auctions/dutch/${auctionId}`, {
+      const res = await fetch(`/api/auctions/yankee/${auctionId}`, {
         method: "PUT",
         body: formData,
       });
@@ -501,30 +470,50 @@ const calculateTimeLeft = (endDate: Date): string => {
   if (error) return <div className="text-center py-20 text-red-600">{error}</div>;
   if (!auction) return <div className="text-center py-20">Auction not found</div>;
 
-  const now = DateTime.now().setZone("Asia/Kolkata");
-  const start = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
+  const nowIST = DateTime.now().setZone("Asia/Kolkata");
+  const startIST = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
   const duration = auction.auctionduration
-    ? ((d) => ((d.days || 0) * 24 * 60 * 60) + ((d.hours || 0) * 60 * 60) + ((d.minutes || 0) * 60))(
-        auction.auctionduration
-      )
+    ? ((d) => ((d.days ?? 0) * 24 * 60 * 60) + ((d.hours ?? 0) * 60 * 60) + ((d.minutes ?? 0) * 60))(auction.auctionduration)
     : 0;
-  const end = start.plus({ seconds: duration });
-  const isAuctionNotStarted = now < start;
-  const isAuctionEndedByTime = now > end;
+  const endIST = startIST.plus({ seconds: duration });
+  let isAuctionNotStarted = nowIST < startIST;
+  let isAuctionEnded = false;
+  let timeLeftDisplay = timeLeft;
 
-  if (isAuctionNotStarted || isAuctionEndedByTime) {
-    handleAuctionEnd();
+  if (!isAuctionNotStarted) {
+    isAuctionEnded = endIST < nowIST;
+    if (!isAuctionEnded) {
+      timeLeftDisplay = calculateTimeLeft(endIST, nowIST);
+    }
+  } else {
+    timeLeftDisplay = calculateTimeLeft(startIST, nowIST);
   }
 
-  const isButtonDisabled =
-    !bidAmount ||
-    isNaN(Number(bidAmount)) ||
-    !auction ||
-    auction.ended ||
-    Number(bidAmount) !== getMinimumBid() ||
-    user?.email === auction?.createdby ||
-    isAuctionNotStarted ||
-    isAuctionEndedByTime;
+  console.log("Auction Status:", {
+    isAuctionNotStarted,
+    isAuctionEnded,
+    startIST: startIST.toISO(),
+    endIST: endIST.toISO(),
+    nowIST: nowIST.toISO(),
+    timeLeft: timeLeftDisplay,
+  });
+
+  const isSameAmount = (a: number, b: number, epsilon = 0.01) =>
+    Math.abs(a - b) < epsilon;
+
+  const bidAmountNumber = Number(bidAmount);
+
+const isButtonDisabled =
+  !bidAmount ||
+  isNaN(bidAmountNumber) ||
+  bidAmountNumber < 0 ||
+  (user?.email === auction?.createdby && auction?.createdby !== null) ||
+  isAuctionNotStarted ||
+  isAuctionEnded ||
+  (auction?.bidcount === 0
+    ? bidAmountNumber < (auction?.startprice ?? 0)
+    : bidAmountNumber <= (auction?.currentbid ?? 0));
+
 
   return (
     <div className="min-h-screen py-20">
@@ -541,7 +530,7 @@ const calculateTimeLeft = (endDate: Date): string => {
                   className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
                 />
                 <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {`${currentImageIndex + 1}/${auction.productimages?.length || 1}`}
+                  {`${currentImageIndex + 1}/${auction.productimages?.length ?? 1}`}
                 </div>
                 <button
                   onClick={handlePrevImage}
@@ -580,8 +569,8 @@ const calculateTimeLeft = (endDate: Date): string => {
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="secondary">{auction.categoryid || "Uncategorized"}</Badge>
                       <Badge variant="outline" className="flex items-center gap-1">
-                        <TrendingDown className="h-3 w-3" />
-                        Dutch Auction
+                        <TrendingUp className="h-3 w-3" />
+                        {auction.auctiontype === "forward" ? "Forward Auction" : "Reverse Auction"}
                       </Badge>
                     </div>
                     <CardTitle className="text-2xl">{auction.productname || auction.title || "Untitled Auction"}</CardTitle>
@@ -615,6 +604,9 @@ const calculateTimeLeft = (endDate: Date): string => {
                     <div className="prose dark:prose-invert max-w-none">
                       <p className="whitespace-pre-line">
                         {auction.productdescription || "No description available"}
+                        {auction.productquantity && (
+                          <div>Quantity: {auction.productquantity}</div>
+                        )}
                       </p>
                     </div>
                   </TabsContent>
@@ -644,7 +636,7 @@ const calculateTimeLeft = (endDate: Date): string => {
                           {auction.reserveprice && (
                             <div className="flex justify-between py-2 border-b">
                               <span className="font-medium">Reserve Price</span>
-                              <span className="text-gray-600 dark:text-gray-300">${auction.reserveprice.toLocaleString()}</span>
+                              <span className="text-gray-600 dark:text-gray-300">${(auction.reserveprice ?? 0).toLocaleString()}</span>
                             </div>
                           )}
                           {auction.attributes && (
@@ -667,26 +659,30 @@ const calculateTimeLeft = (endDate: Date): string => {
                   </TabsContent>
 
                   <TabsContent value="bids" className="mt-6">
-                    <div className="space-y-3">
-                      {bidHistory.length > 0 ? (
-                        bidHistory.map((bid, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded"
-                          >
-                            <div>
-                              <span className="font-medium">{bid.bidder}</span>
-                              <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                {bid.time}
-                              </span>
+                    {auction?.issilentauction ? (
+                      <p className="text-center text-gray-600 dark:text-gray-300">Bid history is not available for this auction type.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {bidHistory.length > 0 ? (
+                          bidHistory.map((bid, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded"
+                            >
+                              <div>
+                                <span className="font-medium">{bid.bidder}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
+                                  {bid.time}
+                                </span>
+                              </div>
+                              <span className="font-semibold text-green-600">${bid.amount.toLocaleString()}</span>
                             </div>
-                            <span className="font-semibold text-green-600">${bid.amount.toLocaleString()}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p>No bid history available</p>
-                      )}
-                    </div>
+                          ))
+                        ) : (
+                          <p>No bid history available</p>
+                        )}
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="qa" className="mt-6">
@@ -697,7 +693,11 @@ const calculateTimeLeft = (endDate: Date): string => {
                             <div className="mb-2">
                               <span className="font-medium">{qa.user}</span>
                               <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                {new Date(qa.question_time).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" })}
+                                {DateTime.fromISO(qa.question_time ?? "").setZone("Asia/Kolkata").toLocaleString({
+                                  hour12: true,
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
                               </span>
                             </div>
                             <div className="mb-2">
@@ -708,8 +708,15 @@ const calculateTimeLeft = (endDate: Date): string => {
                               <div className="ml-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
                                 <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
                                 <span>{qa.answer}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
+                                  {DateTime.fromISO(qa.answer_time ?? "").setZone("Asia/Kolkata").toLocaleString({
+                                    hour12: true,
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
                               </div>
-                            ) : user?.email === auction?.createdby && !auction.ended ? (
+                            ) : user?.email === auction?.createdby && !isAuctionEnded ? (
                               <div>
                                 <Textarea
                                   placeholder="Type your answer here..."
@@ -731,7 +738,6 @@ const calculateTimeLeft = (endDate: Date): string => {
                       ) : (
                         <p>No questions available</p>
                       )}
-
                       <div className="mt-6">
                         <h4 className="font-semibold mb-3">Ask a Question</h4>
                         <Textarea
@@ -739,11 +745,11 @@ const calculateTimeLeft = (endDate: Date): string => {
                           value={newQuestion}
                           onChange={(e) => setNewQuestion(e.target.value)}
                           className="mb-3"
-                          disabled={isAuctionNotStarted || isAuctionEndedByTime || auction?.ended}
+                          disabled={isAuctionNotStarted || isAuctionEnded}
                         />
                         <Button
                           onClick={handleSubmitQuestion}
-                          disabled={!newQuestion.trim() || isAuctionNotStarted || isAuctionEndedByTime || auction?.ended}
+                          disabled={!newQuestion.trim() || isAuctionNotStarted || isAuctionEnded}
                         >
                           Submit Question
                         </Button>
@@ -797,16 +803,18 @@ const calculateTimeLeft = (endDate: Date): string => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
-                    {auction?.ended && auction.currentbid
-                      ? `$${auction.currentbid.toLocaleString()}`
-                      : `$${currentPrice?.toLocaleString() || "N/A"}`}
+                    {(auction.bidcount && auction.bidcount > 0)
+                      ? `$${auction.currentbid?.toLocaleString() || "N/A"}`
+                      : `$${auction.startprice?.toLocaleString() || "N/A"}`}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-300">
-                    {auction?.ended ? "Sold at" : "Current Price"}
+                    {auction.bidcount && auction.bidcount > 0
+                      ? "Current Highest Bid"
+                      : "Starting Price"}
                   </div>
-                  {bidHistory.length > 0 && bidHistory[bidHistory.length - 1].bidder && (
+                  {(auction.currentbidder && auction.bidcount && auction.bidcount > 0) && (
                     <div className="text-sm text-gray-600 dark:text-gray-300">
-                      Last Bid By: {bidHistory[bidHistory.length - 1].bidder}
+                      By: {auction.currentbidder}
                     </div>
                   )}
                 </div>
@@ -818,7 +826,7 @@ const calculateTimeLeft = (endDate: Date): string => {
                   </div>
                   <div className="flex items-center gap-1 hover-lift">
                     <Users className="h-4 w-4" />
-                    <span>{bidHistory.length || 0} bidders</span>
+                    <span>{`${auction.participants?.length || 0} bidders`}</span>
                   </div>
                 </div>
 
@@ -827,31 +835,25 @@ const calculateTimeLeft = (endDate: Date): string => {
                     <label className="text-sm font-medium">Your Bid Amount</label>
                     <Input
                       type="number"
-                      placeholder={`Current: $${getMinimumBid().toLocaleString()}`}
+                      placeholder={`Minimum: $${getMinimumBid().toLocaleString()}`}
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
                       className="mt-1 transition-smooth"
-                      disabled={isAuctionNotStarted || isAuctionEndedByTime || auction?.ended}
+                      disabled={isAuctionNotStarted || isAuctionEnded}
                     />
                   </div>
-                  <div style={{ width: "100%", display: "block", position: "relative", zIndex: 1, pointerEvents: "auto" }}>
+                  <div style={{ width: '100%', display: 'block', position: 'relative', zIndex: 1, pointerEvents: 'auto' }}>
                     <Button
                       className="w-full transition-smooth hover-lift transform-3d"
                       onClick={handlePlaceBid}
                       disabled={isButtonDisabled}
-                      style={{ display: "block", width: "100%", padding: "0.5rem", boxSizing: "border-box", position: "relative", zIndex: 1, pointerEvents: "auto" }}
+                      style={{ display: "block", width: "100%", padding: "0.5rem", boxSizing: 'border-box', position: 'relative', zIndex: 1, pointerEvents: 'auto' }}
                     >
                       Place Bid
                     </Button>
-                    {(isAuctionNotStarted || isAuctionEndedByTime || auction?.ended) && (
+                    {(isAuctionNotStarted || isAuctionEnded) && (
                       <p className="text-sm text-red-600 mt-2">
-                        {isAuctionNotStarted
-                          ? "Auction has not started yet"
-                          : isAuctionEndedByTime
-                          ? "Auction has ended"
-                          : auction?.ended
-                          ? "Auction ended"
-                          : ""}
+                        {isAuctionNotStarted ? "Auction has not started yet" : "Auction has ended"}
                       </p>
                     )}
                   </div>
@@ -862,26 +864,12 @@ const calculateTimeLeft = (endDate: Date): string => {
                         variant="outline"
                         className="w-full transition-smooth hover-lift"
                         onClick={handleBuyNow}
-                        disabled={isAuctionNotStarted || isAuctionEndedByTime || auction?.ended}
+                        disabled={isAuctionNotStarted || isAuctionEnded}
                       >
                         Buy Now - ${auction.buyNowPrice.toLocaleString()}
                       </Button>
                     </>
                   )}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>
-                    {isFloor ? "Floor price reached, no further deductions" : (
-                      <>
-                        Price decreases every 1 minute by $
-                        {auction.bidincrementtype === "percentage" && auction.percent
-                          ? ((auction.startprice || 0) * (auction.percent / 100)).toFixed(2)
-                          : (auction.minimumincrement || 0).toFixed(2)}
-                        {auction.bidincrementtype === "percentage" ? ` (${auction.percent}%)` : " (fixed)"}
-                      </>
-                    )}
-                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -931,17 +919,15 @@ const calculateTimeLeft = (endDate: Date): string => {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span>Starting Price</span>
-                  <span className="font-medium">${auction.startprice?.toLocaleString() || "N/A"}</span>
+                  <span>Starting Bid</span>
+                  <span className="font-medium">${(auction.startprice ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>{auction?.ended ? "Sold at" : "Current Price"}</span>
-                  <span className="font-medium text-green-600">
-                    {auction?.ended && auction.currentbid
-                      ? `$${auction.currentbid.toLocaleString()}`
-                      : `$${currentPrice?.toLocaleString() || "N/A"}`}
-                  </span>
-                </div>
+                {auction.bidcount && auction.bidcount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Current Bid</span>
+                    <span className="font-medium text-green-600">${(auction.currentbid ?? 0).toLocaleString()}</span>
+                  </div>
+                )}
                 {auction.buyNowPrice && (
                   <div className="flex justify-between">
                     <span>Buy Now Price</span>
@@ -950,12 +936,18 @@ const calculateTimeLeft = (endDate: Date): string => {
                 )}
                 <div className="flex justify-between">
                   <span>Total Bids</span>
-                  <span className="font-medium">{bidHistory.length || 0}</span>
+                  <span className="font-medium">{auction.bidcount || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Time Remaining</span>
                   <span className="font-medium text-red-600">{timeLeft}</span>
                 </div>
+                {auction.productquantity && (
+                  <div className="flex justify-between">
+                    <span>Product Quantity</span>
+                    <span className="font-medium">{auction.productquantity}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

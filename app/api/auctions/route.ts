@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       auctionsubtype,
       ismultilot,
       productname,
+      bidder_count,
       productdescription,
       productimages,
       productdocuments,
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       ismultilot: ismultilot || false,
       productname,
       productdescription,
-      
+      bidder_count,
       productimages: productimages || [], // Array of URLs
       productdocuments: productdocuments || [], // Array of URLs
       lots: parseJson(JSON.stringify(lots)),
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       startprice: parseFloat(startprice),
       minimumincrement: minimumincrement ? parseFloat(minimumincrement) : null,
       auctionduration: parseJson(JSON.stringify(auctionduration)),
-      currency: currency || "USD",
+      currency: currency || "",
       launchtype: launchtype || "immediate",
       scheduledstart: scheduledstart ? new Date(scheduledstart).toISOString() : null,
       bidextension: bidextension || false,

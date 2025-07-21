@@ -23,9 +23,11 @@ interface Bid {
 export default function BidLeadersBoard({
   auctionId,
   loggedInUserId,
+  currencySymbol,
 }: {
   auctionId: string;
   loggedInUserId: string;
+  currencySymbol: string;
 }) {
   const [bids, setBids] = useState<Bid[]>([]);
   const [showAllBids, setShowAllBids] = useState(false);
@@ -40,23 +42,35 @@ export default function BidLeadersBoard({
         setBids(json.data);
       }
     }
-  fetchBids(); // fetch immediately on mount
+    fetchBids(); // fetch immediately on mount
+    intervalId = setInterval(fetchBids, 3000); // fetch every 3 seconds
+    return () => clearInterval(intervalId); // clean up on unmount
+  }, [auctionId]);
 
-  intervalId = setInterval(fetchBids, 3000); // fetch every 5 seconds
+  // Filter unique bidders: keep only highest bid per user
+const uniqueHighestBidsMap = bids.reduce((map, bid) => {
+  const existingBid = map.get(bid.user_id);
+  if (!existingBid || existingBid.amount < bid.amount) {
+    map.set(bid.user_id, bid);
+  }
+  return map;
+}, new Map<string, Bid>());
 
-  return () => clearInterval(intervalId); // clean up on unmount
-}, [auctionId]);
 
-  const topBids = bids.slice(0, 3);
-  const otherBids = bids.slice(3);
+  const uniqueBids = Array.from(uniqueHighestBidsMap.values()).sort(
+    (a, b) => b.amount - a.amount
+  );
+
+  const topBids = uniqueBids.slice(0, 3);
+  const otherBids = uniqueBids.slice(3);
   const userBids = bids.filter((b) => b.user_id === loggedInUserId);
 
-  // Calculate highest bid amount of the logged-in user here (close to usage)
   const highestUserBidAmount =
     userBids.length > 0 ? Math.max(...userBids.map((b) => b.amount)) : 0;
-  const [visibleOtherBidsCount, setVisibleOtherBidsCount] = useState(0);
 
-  const loadMoreCount = 10; // bids per chunk
+  const [visibleOtherBidsCount, setVisibleOtherBidsCount] = useState(0);
+  const loadMoreCount = 10;
+
   return (
     <>
       <Card>
@@ -76,13 +90,12 @@ export default function BidLeadersBoard({
                 <th className="py-2 px-3 border-r border-blue-300">
                   Buyer Name
                 </th>
-                <th className="py-2 px-3">Bid Price</th>
+                <th className="py-2 px-3">Bid Price ({currencySymbol})</th>
               </tr>
             </thead>
 
             <tbody>
               {topBids.map((bid) => {
-                // Only the logged-in user's highest bid is green and clickable
                 const isHighestUserBid =
                   bid.user_id === loggedInUserId &&
                   bid.amount === highestUserBidAmount;
@@ -104,7 +117,7 @@ export default function BidLeadersBoard({
                       {bid.profile?.fname || "Unknown"}
                     </td>
                     <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                      {bid.amount.toLocaleString()}
+                     {bid.amount.toLocaleString()}
                     </td>
                   </tr>
                 );
@@ -120,7 +133,7 @@ export default function BidLeadersBoard({
                   </td>
                 </tr>
               ))}
-            </tbody>
+            </tbody> 
           </table>
 
           {otherBids.length > 0 && (
@@ -128,7 +141,7 @@ export default function BidLeadersBoard({
               <button
                 onClick={() => {
                   if (visibleOtherBidsCount >= otherBids.length) {
-                    setVisibleOtherBidsCount(0); // Hide all bids
+                    setVisibleOtherBidsCount(0);
                   } else {
                     setVisibleOtherBidsCount((count) =>
                       Math.min(count + loadMoreCount, otherBids.length)
@@ -148,38 +161,48 @@ export default function BidLeadersBoard({
 
       {/* User Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-  <DialogContent className="sm:max-w-md">
-    <DialogHeader>
-      <DialogTitle>Bid History - You</DialogTitle>
-    </DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bid History</DialogTitle>
+          </DialogHeader>
 
-    {userBids.length > 0 ? (
-      <div className="overflow-x-auto mt-2">
-        <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-200 border border-gray-300 rounded-md">
-          <thead className="bg-gray-100 dark:bg-gray-800">
-            <tr>
-              <th className="py-2 px-3 border-b border-gray-300">Bid Amount</th>
-              <th className="py-2 px-3 border-b border-gray-300">Date & Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {userBids.map((bid) => (
-              <tr key={bid.id} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800">
-                <td className="py-2 px-3 border-b border-gray-300 font-semibold">${bid.amount.toLocaleString()}</td>
-                <td className="py-2 px-3 border-b border-gray-300">
-                  {new Date(bid.created_at).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">No bid history found.</p>
-    )}
-  </DialogContent>
-</Dialog>
-
+          {userBids.length > 0 ? (
+            <div className="overflow-x-auto mt-2">
+              <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-200 border border-gray-300 rounded-md">
+                <thead className="bg-gray-100 dark:bg-gray-800">
+                  <tr>
+                    <th className="py-2 px-3 border-b border-gray-300">    
+                      Bid Amount ({currencySymbol})
+                    </th>
+                    <th className="py-2 px-3 border-b border-gray-300">
+                      Date & Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userBids.map((bid) => (
+                    <tr
+                      key={bid.id}
+                      className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800"
+                    >
+                      <td className="py-2 px-3 border-b border-gray-300 font-semibold">
+                        {bid.amount.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 border-b border-gray-300">
+                        {new Date(bid.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              No bid history found.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,  
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import LiveTimer from "@/app/livetimer/page";
@@ -132,6 +132,8 @@ interface Auction {
   productname?: string;
   title?: string;
   categoryid?: string;
+  currency?: string;
+  bidder_count?: number;
   sellerAuctionCount?: number;
   auctiontype: "forward" | "reverse";
   currentbid?: number;
@@ -228,7 +230,18 @@ export default function AuctionDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const isLoggedIn = !!user;
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const loggedInUser = "Anita Verma";
+
+  const currencySymbol = useMemo(() => {
+    const symbols: { [key: string]: string } = {
+      USD: "$",
+      INR: "₹",
+      EUR: "€",
+      GBP: "£",
+      JPY: "¥",
+      CAD: "CA$",
+    };
+    return symbols[auction?.currency ?? ""] ?? "";
+  }, [auction?.currency]);
 
   useEffect(() => {
     if (!auctionId) return;
@@ -256,7 +269,7 @@ export default function AuctionDetailPage() {
         setLoading(true);
         const res = await fetch(`/api/auctions/${auctionId}`);
         const json = await res.json();
-        console.log("Auction API Response (Raw):", json);
+        // console.log("Auction API Response (Raw):", json);
         if (!json.success)
           throw new Error(json.error || "Failed to fetch auction");
         const participants = Array.isArray(json.data.participants)
@@ -268,10 +281,10 @@ export default function AuctionDetailPage() {
 
         const bidRes = await fetch(`/api/bids/${auctionId}`);
         const bidJson = await bidRes.json();
-        console.log("Bid API Response (Raw):", bidJson);
+        // console.log("Bid API Response (Raw):", bidJson);
         if (bidJson.success) {
           const bids = bidJson.data || [];
-          console.log("Fetched Bids (Raw):", bids);
+          // console.log("Fetched Bids (Raw):", bids);
           const historyPromises = bids.map(async (bid: Bid) => {
             const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
             const profileJson = await profileRes.json();
@@ -299,10 +312,10 @@ export default function AuctionDetailPage() {
             };
           });
           const history = await Promise.all(historyPromises);
-          console.log("Processed Bid History (Raw):", history);
+          // console.log("Processed Bid History (Raw):", history);
           setBidHistory(history);
         } else {
-          console.log("No bid data available from API:", bidJson);
+          // console.log("No bid data available from API:", bidJson);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -313,6 +326,7 @@ export default function AuctionDetailPage() {
     };
     fetchAuctionDetails();
   }, [auctionId]);
+
   // bid   leader board
   useEffect(() => {
     const fetchBids = async () => {
@@ -337,6 +351,7 @@ export default function AuctionDetailPage() {
 
     if (auction?.id) fetchBids();
   }, [auction?.id]);
+
   const handlePlaceBid = async () => {
     if (!isAuthenticated) {
       setShowLoginPrompt(true);
@@ -358,7 +373,7 @@ export default function AuctionDetailPage() {
     // Check for sealed auction participant restriction only
     if (
       auction?.auctionsubtype === "sealed" &&
-      auction?.participants?.some((p) => user?.id && p.includes(user.id ?? ""))
+      auction?.participants?.includes(user?.id ?? "")
     ) {
       alert(
         "You have already submitted a bid for this sealed auction and cannot bid again."
@@ -404,7 +419,7 @@ export default function AuctionDetailPage() {
     }
 
     try {
-      console.log("Placing bid:", { auctionId, userId: user.id, amount });
+      // console.log("Placing bid:", { auctionId, userId: user.id, amount });
       const formData = new FormData();
       formData.append("action", "bid");
       formData.append("user_id", user.id ?? "");
@@ -450,12 +465,12 @@ export default function AuctionDetailPage() {
         const historyPromises = bids.map(async (bid: Bid) => {
           const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
           const profileJson = await profileRes.json();
-          console.log(
-            "Profile API Response for user_id",
-            bid.user_id,
-            " (Raw):",
-            profileJson
-          );
+          // console.log(
+          //   "Profile API Response for user_id",
+          //   bid.user_id,
+          //   " (Raw):",
+          //   profileJson
+          // );
           const bidderName = profileJson.success
             ? `${profileJson.data.fname ?? ""} ${
                 profileJson.data.lname ?? ""
@@ -519,23 +534,19 @@ export default function AuctionDetailPage() {
   };
 
   const getMinimumBid = () => {
-    let minimumBid = auction?.startprice || 0;
-    if (
-      auction?.bidcount &&
-      auction?.bidcount > 0 &&
-      auction?.currentbid &&
-      !(auction?.auctionsubtype === "sealed")
-    ) {
+    let minimumBid = auction?.startprice ?? 0;
+    if (auction?.bidcount && auction?.bidcount > 0 && auction?.currentbid) {
       if (auction.bidincrementtype === "percentage" && auction.percent) {
-        minimumBid = auction.currentbid * (1 + auction.percent / 100);
+        minimumBid = (auction.currentbid ?? 0) * (1 + auction.percent / 100);
       } else if (
         auction.bidincrementtype === "fixed" &&
         auction.minimumincrement
       ) {
-        minimumBid = auction.currentbid + auction.minimumincrement;
+        minimumBid =
+          (auction.currentbid ?? 0) + (auction.minimumincrement ?? 0);
       }
     }
-    return Math.max(minimumBid, auction?.startprice || 0);
+    return Math.max(minimumBid, auction?.startprice ?? 0);
   };
 
   const handlePrevImage = () => {
@@ -971,7 +982,8 @@ export default function AuctionDetailPage() {
                       <span>Starting Bid:</span>
                     </div>
                     <span className="font-semibold text-green-600 text-base">
-                      ${auction.startprice?.toLocaleString() || "N/A"}
+                      {currencySymbol}
+                      {auction.startprice?.toLocaleString() || "N/A"}
                     </span>
                   </div>
                   {/* minimum bid increment */}
@@ -984,7 +996,7 @@ export default function AuctionDetailPage() {
                         </span>
                       </div>
                       <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
-                        $
+                        {currencySymbol}
                         {auction.bidincrementtype === "percentage" &&
                         auction.percent &&
                         auction.currentbid
@@ -992,7 +1004,7 @@ export default function AuctionDetailPage() {
                               auction.currentbid *
                               (auction.percent / 100)
                             ).toLocaleString()
-                          : auction.minimumincrement?.toLocaleString() || "100"}
+                          : auction.minimumincrement?.toLocaleString() || "0"}
                       </span>
                     </div>
                   )}
@@ -1003,7 +1015,8 @@ export default function AuctionDetailPage() {
                       <span>Current Bid:</span>
                     </div>
                     <span className="font-semibold text-blue-600 text-base">
-                      ${auction.currentbid?.toLocaleString() || "N/A"}
+                      {currencySymbol}
+                      {auction.currentbid?.toLocaleString() || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -1022,11 +1035,10 @@ export default function AuctionDetailPage() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                  <span>Bidders:</span>
-                  <span className="flex items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
-                    <Users className="h-3 w-3" />
-                    {auction.bidders ?? 0}
+                <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                  <span>Bidders count:</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {auction.bidder_count ?? 0}
                   </span>
                 </div>
                 {!isLoggedIn && (
@@ -1042,8 +1054,8 @@ export default function AuctionDetailPage() {
               </div>
               {isLoggedIn && (
                 <CardContent className="space-y-3">
-                  {/* <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
+                  {/* <div className="text-center"> */}
+                  {/* <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
                       {auction.auctionsubtype === "sealed"
                         ? `$${auction.startprice?.toLocaleString() || "N/A"}`
                         : auction.issilentauction &&
@@ -1051,7 +1063,8 @@ export default function AuctionDetailPage() {
                           auction.bidcount > 0
                         ? `$${auction.currentbid?.toLocaleString() || "N/A"}`
                         : `$${auction.startprice?.toLocaleString() || "N/A"}`}
-                    </div>
+                    </div> */}
+                  {/*
                     <div className="text-sm text-gray-600 dark:text-gray-300">
                       {auction.auctionsubtype === "sealed"
                         ? "Starting Price"
@@ -1164,7 +1177,8 @@ export default function AuctionDetailPage() {
                             onClick={handleBuyNow}
                             disabled={isAuctionNotStarted || isAuctionEnded}
                           >
-                            Buy Now - ${auction.buyNowPrice.toLocaleString()}
+                            Buy Now - {currencySymbol}
+                            {auction.buyNowPrice.toLocaleString()}
                           </Button>
                         </>
                       )}
@@ -1173,12 +1187,14 @@ export default function AuctionDetailPage() {
                 </CardContent>
               )}
             </Card>
+
             {/* Bid Leaders Board */}
             {isLoggedIn && user?.id && auctionId && (
               <div className="mt-6">
                 <BidLeadersBoard
                   auctionId={auctionId}
                   loggedInUserId={user.id}
+                  currencySymbol={currencySymbol}
                 />
               </div>
             )}

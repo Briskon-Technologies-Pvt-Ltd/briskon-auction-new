@@ -85,6 +85,7 @@ type AuctionItem = {
   winner?: string;
   views?: number;
   percent?: number;
+  bidder_count?: number;
   watchers?: number;
   productimages?: string[]; // Array of Supabase Storage URLs
   productdocuments?: string[]; // Array of Supabase Storage URLs
@@ -238,7 +239,7 @@ export default function AuctionsPage() {
       try {
         const res = await fetch("/api/auctions");
         const json = await res.json();
-        console.log("Fetched auctions:", json.data); // Debug log
+        // console.log("Fetched auctions:", json.data); // Debug log
         if (!json.success) return;
 
         const mapped: AuctionItem[] = (json.data || []).map((a: any) => {
@@ -279,6 +280,8 @@ export default function AuctionsPage() {
             auctionduration: a.auctionduration || "",
             featured: a.featured || false,
             verified: a.verified || false,
+              bidincrementtype: a.bidincrementtype,
+            percent: a.percent,
             currentBid: a.currentbid ?? undefined,
             timeLeft: end && status === "live" ? end.toISOString() : "",
             bidders: a.bidcount ?? undefined,
@@ -296,7 +299,8 @@ export default function AuctionsPage() {
             endedAgo: "", // You can calculate this if you have end time
             winner: a.winner || "",
             views: a.views,
-            percent:a.percent, 
+            bidder_count: a.bidder_count,
+            minimumincrement: a.minimumincrement, 
             currency: a.currency,
             watchers: a.watchers ?? undefined,
             productimages: a.productimages || [], // Array of Supabase Storage URLs
@@ -817,7 +821,7 @@ export default function AuctionsPage() {
                         </span>
                       </div>
                       <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
-                        $
+                        {currencySymbol}
                         {auction.bidincrementtype === "percentage" &&
                         auction.percent &&
                         auction.currentBid
@@ -825,7 +829,7 @@ export default function AuctionsPage() {
                               auction.currentBid *
                               (auction.percent / 100)
                             ).toLocaleString()
-                          : auction.minimumincrement?.toLocaleString() || "100"}
+                          : auction.minimumincrement?.toLocaleString() || "0"}
                       </span>
                     </div>
                   )}
@@ -863,11 +867,11 @@ export default function AuctionsPage() {
                 auction.bidders !== undefined && (
                   <div className="flex mt-auto justify-between items-center">
                     <span className="text-xs text-gray-600 ml-[2.5px]">
-                      Bidders
+                      Bidders count:
                     </span>
                     <span className="font-semibold flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {auction.bidders}
+                      {auction.bidder_count}
                     </span>
                   </div>
                 )}

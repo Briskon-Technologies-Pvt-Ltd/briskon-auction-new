@@ -795,20 +795,32 @@ export default function AuctionDetailPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 text-sm font-medium px-3 py-1 rounded-full shadow-sm capitalize"
+                      >
                         {auction.categoryid || "Uncategorized"}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="flex items-center gap-1"
+                        className="bg-blue-50 text-blue-700 text-sm font-medium px-3 py-1 rounded-full shadow-sm capitalize"
                       >
-                        <TrendingUp className="h-3 w-3" />
+                        Type:{" "}
                         {auction.auctiontype === "forward"
-                          ? "Forward Auction"
-                          : "Reverse Auction"}
+                          ? "Forward"
+                          : "Reverse"}
                       </Badge>
+                      {auction.auctionsubtype && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700 text-sm font-medium px-3 py-1 rounded-full shadow-sm capitalize"
+                        >
+                          Format: {auction.auctionsubtype}
+                        </Badge>
+                      )}
                     </div>
+
                     {/* <CardTitle className="text-2xl">
                       {auction.productname ||
                         auction.title ||
@@ -1146,26 +1158,25 @@ export default function AuctionDetailPage() {
                     </div>
                   )}
 
-                  {!isAuctionEnded &&
-                    (auction.auctionsubtype === "sealed" ||
-                    auction.auctionsubtype === "silent" ? (
-                      <div className="text-xs text-gray-600 dark:text-gray-300">
+                  {!isAuctionEnded && (
+                    <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                      <div className="flex items-center gap-1">
+                        <Tag className="w-[11px] h-[11px] text-blue-500" />
+                        <span>Current Bid:</span>
+                      </div>
+                      {auction.auctionsubtype === "sealed" ||
+                      auction.auctionsubtype === "silent" ? (
                         <span className="text-xs text-gray-600 dark:text-gray-300">
                           Bids are confidential until opening
                         </span>
-                      </div>
-                    ) : (
-                      <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                        <div className="flex items-center gap-1">
-                          <Tag className="w-[11px] h-[11px] text-blue-500" />
-                          <span>Current Bid:</span>
-                        </div>
+                      ) : (
                         <span className="font-semibold text-blue-600 text-base">
                           {currencySymbol}
                           {auction.currentbid?.toLocaleString() || "N/A"}
                         </span>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                  )}
                 </div>
                 {auction.scheduledstart &&
                   auction.auctionduration &&

@@ -140,6 +140,7 @@ interface Auction {
   bidincrementtype?: "fixed" | "percentage";
   minimumincrement?: number;
   startprice?: number;
+  question_count?: number;
   scheduledstart?: string;
   auctionduration?: { days?: number; hours?: number; minutes?: number };
   bidders?: number;
@@ -185,7 +186,9 @@ interface Auction {
   brand?: string;
   model?: string;
   reserveprice?: number;
-  auctionsubtype?: string; // New field for auction subtype (e.g., "sealed")
+  auctionsubtype?: string; // New field for auction subtype (e.g., "sealed", "silent")
+  ended?: boolean; // New field to indicate if the auction has ended
+  editable?: boolean; // New field to indicate if the auction is editable by the creator
 }
 
 // Bid interface
@@ -276,7 +279,7 @@ export default function AuctionDetailPage() {
           ? json.data.participants
           : [];
         const updatedAuction = { ...json.data, participants };
-        console.log("Processed Auction Data:", updatedAuction);
+        // console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
 
         const bidRes = await fetch(`/api/bids/${auctionId}`);
@@ -288,12 +291,12 @@ export default function AuctionDetailPage() {
           const historyPromises = bids.map(async (bid: Bid) => {
             const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
             const profileJson = await profileRes.json();
-            console.log(
-              "Profile API Response for user_id",
-              bid.user_id,
-              " (Raw):",
-              profileJson
-            );
+            // console.log(
+            //   "Profile API Response for user_id",
+            //   bid.user_id,
+            //   " (Raw):",
+            //   profileJson
+            // );
             const bidderName = profileJson.success
               ? `${profileJson.data.fname || ""} ${
                   profileJson.data.lname || ""
@@ -301,6 +304,7 @@ export default function AuctionDetailPage() {
                 profileJson.data.email ||
                 bid.user_id
               : `User ${bid.user_id} (Profile not found)`;
+
             return {
               bidder: bidderName,
               amount: bid.amount,
@@ -327,7 +331,6 @@ export default function AuctionDetailPage() {
     fetchAuctionDetails();
   }, [auctionId]);
 
-  // bid   leader board
   useEffect(() => {
     const fetchBids = async () => {
       try {
@@ -522,7 +525,7 @@ export default function AuctionDetailPage() {
       return;
     }
 
-    console.log("Buy now clicked");
+    // console.log("Buy now clicked");
     alert(
       `Item purchased for $${auction?.buyNowPrice?.toLocaleString() || "N/A"}!`
     );
@@ -530,7 +533,7 @@ export default function AuctionDetailPage() {
 
   const handleWatchlist = () => {
     setWatchlisted(!watchlisted);
-    console.log("Watchlist toggled:", !watchlisted);
+    // console.log("Watchlist toggled:", !watchlisted);
   };
 
   const getMinimumBid = () => {
@@ -561,6 +564,103 @@ export default function AuctionDetailPage() {
     );
   };
 
+  const handleSubmitQuestion = async () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      alert("Please log in to ask a question.");
+      return;
+    }
+
+    if (!newQuestion.trim()) {
+      alert("Please enter a question.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("action", "postQuestion");
+      formData.append("user_id", user?.id ?? "");
+      formData.append("user_email", user?.email ?? "");
+      formData.append("question", newQuestion);
+
+      for (let [key, value] of formData.entries()) {
+        console.log("FormData Entry:", key, value);
+      }
+
+      const res = await fetch(`/api/auctions/${auctionId}`, {
+        method: "PUT",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!json.success)
+        throw new Error(json.error || "Failed to submit question");
+
+      const updatedAuction: Auction = {
+        ...auction!,
+        questions: json.data.questions,
+        question_count: json.data.question_count,
+      };
+
+      setAuction(updatedAuction);
+      setNewQuestion("");
+      alert("Question submitted successfully!");
+    } catch (err) {
+      console.error("Question submission error:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while submitting question"
+      );
+    }
+  };
+
+  const handleSubmitAnswer = async (index: number) => {
+    if (
+      !isAuthenticated ||
+      (user?.email !== auction?.createdby && auction?.createdby !== null)
+    ) {
+      alert("Only the auction creator can answer questions.");
+      return;
+    }
+
+    if (!answerInput || !answerInput.value.trim()) {
+      alert("Please enter an answer.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("action", "answerQuestion");
+      formData.append("user_email", user?.email ?? "");
+      formData.append("questionIndex", answerInput.index.toString());
+      formData.append("answer", answerInput.value);
+
+      const res = await fetch(`/api/auctions/${auctionId}`, {
+        method: "PUT",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!json.success)
+        throw new Error(json.error || "Failed to submit answer");
+
+      const updatedAuction: Auction = {
+        ...auction!,
+        questions: json.data.questions,
+      };
+
+      setAuction(updatedAuction);
+      setAnswerInput(null);
+      alert("Answer submitted successfully!");
+    } catch (err) {
+      console.error("Answer submission error:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while submitting answer"
+      );
+    }
+  };
+
   if (loading) return <div className="text-center py-20">Loading...</div>;
   if (error)
     return <div className="text-center py-20 text-red-600">{error}</div>;
@@ -582,16 +682,28 @@ export default function AuctionDetailPage() {
 
   const isSameAmount = (a: number, b: number, epsilon = 0.01) =>
     Math.abs(a - b) < epsilon;
-
+  const bidAmountNumber = Number(bidAmount);
   const isButtonDisabled =
     !bidAmount ||
-    isNaN(Number(bidAmount)) ||
-    !isSameAmount(Number(bidAmount), getMinimumBid()) ||
-    user?.email === auction?.createdby ||
+    isNaN(bidAmountNumber) ||
+    bidAmountNumber < 0 ||
+    (user?.email === auction?.createdby && auction?.createdby !== null) ||
     isAuctionNotStarted ||
     isAuctionEnded ||
-    (auction?.auctionsubtype === "sealed" &&
-      (auction?.participants?.includes(user?.id ?? "") ?? false));
+    (auction?.auctionsubtype === "sealed"
+      ? auction?.participants?.some(
+          (p) => user?.id && p.includes(user.id ?? "")
+        ) || bidAmountNumber < (auction?.startprice ?? 0)
+      : !isSameAmount(bidAmountNumber, getMinimumBid()));
+  const isSilentAuction =
+    auction?.issilentauction || auction?.auctionsubtype === "silent";
+
+  const currentMedia =
+    auction?.productimages?.[currentImageIndex] || "/placeholder.svg";
+  const isVideo =
+    currentMedia.toLowerCase().endsWith(".mp4") ||
+    currentMedia.toLowerCase().endsWith(".webm") ||
+    currentMedia.toLowerCase().endsWith(".mov");
 
   return (
     <div className="min-h-screen py-20">
@@ -602,23 +714,29 @@ export default function AuctionDetailPage() {
             {/* Image Gallery */}
             <Card className="hover-lift transition-smooth">
               <CardContent className="p-0 relative">
-                <Image
-                  src={
-                    auction.productimages?.[currentImageIndex] ||
-                    "/placeholder.svg"
-                  }
-                  alt={auction.productname || auction.title || "Auction Item"}
-                  width={600}
-                  height={400}
-                  className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
-                />
-                {/* Image Count */}
+                {isVideo ? (
+                  <video
+                    src={currentMedia}
+                    controls
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <Image
+                    src={currentMedia}
+                    alt={auction.productname || auction.title || "Auction Item"}
+                    width={600}
+                    height={400}
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                  />
+                )}
                 <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                   {`${currentImageIndex + 1}/${
-                    auction.productimages?.length || 1
+                    auction.productimages?.length ?? 1
                   }`}
                 </div>
-                {/* Navigation Arrows */}
                 <button
                   onClick={handlePrevImage}
                   className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-smooth"
@@ -634,19 +752,38 @@ export default function AuctionDetailPage() {
                 <div className="p-4">
                   <div className="flex gap-2">
                     {auction.productimages?.map(
-                      (image: string, index: number) => (
-                        <Image
-                          key={index}
-                          src={image || "/placeholder.svg"}
-                          alt={`${auction.productname || auction.title} ${
-                            index + 1
-                          }`}
-                          width={100}
-                          height={80}
-                          className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
-                          onClick={() => setCurrentImageIndex(index)}
-                        />
-                      )
+                      (media: string, index: number) => {
+                        const isVideoThumbnail =
+                          media.toLowerCase().endsWith(".mp4") ||
+                          media.toLowerCase().endsWith(".webm") ||
+                          media.toLowerCase().endsWith(".mov");
+                        return (
+                          <div key={index} className="relative">
+                            {isVideoThumbnail ? (
+                              <video
+                                src={media}
+                                autoPlay
+                                loop
+                                className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                                onClick={() => setCurrentImageIndex(index)}
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <Image
+                                src={media || "/placeholder.svg"}
+                                alt={`${auction.productname || auction.title} ${
+                                  index + 1
+                                }`}
+                                width={100}
+                                height={80}
+                                className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                                onClick={() => setCurrentImageIndex(index)}
+                              />
+                            )}
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 </div>
@@ -1009,31 +1146,42 @@ export default function AuctionDetailPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                    <div className="flex items-center gap-1">
-                      <Tag className="w-[11px] h-[11px] text-blue-500" />
-                      <span>Current Bid:</span>
-                    </div>
-                    <span className="font-semibold text-blue-600 text-base">
-                      {currencySymbol}
-                      {auction.currentbid?.toLocaleString() || "N/A"}
-                    </span>
-                  </div>
+                  {!isAuctionEnded &&
+                    (auction.auctionsubtype === "sealed" ||
+                    auction.auctionsubtype === "silent" ? (
+                      <div className="text-xs text-gray-600 dark:text-gray-300">
+                        <span className="text-xs text-gray-600 dark:text-gray-300">
+                          Bids are confidential until opening
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <Tag className="w-[11px] h-[11px] text-blue-500" />
+                          <span>Current Bid:</span>
+                        </div>
+                        <span className="font-semibold text-blue-600 text-base">
+                          {currencySymbol}
+                          {auction.currentbid?.toLocaleString() || "N/A"}
+                        </span>
+                      </div>
+                    ))}
                 </div>
-                {auction.scheduledstart && auction.auctionduration && (
-                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                    <div className="flex items-center gap-1">
-                      <Hourglass className="w-[11px] h-[11px] text-red-500" />
-                      <span>Ends In:</span>
-                    </div>
+                {auction.scheduledstart &&
+                  auction.auctionduration &&
+                  !isAuctionEnded && (
+                    <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                      <div className="flex items-center gap-1">
+                        <Hourglass className="w-[11px] h-[11px] text-red-500" />
+                        <span>Ends In:</span>
+                      </div>
 
-                    {/* LiveTimer rendered directly, not inside another <span> */}
-                    <LiveTimer
-                      startTime={auction.scheduledstart}
-                      duration={auction.auctionduration}
-                    />
-                  </div>
-                )}
+                      <LiveTimer
+                        startTime={auction.scheduledstart}
+                        duration={auction.auctionduration}
+                      />
+                    </div>
+                  )}
 
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
                   <span>Bidders count:</span>
@@ -1043,12 +1191,18 @@ export default function AuctionDetailPage() {
                 </div>
                 {!isLoggedIn && (
                   <div className="mt-3 text-center">
-                    <Button
-                      className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
-                      onClick={() => router.push("/login")}
-                    >
-                      Login to place bid
-                    </Button>
+                    {isAuctionEnded ? (
+                      <p className="text-sm text-red-600 text-left">
+                        Auction has ended
+                      </p>
+                    ) : (
+                      <Button
+                        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
+                        onClick={() => router.push("/login")}
+                      >
+                        Login to place bid
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1110,8 +1264,15 @@ export default function AuctionDetailPage() {
                     </span>
                   </div> */}
                   {/* </div> */}
+                  {(isAuctionNotStarted || isAuctionEnded) && (
+                    <p className="text-sm text-red-600 mt-2">
+                      {isAuctionNotStarted
+                        ? "Auction has not started yet"
+                        : "Auction has ended"}
+                    </p>
+                  )}
 
-                  {isLoggedIn && (
+                  {isLoggedIn && !isAuctionEnded && (
                     <div className="space-y-3">
                       <div>
                         <label className="text-sm font-medium">
@@ -1317,7 +1478,7 @@ export default function AuctionDetailPage() {
         title="Sign in to place your bid"
         description="Join the auction and start bidding on this exclusive item"
         onSuccess={() => {
-          console.log("User logged in successfully");
+          // console.log("User logged in successfully");
         }}
       />
     </div>

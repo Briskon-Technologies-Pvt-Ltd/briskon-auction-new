@@ -92,7 +92,7 @@ interface Auction {
   minimumincrement?: number;
   startprice?: number;
   scheduledstart?: string | null;
-  auctionduration?: { days?: number; hours?: number; minutes?: number };
+  auctionduration?: { days?: number; hours?: number; minutes?: number } | null;
   bidders?: number;
   watchers?: number;
   productimages?: string[];
@@ -116,6 +116,8 @@ interface Auction {
   reserveprice?: number;
   auctionsubtype?: string;
   productquantity?: number; // New field for quantity
+  ended?: boolean; // New field to indicate if auction has ended
+  editable?: boolean; // New field to indicate if auction is editable
 }
 
 // Bid interface
@@ -145,89 +147,89 @@ export default function AuctionDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-useEffect(() => {
-  const fetchAuctionDetails = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/auctions/yankee/${auctionId}`);
-      const json = await res.json();
-      console.log("Auction API Response (Raw):", json);
-      if (!json.success) throw new Error(json.error || "Failed to fetch auction");
-      const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
-      const updatedAuction: Auction = { ...json.data, id: auctionId, participants };
-      console.log("Processed Auction Data:", updatedAuction);
-      setAuction(updatedAuction);
+  useEffect(() => {
+    const fetchAuctionDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/auctions/yankee/${auctionId}`);
+        const json = await res.json();
+        console.log("Auction API Response (Raw):", json);
+        if (!json.success) throw new Error(json.error || "Failed to fetch auction");
+        const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
+        const updatedAuction: Auction = { ...json.data, id: auctionId, participants, ended: json.data.ended || false }; // Include ended from API
+        console.log("Processed Auction Data:", updatedAuction);
+        setAuction(updatedAuction);
 
-      const bidRes = await fetch(`/api/bids/${auctionId}`);
-      const bidJson = await bidRes.json();
-      console.log("Bid API Response (Full):", bidJson); // Log full response for structure
-      if (bidJson.success) {
-        let bids = [];
-        // Try different possible paths for bids data
-        if (Array.isArray(bidJson.data.bids)) bids = bidJson.data.bids;
-        else if (Array.isArray(bidJson.bids)) bids = bidJson.bids; // Alternative structure
-        else if (Array.isArray(bidJson.data)) bids = bidJson.data; // Another possible structure
-        console.log("Extracted Bids:", bids);
-        if (bids.length === 0) {
-          console.warn("No bids found in response");
-          setBidHistory([]);
-          return;
-        }
-        const historyPromises = bids.map(async (bid: Bid) => {
-          try {
-            const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
-            const profileJson = await profileRes.json();
-            console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
-            const bidderName = profileJson.success
-              ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
-              : `User ${bid.user_id} (Profile not found)`;
-            const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            return {
-              bidder: bidderName,
-              amount: bid.amount,
-              time: bidTimeIST,
-            };
-          } catch (profileErr) {
-            console.error("Profile fetch error for user_id", bid.user_id, ":", profileErr);
-            const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            return {
-              bidder: `User ${bid.user_id} (Profile error)`,
-              amount: bid.amount,
-              time: bidTimeIST,
-            };
+        const bidRes = await fetch(`/api/bids/${auctionId}`);
+        const bidJson = await bidRes.json();
+        console.log("Bid API Response (Full):", bidJson); // Log full response for structure
+        if (bidJson.success) {
+          let bids = [];
+          // Try different possible paths for bids data
+          if (Array.isArray(bidJson.data.bids)) bids = bidJson.data.bids;
+          else if (Array.isArray(bidJson.bids)) bids = bidJson.bids; // Alternative structure
+          else if (Array.isArray(bidJson.data)) bids = bidJson.data; // Another possible structure
+          console.log("Extracted Bids:", bids);
+          if (bids.length === 0) {
+            console.warn("No bids found in response");
+            setBidHistory([]);
+            return;
           }
-        });
-        const history = await Promise.all(historyPromises);
-        console.log("Processed Bid History Before Sorting:", history);
-        const sortedHistory = history.sort((a, b) => b.amount - a.amount);
-        console.log("Processed Bid History After Sorting:", sortedHistory);
-        setBidHistory(sortedHistory);
-      } else {
-        console.log("No bid data available from API:", bidJson);
-        setBidHistory([]);
+          const historyPromises = bids.map(async (bid: Bid) => {
+            try {
+              const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
+              const profileJson = await profileRes.json();
+              console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
+              const bidderName = profileJson.success
+                ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
+                : `User ${bid.user_id} (Profile not found)`;
+              const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+                hour12: true,
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return {
+                bidder: bidderName,
+                amount: bid.amount,
+                time: bidTimeIST,
+              };
+            } catch (profileErr) {
+              console.error("Profile fetch error for user_id", bid.user_id, ":", profileErr);
+              const bidTimeIST = DateTime.fromISO(bid.created_at).setZone("Asia/Kolkata").toLocaleString({
+                hour12: true,
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return {
+                bidder: `User ${bid.user_id} (Profile error)`,
+                amount: bid.amount,
+                time: bidTimeIST,
+              };
+            }
+          });
+          const history = await Promise.all(historyPromises);
+          console.log("Processed Bid History Before Sorting:", history);
+          const sortedHistory = history.sort((a, b) => b.amount - a.amount);
+          console.log("Processed Bid History After Sorting:", sortedHistory);
+          setBidHistory(sortedHistory);
+        } else {
+          console.log("No bid data available from API:", bidJson);
+          setBidHistory([]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Fetch Error:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Fetch Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchAuctionDetails();
-}, [auctionId]);
+    };
+    fetchAuctionDetails();
+  }, [auctionId]);
 
   // Dynamic time left and status update
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    const updateTimeLeft = () => {
+    const updateTimeLeft = async () => {
       if (auction?.scheduledstart && auction.auctionduration) {
         const nowIST = DateTime.now().setZone("Asia/Kolkata");
         const startIST = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
@@ -254,13 +256,37 @@ useEffect(() => {
         }
 
         setTimeLeft(calculatedTimeLeft || "Auction ended");
+
+        // Call markEnded action if auction just ended and not already marked
+        if (isAuctionEnded && !auction.ended) {
+          const markAuctionEnded = async () => {
+            try {
+              const formData = new FormData();
+              formData.append("action", "markEnded");
+              const res = await fetch(`/api/auctions/yankee/${auctionId}`, {
+                method: "PUT",
+                body: formData,
+              });
+              const json = await res.json();
+              if (json.success) {
+                console.log("Auction marked as ended in response:", auctionId);
+                setAuction((prev) => prev ? { ...prev, ended: true } : prev); // Update local state
+              } else {
+                console.error("Failed to mark auction as ended:", json.error);
+              }
+            } catch (err) {
+              console.error("Error marking auction as ended:", err);
+            }
+          };
+          markAuctionEnded();
+        }
       }
     };
 
     updateTimeLeft();
     interval = setInterval(updateTimeLeft, 1000);
     return () => clearInterval(interval);
-  }, [auction?.scheduledstart, auction?.auctionduration]);
+  }, [auction?.scheduledstart, auction?.auctionduration, auction?.ended]);
 
   const handlePlaceBid = async () => {
     if (!isAuthenticated) {
@@ -471,7 +497,7 @@ useEffect(() => {
   if (!auction) return <div className="text-center py-20">Auction not found</div>;
 
   const nowIST = DateTime.now().setZone("Asia/Kolkata");
-  const startIST = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
+  const startIST = DateTime.fromISO(auction.scheduledstart!, { zone: "utc" }).setZone("Asia/Kolkata");
   const duration = auction.auctionduration
     ? ((d) => ((d.days ?? 0) * 24 * 60 * 60) + ((d.hours ?? 0) * 60 * 60) + ((d.minutes ?? 0) * 60))(auction.auctionduration)
     : 0;
@@ -503,17 +529,19 @@ useEffect(() => {
 
   const bidAmountNumber = Number(bidAmount);
 
-const isButtonDisabled =
-  !bidAmount ||
-  isNaN(bidAmountNumber) ||
-  bidAmountNumber < 0 ||
-  (user?.email === auction?.createdby && auction?.createdby !== null) ||
-  isAuctionNotStarted ||
-  isAuctionEnded ||
-  (auction?.bidcount === 0
-    ? bidAmountNumber < (auction?.startprice ?? 0)
-    : bidAmountNumber <= (auction?.currentbid ?? 0));
+  const isButtonDisabled =
+    !bidAmount ||
+    isNaN(bidAmountNumber) ||
+    bidAmountNumber < 0 ||
+    (user?.email === auction?.createdby && auction?.createdby !== null) ||
+    isAuctionNotStarted ||
+    isAuctionEnded ||
+    (auction?.bidcount === 0
+      ? bidAmountNumber < (auction?.startprice ?? 0)
+      : bidAmountNumber <= (auction?.currentbid ?? 0));
 
+  const currentMedia = auction?.productimages?.[currentImageIndex] || "/placeholder.svg";
+  const isVideo = currentMedia.toLowerCase().endsWith(".mp4") || currentMedia.toLowerCase().endsWith(".webm") || currentMedia.toLowerCase().endsWith(".mov");
 
   return (
     <div className="min-h-screen py-20">
@@ -522,15 +550,26 @@ const isButtonDisabled =
           <div className="lg:col-span-2 space-y-6">
             <Card className="hover-lift transition-smooth">
               <CardContent className="p-0 relative">
-                <Image
-                  src={auction.productimages?.[currentImageIndex] || "/placeholder.svg"}
-                  alt={auction.productname || auction.title || "Auction Item"}
-                  width={600}
-                  height={400}
-                  className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
-                />
+                {isVideo ? (
+                  <video
+                    src={currentMedia}
+                    controls
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <Image
+                    src={currentMedia}
+                    alt={auction.productname || auction.title || "Auction Item"}
+                    width={600}
+                    height={400}
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                  />
+                )}
                 <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {`${currentImageIndex + 1}/${auction.productimages?.length ?? 1}`}
+                  {`${currentImageIndex + 1}/${auction?.productimages?.length ?? 1}`}
                 </div>
                 <button
                   onClick={handlePrevImage}
@@ -546,17 +585,31 @@ const isButtonDisabled =
                 </button>
                 <div className="p-4">
                   <div className="flex gap-2">
-                    {auction.productimages?.map((image: string, index: number) => (
-                      <Image
-                        key={index}
-                        src={image || "/placeholder.svg"}
-                        alt={`${auction.productname || auction.title} ${index + 1}`}
-                        width={100}
-                        height={80}
-                        className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
-                        onClick={() => setCurrentImageIndex(index)}
-                      />
-                    ))}
+                    {auction?.productimages?.map((media: string, index: number) => {
+                      const isVideoThumbnail = media.toLowerCase().endsWith(".mp4") || media.toLowerCase().endsWith(".webm") || media.toLowerCase().endsWith(".mov");
+                      return (
+                        <div key={index} className="relative">
+                          {isVideoThumbnail ? (
+                            <video
+                              src={media}
+                              className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                              onClick={() => setCurrentImageIndex(index)}
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <Image
+                              src={media || "/placeholder.svg"}
+                              alt={`${auction.productname || auction.title} ${index + 1}`}
+                              width={100}
+                              height={80}
+                              className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                              onClick={() => setCurrentImageIndex(index)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>

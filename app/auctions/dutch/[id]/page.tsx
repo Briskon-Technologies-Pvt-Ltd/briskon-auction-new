@@ -37,228 +37,253 @@ const calculateTimeLeft = (endDate: Date): string => {
   return `${Math.floor(diff.days || 0)}d ${Math.floor(diff.hours || 0)}h ${Math.floor(diff.minutes || 0)}m`;
 };
 
-  function renderKeyValueBlock(
-    data: string | Record<string, any> | undefined,
-    fallback: string
-  ): React.ReactNode {
-    try {
-      const parsed: any[] = typeof data === "string" ? JSON.parse(data) : data ?? [];
+function renderKeyValueBlock(
+  data: string | Record<string, any> | undefined,
+  fallback: string
+): React.ReactNode {
+  try {
+    const parsed: any[] = typeof data === "string" ? JSON.parse(data) : data ?? [];
 
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        return <span className="text-gray-600 dark:text-gray-300 ml-4">{fallback}</span>;
-      }
-
-      return (
-        <>
-          {parsed.map((attr, index) =>
-            attr.value ? (
-              <div key={index} className="text-gray-600 dark:text-gray-300 ml-4">
-                {attr.name}:{" "}
-                {attr.type === "color" ? (
-                  <span
-                    className="inline-block w-4 h-4 rounded-sm border ml-1"
-                    style={{ backgroundColor: attr.value }}
-                    title={attr.value}
-                  ></span>
-                ) : (
-                  attr.value
-                )}
-              </div>
-            ) : null
-          )}
-        </>
-      );
-    } catch {
-      return <span className="text-gray-600 dark:text-gray-300 ml-4">Invalid attributes data</span>;
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return <span className="text-gray-600 dark:text-gray-300 ml-4">{fallback}</span>;
     }
+
+    return (
+      <>
+        {parsed.map((attr, index) =>
+          attr.value ? (
+            <div key={index} className="text-gray-600 dark:text-gray-300 ml-4">
+              {attr.name}:{" "}
+              {attr.type === "color" ? (
+                <span
+                  className="inline-block w-4 h-4 rounded-sm border ml-1"
+                  style={{ backgroundColor: attr.value }}
+                  title={attr.value}
+                ></span>
+              ) : (
+                attr.value
+              )}
+            </div>
+          ) : null
+        )}
+      </>
+    );
+  } catch {
+    return <span className="text-gray-600 dark:text-gray-300 ml-4">Invalid attributes data</span>;
   }
+}
 
-  interface Auction {
-    id: string;
-    productname?: string;
-    title?: string;
-    categoryid?: string;
-    auctiontype: "forward";
-    auctionsubtype: "dutch";
-    currentbid?: number;
-    bidincrementtype?: "fixed" | "percentage";
-    minimumincrement?: number;
-    startprice?: number;
-    scheduledstart?: string;
-    auctionduration?: { days?: number; hours?: number; minutes?: number };
-    bidders?: number;
-    watchers?: number;
-    productimages?: string[];
-    productdocuments?: string[];
-    productdescription?: string;
-    specifications?: string;
-    buyNowPrice?: number;
-    participants?: string[];
-    bidcount?: number;
-    createdby?: string;
-    timeLeft?: string;
-    questions?: { user: string; question: string; answer?: string; time: string }[];
-    issilentauction?: boolean;
-    currentbidder?: string;
-    percent?: number;
-    attributes?: string;
-    sku?: string;
-    brand?: string;
-    model?: string;
-    reserveprice?: number;
-    ended?: boolean;
-  }
+interface Auction {
+  id: string;
+  productname?: string;
+  title?: string;
+  categoryid?: string;
+  auctiontype: "forward";
+  auctionsubtype: "dutch";
+  currentbid?: number;
+  bidincrementtype?: "fixed" | "percentage";
+  minimumincrement?: number;
+  startprice?: number;
+  scheduledstart?: string;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+  bidders?: number;
+  watchers?: number;
+  productimages?: string[];
+  productvideos?: string[]; // Added for video support
+  productdocuments?: string[];
+  productdescription?: string;
+  specifications?: string;
+  buyNowPrice?: number;
+  participants?: string[];
+  bidcount?: number;
+  createdby?: string;
+  timeLeft?: string;
+  questions?: { user: string; question: string; answer?: string; time: string }[];
+  issilentauction?: boolean;
+  currentbidder?: string;
+  percent?: number;
+  attributes?: string;
+  sku?: string;
+  brand?: string;
+  model?: string;
+  reserveprice?: number;
+  ended?: boolean;
+  editable?: boolean;
+}
 
-  interface Bid {
-    id: string;
-    auction_id: string;
-    user_id: string;
-    amount: number;
-    created_at: string;
-  }
+interface Bid {
+  id: string;
+  auction_id: string;
+  user_id: string;
+  amount: number;
+  created_at: string;
+}
 
-  export default function DutchAuctionDetailPage() {
-    const params = useParams<{ id: string }>();
-    const auctionId = params.id;
+export default function DutchAuctionDetailPage() {
+  const params = useParams<{ id: string }>();
+  const auctionId = params.id;
 
-    const [bidAmount, setBidAmount] = useState("");
-    const [watchlisted, setWatchlisted] = useState(false);
-    const [auction, setAuction] = useState<Auction | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [bidHistory, setBidHistory] = useState<{ bidder: string; amount: number; time: string }[]>([]);
-    const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-    const [timeLeft, setTimeLeft] = useState<string>("N/A");
-    const [isFloor, setIsFloor] = useState(false);
-    const [priceUpdateInterval, setPriceUpdateInterval] = useState<NodeJS.Timeout | null>(null);
-    const [newQuestion, setNewQuestion] = useState("");
-    const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
+  const [bidAmount, setBidAmount] = useState("");
+  const [watchlisted, setWatchlisted] = useState(false);
+  const [auction, setAuction] = useState<Auction | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [bidHistory, setBidHistory] = useState<{ bidder: string; amount: number; time: string }[]>([]);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>("N/A");
+  const [isFloor, setIsFloor] = useState(false);
+  const [priceUpdateInterval, setPriceUpdateInterval] = useState<NodeJS.Timeout | null>(null);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [answerInput, setAnswerInput] = useState<{ index: number; value: string } | null>(null);
 
-    const { isAuthenticated, user } = useAuth();
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-    useEffect(() => {
-      const savedPrice = localStorage.getItem(`dutchAuction_${auctionId}_currentPrice`);
-      const fetchAuctionDetails = async () => {
-        try {
-          setLoading(true);
-          const res = await fetch(`/api/auctions/dutch/${auctionId}`);
-          const json = await res.json();
-          console.log("Auction API Response (Raw):", json);
-          if (!json.success) throw new Error(json.error || "Failed to fetch auction");
-          if (json.data.auctionsubtype !== "dutch") throw new Error("This is not a Dutch auction");
-          const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
-          const updatedAuction = { ...json.data, participants, ended: json.data.ended || false };
-          console.log("Processed Auction Data:", updatedAuction);
-          setAuction(updatedAuction);
-          const initialPrice = savedPrice
-            ? parseFloat(savedPrice)
-            : updatedAuction.ended
-            ? updatedAuction.currentbid || updatedAuction.startprice || 0
-            : updatedAuction.startprice || 0;
-          setCurrentPrice(initialPrice);
+  useEffect(() => {
+    const savedPrice = localStorage.getItem(`dutchAuction_${auctionId}_currentPrice`);
+    const fetchAuctionDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/auctions/dutch/${auctionId}`);
+        const json = await res.json();
+        console.log("Auction API Response (Raw):", json);
+        if (!json.success) throw new Error(json.error || "Failed to fetch auction");
+        if (json.data.auctionsubtype !== "dutch") throw new Error("This is not a Dutch auction");
+        const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
+        const updatedAuction = { ...json.data, participants, ended: json.data.ended || false };
+        console.log("Processed Auction Data:", updatedAuction);
+        setAuction(updatedAuction);
+        const initialPrice = savedPrice
+          ? parseFloat(savedPrice)
+          : updatedAuction.ended
+          ? updatedAuction.currentbid || updatedAuction.startprice || 0
+          : updatedAuction.startprice || 0;
+        setCurrentPrice(initialPrice);
 
-          // Check if initialPrice is at floor price
-          const increment = updatedAuction.bidincrementtype === "fixed" && updatedAuction.minimumincrement
-            ? updatedAuction.minimumincrement
-            : updatedAuction.bidincrementtype === "percentage" && updatedAuction.percent
-            ? (updatedAuction.startprice || 0) * (updatedAuction.percent / 100)
-            : 0;
-          const floorPrice = increment > 0 ? increment : 1; // Floor price is the minimum increment or 1
-          if (initialPrice <= floorPrice && !updatedAuction.ended) {
-            setIsFloor(true);
-          }
-
-          const bidRes = await fetch(`/api/bids/${auctionId}`);
-          const bidJson = await bidRes.json();
-          console.log("Bid API Response (Raw):", bidJson);
-          if (bidJson.success) {
-            const bids = bidJson.data || [];
-            console.log("Fetched Bids (Raw):", bids);
-            const historyPromises = bids.map(async (bid: Bid) => {
-              const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
-              const profileJson = await profileRes.json();
-              console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
-              const bidderName = profileJson.success
-                ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
-                : `User ${bid.user_id} (Profile not found)`;
-              return {
-                bidder: bidderName,
-                amount: bid.amount,
-                time: new Date(bid.created_at).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" }),
-              };
-            });
-            const history = await Promise.all(historyPromises);
-            console.log("Processed Bid History (Raw):", history);
-            setBidHistory(history);
-          } else {
-            console.log("No bid data available from API:", bidJson);
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "An error occurred");
-          console.error("Fetch Error:", err);
-        } finally {
-          setLoading(false);
+        // Check if initialPrice is at floor price
+        const increment = updatedAuction.bidincrementtype === "fixed" && updatedAuction.minimumincrement
+          ? updatedAuction.minimumincrement
+          : updatedAuction.bidincrementtype === "percentage" && updatedAuction.percent
+          ? (updatedAuction.startprice || 0) * (updatedAuction.percent / 100)
+          : 0;
+        const floorPrice = increment > 0 ? increment : 1; // Floor price is the minimum increment or 1
+        if (initialPrice <= floorPrice && !updatedAuction.ended) {
+          setIsFloor(true);
         }
-      };
-      fetchAuctionDetails();
-    }, [auctionId]);
 
-    useEffect(() => {
-      const handleBeforeUnload = () => {
-        if (currentPrice) {
-          localStorage.setItem(`dutchAuction_${auctionId}_currentPrice`, currentPrice.toString());
+        const bidRes = await fetch(`/api/bids/${auctionId}`);
+        const bidJson = await bidRes.json();
+        console.log("Bid API Response (Raw):", bidJson);
+        if (bidJson.success) {
+          const bids = bidJson.data || [];
+          console.log("Fetched Bids (Raw):", bids);
+          const historyPromises = bids.map(async (bid: Bid) => {
+            const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
+            const profileJson = await profileRes.json();
+            console.log("Profile API Response for user_id", bid.user_id, " (Raw):", profileJson);
+            const bidderName = profileJson.success
+              ? `${profileJson.data.fname || ""} ${profileJson.data.lname || ""}`.trim() || profileJson.data.email || bid.user_id
+              : `User ${bid.user_id} (Profile not found)`;
+            return {
+              bidder: bidderName,
+              amount: bid.amount,
+              time: new Date(bid.created_at).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" }),
+            };
+          });
+          const history = await Promise.all(historyPromises);
+          console.log("Processed Bid History (Raw):", history);
+          setBidHistory(history);
+        } else {
+          console.log("No bid data available from API:", bidJson);
         }
-      };
-      window.addEventListener("beforeunload", handleBeforeUnload);
-      return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [currentPrice, auctionId]);
-
-    useEffect(() => {
-      if (!auction || !auction.scheduledstart || auction.ended || !auction.startprice) return;
-
-      const start = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
-      const now = DateTime.now().setZone("Asia/Kolkata");
-      const duration = auction.auctionduration
-        ? ((d) => ((d.days || 0) * 24 * 60 * 60) + ((d.hours || 0) * 60 * 60) + ((d.minutes || 0) * 60))(
-            auction.auctionduration
-          )
-        : 0;
-      const end = start.plus({ seconds: duration });
-      console.log("Start:", start.toISO(), "End:", end.toISO(), "Now:", now.toISO(), "Duration:", duration);
-
-      // Set initial timeLeft and currentPrice
-      setTimeLeft(calculateTimeLeft(end.toJSDate()));
-      const minutesPassed = Math.floor(now.diff(start, "minutes").minutes);
-      const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
-        ? auction.minimumincrement
-        : auction.bidincrementtype === "percentage" && auction.percent
-        ? (auction.startprice || 0) * (auction.percent / 100)
-        : 0;
-      let initialPrice = auction.startprice || 0;
-      if (now >= start && !auction.ended) {
-        initialPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Fetch Error:", err);
+      } finally {
+        setLoading(false);
       }
-      setCurrentPrice(initialPrice);
+    };
+    fetchAuctionDetails();
+  }, [auctionId]);
 
-      if (now >= start && now <= end && !auction.ended) {
-        const interval = setInterval(() => {
-          const nowIST = DateTime.now().setZone("Asia/Kolkata");
-          const minutesPassed = Math.floor(nowIST.diff(start, "minutes").minutes);
-          let newPrice = auction.startprice || 0;
-          const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
-            ? auction.minimumincrement
-            : auction.bidincrementtype === "percentage" && auction.percent
-            ? (auction.startprice || 0) * (auction.percent / 100)
-            : 0;
-          newPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentPrice) {
+        localStorage.setItem(`dutchAuction_${auctionId}_currentPrice`, currentPrice.toString());
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentPrice, auctionId]);
+  useEffect(() => {
+    if (!auction || !auction.scheduledstart || auction.ended || !auction.startprice) return;
+    const start = DateTime.fromISO(auction.scheduledstart, { zone: "utc" }).setZone("Asia/Kolkata");
+    const now = DateTime.now().setZone("Asia/Kolkata");
+    const duration = auction.auctionduration
+      ? ((d) => ((d.days || 0) * 24 * 60 * 60) + ((d.hours || 0) * 60 * 60) + ((d.minutes || 0) * 60))(
+          auction.auctionduration
+        )
+      : 0;
+    const end = start.plus({ seconds: duration });
+    console.log("Start:", start.toISO(), "End:", end.toISO(), "Now:", now.toISO(), "Duration:", duration);
+
+    // Set initial timeLeft and currentPrice
+    setTimeLeft(calculateTimeLeft(end.toJSDate()));
+    const minutesPassed = Math.floor(now.diff(start, "minutes").minutes);
+    const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
+      ? auction.minimumincrement
+      : auction.bidincrementtype === "percentage" && auction.percent
+      ? (auction.startprice || 0) * (auction.percent / 100)
+      : 0;
+    let initialPrice = auction.startprice || 0;
+    if (now >= start && !auction.ended) {
+      initialPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
+    }
+    setCurrentPrice(initialPrice);
+
+    if (now >= start && now <= end && !auction.ended) {
+      const interval = setInterval(() => {
+        const nowIST = DateTime.now().setZone("Asia/Kolkata");
+        const minutesPassed = Math.floor(nowIST.diff(start, "minutes").minutes);
+        let newPrice = auction.startprice || 0;
+        const increment = auction.bidincrementtype === "fixed" && auction.minimumincrement
+          ? auction.minimumincrement
+          : auction.bidincrementtype === "percentage" && auction.percent
+          ? (auction.startprice || 0) * (auction.percent / 100)
+          : 0;
+        newPrice = Math.max(auction.startprice - (minutesPassed * increment), increment > 0 ? increment : 1);
 
         setCurrentPrice(newPrice);
         setTimeLeft(calculateTimeLeft(end.toJSDate()));
         console.log("Updated Time Left:", calculateTimeLeft(end.toJSDate()), "Updated Price:", newPrice);
         if (newPrice <= (increment > 0 ? increment : 1) && !auction.ended) {
           setIsFloor(true);
+        }
+
+        // Check if auction has ended (price at floor or time exceeded)
+        const isAuctionEnded = newPrice <= (increment > 0 ? increment : 1) || nowIST > end;
+        if (isAuctionEnded && !auction.ended) {
+          const markAuctionEnded = async () => {
+            try {
+              const formData = new FormData();
+              formData.append("action", "markEnded");
+              const res = await fetch(`/api/auctions/dutch/${auction.id}`, {
+                method: "PUT",
+                body: formData,
+              });
+              const json = await res.json();
+              if (json.success) {
+                console.log("Auction marked as ended in response:", auction.id);
+                setAuction((prev) => prev ? { ...prev, ended: true } : prev); // Update local state
+              } else {
+                console.error("Failed to mark auction as ended:", json.error);
+              }
+            } catch (err) {
+              console.error("Error marking auction as ended:", err);
+            }
+          };
+          markAuctionEnded();
         }
       }, 60 * 1000);
 
@@ -407,15 +432,13 @@ const calculateTimeLeft = (endDate: Date): string => {
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? (auction?.productimages?.length || 1) - 1 : prev - 1
-    );
+    const totalMedia = (auction?.productimages?.length || 0) + (auction?.productvideos?.length || 0);
+    setCurrentImageIndex((prev) => (prev === 0 ? totalMedia - 1 : prev - 1));
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === (auction?.productimages?.length || 1) - 1 ? 0 : prev + 1
-    );
+    const totalMedia = (auction?.productimages?.length || 0) + (auction?.productvideos?.length || 0);
+    setCurrentImageIndex((prev) => (prev === totalMedia - 1 ? 0 : prev + 1));
   };
 
   const handleSubmitQuestion = async () => {
@@ -526,6 +549,10 @@ const calculateTimeLeft = (endDate: Date): string => {
     isAuctionNotStarted ||
     isAuctionEndedByTime;
 
+  // Total media count for navigation
+  const totalMedia = (auction?.productimages?.length || 0) + (auction?.productvideos?.length || 0);
+  const currentMediaIndex = currentImageIndex % totalMedia;
+
   return (
     <div className="min-h-screen py-20">
       <div className="container mx-auto px-4">
@@ -533,15 +560,25 @@ const calculateTimeLeft = (endDate: Date): string => {
           <div className="lg:col-span-2 space-y-6">
             <Card className="hover-lift transition-smooth">
               <CardContent className="p-0 relative">
-                <Image
-                  src={auction.productimages?.[currentImageIndex] || "/placeholder.svg"}
-                  alt={auction.productname || auction.title || "Auction Item"}
-                  width={600}
-                  height={400}
-                  className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
-                />
+                {currentMediaIndex < (auction?.productimages?.length || 0) ? (
+                  <Image
+                    src={auction.productimages?.[currentMediaIndex] || "/placeholder.svg"}
+                    alt={auction.productname || auction.title || "Auction Item"}
+                    width={600}
+                    height={400}
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                  />
+                ) : (
+                  <video
+                    src={auction.productvideos?.[currentMediaIndex - (auction?.productimages?.length || 0)]}
+                    controls
+                    className="w-full h-96 object-cover rounded-t-lg transition-smooth"
+                    autoPlay
+                    muted
+                  />
+                )}
                 <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {`${currentImageIndex + 1}/${auction.productimages?.length || 1}`}
+                  {`${currentMediaIndex + 1}/${totalMedia}`}
                 </div>
                 <button
                   onClick={handlePrevImage}
@@ -567,6 +604,19 @@ const calculateTimeLeft = (endDate: Date): string => {
                         className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
                         onClick={() => setCurrentImageIndex(index)}
                       />
+                    ))}
+                    {auction.productvideos?.map((video: string, index: number) => (
+                      <div
+                        key={index + (auction?.productimages?.length || 0)}
+                        className="w-20 h-16 rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                        onClick={() => setCurrentImageIndex(index + (auction?.productimages?.length || 0))}
+                      >
+                        <video
+                          src={video}
+                          className="w-full h-full object-cover rounded"
+                          muted
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -697,7 +747,7 @@ const calculateTimeLeft = (endDate: Date): string => {
                             <div className="mb-2">
                               <span className="font-medium">{qa.user}</span>
                               <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                {new Date(qa.question_time).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" })}
+                                {new Date(qa.time).toLocaleString("en-US", { hour12: true, hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
                             <div className="mb-2">

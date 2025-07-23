@@ -2,12 +2,31 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function POST(request: Request) {
   try {
+        // 🔑 Get access token from header
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    // 🔁 Recreate Supabase client with access token
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({ success: false, error: "Unauthorized: No user found" }, { status: 401 });
+    }
     const body = await request.json();
     const {
       auctiontype,
@@ -96,6 +115,7 @@ export async function POST(request: Request) {
 
     // Prepare payload with system-managed fields
     const payload = {
+      ...body,
       auctiontype,
       auctionsubtype,
       ismultilot: ismultilot || false,
@@ -142,7 +162,8 @@ export async function POST(request: Request) {
       categoryid: null,
       subcategoryid: null,
       // seller: createdby,
-       seller: seller || null,
+      seller: user.id,
+      //  seller: seller || createdby,
     };
 
     // Insert into Supabase

@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -95,10 +94,7 @@ type AuctionItem = {
   auctionduration?: { days?: number; hours?: number; minutes?: number };
 };
 
-const categories = [
-  { value: "all", label: "All Categories" },
-
-];
+const categories = [{ value: "all", label: "All Categories" }];
 
 const locations = [
   { value: "all", label: "All Locations" },
@@ -120,7 +116,7 @@ const subtypes = [
   { value: "english", label: "English" },
 ];
 const auctiontypes = [
-  { value: "all", label: "All Types" },
+  { value: "all", label: "Auction Types" },
   { value: "forward", label: "Forward Auctions" },
   { value: "reverse", label: "Reverse Auctions" },
 ];
@@ -191,9 +187,12 @@ export default function AuctionsPage() {
   const [visibleLive, setVisibleLive] = useState(8);
   const [visibleUpcoming, setVisibleUpcoming] = useState(8);
   const [visibleClosed, setVisibleClosed] = useState(8);
+  const [tab, setTab] = useState<"live" | "upcoming" | "closed">("live");
+
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
+  const upcomingTabRef = useRef<HTMLButtonElement>(null);
   const mergedCategories = [
     ...categories,
     ...dbCategories.filter(
@@ -280,7 +279,7 @@ export default function AuctionsPage() {
             auctionduration: a.auctionduration || "",
             featured: a.featured || false,
             verified: a.verified || false,
-              bidincrementtype: a.bidincrementtype,
+            bidincrementtype: a.bidincrementtype,
             percent: a.percent,
             currentBid: a.currentbid ?? undefined,
             timeLeft: end && status === "live" ? end.toISOString() : "",
@@ -300,7 +299,7 @@ export default function AuctionsPage() {
             winner: a.winner || "",
             views: a.views,
             bidder_count: a.bidder_count,
-            minimumincrement: a.minimumincrement, 
+            minimumincrement: a.minimumincrement,
             currency: a.currency,
             watchers: a.watchers ?? undefined,
             productimages: a.productimages || [], // Array of Supabase Storage URLs
@@ -319,7 +318,6 @@ export default function AuctionsPage() {
     fetchAuctions();
   }, []);
 
-  
   const filterAndSortAuctions = (
     status: "live" | "upcoming" | "closed",
     auctiontype?: "forward" | "reverse"
@@ -345,7 +343,7 @@ export default function AuctionsPage() {
     if (selectedLocation !== "all") {
       items = items.filter((item) => item.location === selectedLocation);
     }
-    if (selectedauctiontype !== "all") {
+    if (!auctiontype && selectedauctiontype !== "all") {
       items = items.filter((item) => item.auctiontype === selectedauctiontype);
     }
     if (selectedSubtype !== "all") {
@@ -431,7 +429,7 @@ export default function AuctionsPage() {
       searchTerm,
       selectedCategory,
       selectedLocation,
-      selectedauctiontype,
+      // selectedauctiontype,
       selectedSubtype,
       sortBy,
       allAuctionItems,
@@ -455,12 +453,13 @@ export default function AuctionsPage() {
       searchTerm,
       selectedCategory,
       selectedLocation,
-      selectedauctiontype,
       selectedSubtype,
+      // selectedauctiontype,
       sortBy,
       allAuctionItems,
     ]
   );
+
   const closedAuctions = useMemo(
     () => filterAndSortAuctions("closed"),
     [
@@ -807,32 +806,32 @@ export default function AuctionsPage() {
                     </span>
                     <span className="font-bold text-green-600">
                       {currencySymbol}
-                      {auction.startingBid.toLocaleString()}  
+                      {auction.startingBid.toLocaleString()}
                     </span>
                   </div>
                 )}
 
-                {isLoggedIn && (
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3 text-orange-500" />
-                        <span className="text-xs text-gray-600 dark:text-gray-300">
-                          Min Bid Increment:
-                        </span>
-                      </div>
-                      <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
-                        {currencySymbol}
-                        {auction.bidincrementtype === "percentage" &&
-                        auction.percent &&
-                        auction.currentBid
-                          ? (
-                              auction.currentBid *
-                              (auction.percent / 100)
-                            ).toLocaleString()
-                          : auction.minimumincrement?.toLocaleString() || "0"}
-                      </span>
-                    </div>
-                  )}
+              {isLoggedIn && (
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 text-orange-500" />
+                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                      Min Bid Increment:
+                    </span>
+                  </div>
+                  <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
+                    {currencySymbol}
+                    {auction.bidincrementtype === "percentage" &&
+                    auction.percent &&
+                    auction.currentBid
+                      ? (
+                          auction.currentBid *
+                          (auction.percent / 100)
+                        ).toLocaleString()
+                      : auction.minimumincrement?.toLocaleString() || "0"}
+                  </span>
+                </div>
+              )}
 
               {auction.status === "live" &&
                 auction.auctionsubtype !== "sealed" &&
@@ -990,23 +989,57 @@ export default function AuctionsPage() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
-            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+            <div
+              onClick={() => {
+                setTab("live");
+                setSelectedauctiontype("forward");
+              }}
+              className={`text-center p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden break-words shadow-sm
+         ${
+          tab === "live" && selectedauctiontype === "forward"
+          ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
+          : "bg-white"
+        }
+         hover:bg-blue-200 hover:shadow-lg`}
+            >
               <div className="text-xl font-bold text-orange-600 flex items-center justify-center gap-1">
                 <TrendingUp className="h-4 w-4 text-gray-600" />
                 {liveForwardAuctions.length}
               </div>
-              <div className="text-sm text-gray-600">Live Forward Auctions</div>
+              <div className="text-sm text-gray-700 mt-1">
+                Live Forward Auctions
+              </div>
             </div>
 
-            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+            <div
+              onClick={() => {
+                setTab("live"); // Switch to live tab
+                setSelectedauctiontype("reverse"); // Set filter
+              }}
+              className={`text-center p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden break-words shadow-sm ${
+                tab === "live" && selectedauctiontype === "reverse"
+                  ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
+                  : "bg-white"
+              }  hover:bg-blue-200 hover:shadow-lg`}
+            >
               <div className="text-xl font-bold text-teal-600 flex items-center justify-center gap-1">
                 <TrendingDown className="h-4 w-4 text-gray-600" />
-                {liveForwardAuctions.length}
+                {liveReverseAuctions.length}
               </div>
               <div className="text-sm text-gray-600">Live Reverse Auctions</div>
             </div>
 
-            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+            <div
+              onClick={() => {
+                setTab("upcoming"); // Switch to upcoming tab
+                setSelectedauctiontype("forward"); // Set filter
+              }}
+              className={`text-center p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden break-words shadow-sm ${
+                tab === "upcoming" && selectedauctiontype === "forward"
+                  ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
+                  : "bg-white"
+              } hover:bg-blue-200 hover:shadow-lg`}
+            >
               <div className="text-xl font-bold text-orange-600 flex items-center justify-center gap-1">
                 <TrendingUp className="h-4 w-4 text-gray-600" />
                 {upcomingForwardAuctions.length}
@@ -1016,7 +1049,17 @@ export default function AuctionsPage() {
               </div>
             </div>
 
-            <div className="text-center p-4 bg-white rounded-2xl shadow-sm border overflow-hidden break-words">
+            <div
+              onClick={() => {
+                setTab("upcoming"); // Switch to "Starting Soon" tab
+                setSelectedauctiontype("reverse"); // Set filter to reverse
+              }}
+              className={`text-center p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden break-words shadow-sm  ${
+                tab === "upcoming" && selectedauctiontype === "reverse"
+                  ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
+                  : "bg-white"
+              } hover:bg-blue-200 hover:shadow-lg`}
+            >
               <div className="text-xl font-bold text-teal-600 flex items-center justify-center gap-1">
                 <TrendingDown className="h-4 w-4 text-gray-600" />
                 {upcomingReverseAuctions.length}
@@ -1126,13 +1169,41 @@ export default function AuctionsPage() {
                     <SelectItem value="newest">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Select
+                  value={selectedauctiontype}
+                  onValueChange={setSelectedauctiontype}
+                >
+                  <SelectTrigger className="w-40 h-12 max-w-full">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {auctiontypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Auction Tabs */}
-        <Tabs defaultValue="live" className="w-full">
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            if (
+              value === "live" ||
+              value === "upcoming" ||
+              value === "closed"
+            ) {
+              setTab(value);
+            }
+          }}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm h-12 border border-gray-200">
             <TabsTrigger
               value="live"
@@ -1143,6 +1214,7 @@ export default function AuctionsPage() {
             </TabsTrigger>
             <TabsTrigger
               value="upcoming"
+              ref={upcomingTabRef} // <-- Attach ref here
               className="flex items-center justify-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
             >
               <Calendar className="h-4 w-4" />

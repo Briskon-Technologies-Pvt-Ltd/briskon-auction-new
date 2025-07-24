@@ -116,7 +116,7 @@ const subtypes = [
   { value: "english", label: "English" },
 ];
 const auctiontypes = [
-  { value: "all", label: "Auction Types" },
+  { value: "all", label: "Auction Type" },
   { value: "forward", label: "Forward Auctions" },
   { value: "reverse", label: "Reverse Auctions" },
 ];
@@ -1092,6 +1092,21 @@ export default function AuctionsPage() {
                   {/* Location Filter */}
                   <div className="flex gap-2 flex-wrap">
                     <Select
+                  value={selectedauctiontype}
+                  onValueChange={setSelectedauctiontype}
+                >
+                  <SelectTrigger className="w-40 h-12 max-w-full">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {auctiontypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                    <Select
                       value={selectedLocation}
                       onValueChange={setSelectedLocation}
                     >
@@ -1170,21 +1185,7 @@ export default function AuctionsPage() {
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={selectedauctiontype}
-                  onValueChange={setSelectedauctiontype}
-                >
-                  <SelectTrigger className="w-40 h-12 max-w-full">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {auctiontypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                
               </div>
             </div>
           </CardContent>

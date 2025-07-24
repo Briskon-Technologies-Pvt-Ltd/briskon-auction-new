@@ -312,20 +312,20 @@ export async function PUT(
       ) {
         minimumIncrement = auctionData.minimumincrement;
       }
-
-      if (auctionData.auctionsubtype === "sealed") {
+const base = auctionData.startprice || 0;
+const increment = auctionData.minimumincrement || 1;
+const diff = amount - base;                 
+      if (auctionData.auctionsubtype === "sealed") { // added this logic to make bid multile of min incremement one time
         if (auctionData.auctiontype === "forward") {
-          if (amount < (auctionData.startprice || 0)) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: `Bid must be at least $${(
-                  auctionData.startprice || 0
-                ).toLocaleString()}`,
-              },
-              { status: 400 }
-            );
-          }
+          if (diff < 0 || diff % increment !== 0) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: `Bid must be at least $${increment} above start price and in multiples of $${increment}`,
+    },
+    { status: 400 }
+  );
+}
         } else if (auctionData.auctiontype === "reverse") {
           if (amount > targetPrice) {
             return NextResponse.json(
@@ -370,19 +370,22 @@ export async function PUT(
           }
         } else {
           if (auctionData.auctiontype === "forward") {
-            const expectedBid = roundToTwo(
-              roundedCurrentBid + roundedIncrement
-            );
-            if (roundedAmount !== expectedBid) {
-              return NextResponse.json(
-                {
-                  success: false,
-                  error: `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + minimum increment)`,
-                },
-                { status: 400 }
-              );
-            }
-          } else if (auctionData.auctiontype === "reverse") {
+  const diff = roundedAmount - roundedCurrentBid;
+
+  if (
+    diff < roundedIncrement || 
+    diff % roundedIncrement !== 0
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Bid must be at least $${roundedIncrement.toLocaleString()} more than the current bid and in multiples of that increment.`,
+      },
+      { status: 400 }
+    );
+  }
+}
+          else if (auctionData.auctiontype === "reverse") {
             const expectedBid = roundToTwo(
               roundedCurrentBid - roundedIncrement
             );

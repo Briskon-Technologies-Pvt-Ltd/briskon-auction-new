@@ -400,37 +400,42 @@ export default function AuctionDetailPage() {
         );
         return;
       }
-    }else if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
-  const baseBid = auction.currentbid ?? auction.startprice ?? 0;
-  const diff = userAmount - baseBid;
+    } else if (
+      auction?.bidincrementtype === "fixed" &&
+      auction?.minimumincrement
+    ) {
+      const baseBid = auction.currentbid ?? auction.startprice ?? 0;
+      const diff = userAmount - baseBid;
 
-   if (
-    userAmount < expectedBid ||
-    diff < 0 ||
-    Math.abs(diff % auction.minimumincrement) > 0.01
-  ) {
-    alert(
-      `Bid must be at least $${expectedBid.toLocaleString()} and in multiples of $${auction.minimumincrement.toLocaleString()} (fixed increment).`
-    );
-    return;
-  }
-} else if (
-  auction?.bidincrementtype === "percentage" &&
-  auction?.percent &&
-  auction?.currentbid
-) {
-  if (userAmount !== expectedBid) {
-    const increment = round(
-      (auction.currentbid ?? 0) * (auction.percent / 100)
-    );
-    const incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${auction.percent}% of $${(auction.currentbid ?? 0).toLocaleString()})`;
+      if (
+        userAmount < expectedBid ||
+        diff < 0 ||
+        Math.abs(diff % auction.minimumincrement) > 0.01
+      ) {
+        alert(
+          `Bid must be at least $${expectedBid.toLocaleString()} and in multiples of $${auction.minimumincrement.toLocaleString()} (fixed increment).`
+        );
+        return;
+      }
+    } else if (
+      auction?.bidincrementtype === "percentage" &&
+      auction?.percent &&
+      auction?.currentbid
+    ) {
+      if (userAmount !== expectedBid) {
+        const increment = round(
+          (auction.currentbid ?? 0) * (auction.percent / 100)
+        );
+        const incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
+          auction.percent
+        }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
 
-    alert(
-      `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
-    );
-    return;
-  }
-}
+        alert(
+          `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+        );
+        return;
+      }
+    }
 
     // } else if (userAmount !== expectedBid) {
     //   let incrementDetails = "";
@@ -573,39 +578,37 @@ export default function AuctionDetailPage() {
   };
 
   const getMinimumBid = () => {
-  const startPrice = auction?.startprice ?? 0;
+    const startPrice = auction?.startprice ?? 0;
 
-  // If no bids yet, use start price as base
-  if (!auction?.bidcount || auction.bidcount === 0 || !auction.currentbid) {
+    // If no bids yet, use start price as base
+    if (!auction?.bidcount || auction.bidcount === 0 || !auction.currentbid) {
+      return startPrice;
+    }
+
+    // Percentage-based increment
+    if (
+      auction.bidincrementtype === "percentage" &&
+      auction.percent &&
+      auction.currentbid
+    ) {
+      const minBid = (auction.currentbid ?? 0) * (1 + auction.percent / 100);
+      return Math.max(minBid, startPrice);
+    }
+
+    // Fixed increment logic
+    if (
+      auction.bidincrementtype === "fixed" &&
+      auction.minimumincrement &&
+      auction.currentbid
+    ) {
+      const minBid =
+        (auction.currentbid ?? 0) + (auction.minimumincrement ?? 0);
+      return Math.max(minBid, startPrice);
+    }
+
+    // Fallback
     return startPrice;
-  }
-
-  // Percentage-based increment
-  if (
-    auction.bidincrementtype === "percentage" &&
-    auction.percent &&
-    auction.currentbid
-  ) {
-    const minBid =
-      (auction.currentbid ?? 0) * (1 + auction.percent / 100);
-    return Math.max(minBid, startPrice);
-  }
-
-  // Fixed increment logic
-  if (
-    auction.bidincrementtype === "fixed" &&
-    auction.minimumincrement &&
-    auction.currentbid
-  ) {
-    const minBid =
-      (auction.currentbid ?? 0) + (auction.minimumincrement ?? 0);
-    return Math.max(minBid, startPrice);
-  }
-
-  // Fallback
-  return startPrice;
-};
-
+  };
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) =>
@@ -740,21 +743,27 @@ export default function AuctionDetailPage() {
   const bidAmountNumber = Number(bidAmount);
   const baseBid = auction?.currentbid ?? auction?.startprice ?? 0;
   const isButtonDisabled =
-  !bidAmount ||
-  isNaN(bidAmountNumber) ||
-  bidAmountNumber < 0 ||
-  (user?.email === auction?.createdby && auction?.createdby !== null) ||
-  isAuctionNotStarted ||
-  isAuctionEnded ||
-  (auction?.auctionsubtype === "sealed"
-  ? auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")) ||              // added this logic to make bid multile of min incremement one time
-    bidAmountNumber < (auction?.startprice ?? 0) ||
-    ((bidAmountNumber - (auction?.startprice ?? 0)) % (auction?.minimumincrement || 1) !== 0)
-    : auction?.bidincrementtype === "fixed" && auction?.minimumincrement
-    ? bidAmountNumber <= baseBid ||
-      Math.abs((bidAmountNumber - baseBid) % auction.minimumincrement) > 0.01
-    : !isSameAmount(bidAmountNumber, baseBid * (1 + (auction?.percent ?? 0) / 100))
-  );
+    !bidAmount ||
+    isNaN(bidAmountNumber) ||
+    bidAmountNumber < 0 ||
+    (user?.email === auction?.createdby && auction?.createdby !== null) ||
+    isAuctionNotStarted ||
+    isAuctionEnded ||
+    (auction?.auctionsubtype === "sealed"
+      ? auction?.participants?.some(
+          (p) => user?.id && p.includes(user.id ?? "")
+        ) || // added this logic to make bid multile of min incremement one time
+        bidAmountNumber < (auction?.startprice ?? 0) ||
+        (bidAmountNumber - (auction?.startprice ?? 0)) %
+          (auction?.minimumincrement || 1) !==
+          0
+      : auction?.bidincrementtype === "fixed" && auction?.minimumincrement
+      ? bidAmountNumber <= baseBid ||
+        Math.abs((bidAmountNumber - baseBid) % auction.minimumincrement) > 0.01
+      : !isSameAmount(
+          bidAmountNumber,
+          baseBid * (1 + (auction?.percent ?? 0) / 100)
+        ));
 
   const isSilentAuction =
     auction?.issilentauction || auction?.auctionsubtype === "silent";
@@ -768,99 +777,99 @@ export default function AuctionDetailPage() {
 
   return (
     <div className="min-h-screen py-20">
-      
       <div className="container mx-auto px-4">
-        
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
-            <div className="relative">       
-<button
-  onClick={() => router.push('/auctions')}
-  className="absolute -top-4 -left-44 text-gray-500 hover:text-gray-800 transition-colors"
->
-  <MoveLeft className="w-6 h-6" />
-</button>
+            <div className="relative">
+              <button
+                onClick={() => router.push("/auctions")}
+                className="absolute -top-4 -left-44 text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <MoveLeft className="w-6 h-6" />
+              </button>
 
-            <Card className="hover-lift transition-smooth">
-              <CardContent className="p-0 relative">
-                {isVideo ? (
-                  <video
-                    src={currentMedia}
-                    controls
-                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
-                    preload="metadata"
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                ) : (
-                  <Image
-                    src={currentMedia}
-                    alt={auction.productname || auction.title || "Auction Item"}
-                    width={600}
-                    height={400}
-                    className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
-                  />
-                )}
-                <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {`${currentImageIndex + 1}/${
-                    auction.productimages?.length ?? 1
-                  }`}
-                </div>
-                <button
-                  onClick={handlePrevImage}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-smooth"
-                >
-                  ←
-                </button>
-                <button
-                  onClick={handleNextImage}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-smooth"
-                >
-                  →
-                </button>
-                <div className="p-4">
-                  <div className="flex gap-2">
-                    {auction.productimages?.map(
-                      (media: string, index: number) => {
-                        const isVideoThumbnail =
-                          media.toLowerCase().endsWith(".mp4") ||
-                          media.toLowerCase().endsWith(".webm") ||
-                          media.toLowerCase().endsWith(".mov");
-                        return (
-                          <div key={index} className="relative">
-                            {isVideoThumbnail ? (
-                              <video
-                                src={media}
-                                autoPlay
-                                loop
-                                className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
-                                onClick={() => setCurrentImageIndex(index)}
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <Image
-                                src={media || "/placeholder.svg"}
-                                alt={`${auction.productname || auction.title} ${
-                                  index + 1
-                                }`}
-                                width={100}
-                                height={80}
-                                className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
-                                onClick={() => setCurrentImageIndex(index)}
-                              />
-                            )}
-                          </div>
-                        );
+              <Card className="hover-lift transition-smooth">
+                <CardContent className="p-0 relative">
+                  {isVideo ? (
+                    <video
+                      src={currentMedia}
+                      controls
+                      className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                      preload="metadata"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <Image
+                      src={currentMedia}
+                      alt={
+                        auction.productname || auction.title || "Auction Item"
                       }
-                    )}
+                      width={600}
+                      height={400}
+                      className="w-full h-96 object-cover rounded-t-lg transition-smooth hover:scale-105"
+                    />
+                  )}
+                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    {`${currentImageIndex + 1}/${
+                      auction.productimages?.length ?? 1
+                    }`}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <button
+                    onClick={handlePrevImage}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-smooth"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={handleNextImage}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-smooth"
+                  >
+                    →
+                  </button>
+                  <div className="p-4">
+                    <div className="flex gap-2">
+                      {auction.productimages?.map(
+                        (media: string, index: number) => {
+                          const isVideoThumbnail =
+                            media.toLowerCase().endsWith(".mp4") ||
+                            media.toLowerCase().endsWith(".webm") ||
+                            media.toLowerCase().endsWith(".mov");
+                          return (
+                            <div key={index} className="relative">
+                              {isVideoThumbnail ? (
+                                <video
+                                  src={media}
+                                  autoPlay
+                                  loop
+                                  className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                                  onClick={() => setCurrentImageIndex(index)}
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <Image
+                                  src={media || "/placeholder.svg"}
+                                  alt={`${
+                                    auction.productname || auction.title
+                                  } ${index + 1}`}
+                                  width={100}
+                                  height={80}
+                                  className="w-20 h-16 object-cover rounded cursor-pointer border-2 border-transparent hover:border-blue-500 transition-smooth hover-lift"
+                                  onClick={() => setCurrentImageIndex(index)}
+                                />
+                              )}
+                            </div>
+                          );
+                        }
+                      )}
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             {/* Auction Details */}
             <Card>
               <CardHeader>
@@ -1356,37 +1365,43 @@ export default function AuctionDetailPage() {
 
                   {isLoggedIn && !isAuctionEnded && (
                     <div className="space-y-3">
-                         <div className="relative">
-    <Input
-      type="number"
-      placeholder={
-        auction?.auctionsubtype === "sealed"
-          ? `Start Price: $${auction.startprice?.toLocaleString() ?? "0"}`
-          : `Minimum: $${getMinimumBid().toLocaleString()}`
-      }
-      value={bidAmount}
-      onChange={(e) => setBidAmount(e.target.value)}
-      className={`mt-1 transition-smooth pr-10 ${
-        isAuctionNotStarted ||
-        isAuctionEnded ||
-        (auction?.auctionsubtype === "sealed" &&
-          auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")))
-          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : ""
-      }`}
-      disabled={
-        isAuctionNotStarted ||
-        isAuctionEnded ||
-        (auction?.auctionsubtype === "sealed" &&
-          auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")))
-      }
-    />
-    </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          placeholder={
+                            auction?.auctionsubtype === "sealed"
+                              ? `Start Price: $${
+                                  auction.startprice?.toLocaleString() ?? "0"
+                                }`
+                              : `Minimum: $${getMinimumBid().toLocaleString()}`
+                          }
+                          value={bidAmount}
+                          onChange={(e) => setBidAmount(e.target.value)}
+                          className={`mt-1 transition-smooth pr-10 ${
+                            isAuctionNotStarted ||
+                            isAuctionEnded ||
+                            (auction?.auctionsubtype === "sealed" &&
+                              auction?.participants?.some(
+                                (p) => user?.id && p.includes(user.id ?? "")
+                              ))
+                              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                              : ""
+                          }`}
+                          disabled={
+                            isAuctionNotStarted ||
+                            isAuctionEnded ||
+                            (auction?.auctionsubtype === "sealed" &&
+                              auction?.participants?.some(
+                                (p) => user?.id && p.includes(user.id ?? "")
+                              ))
+                          }
+                        />
+                      </div>
                       {auction?.auctionsubtype === "sealed" &&
                         auction?.participants?.includes(user?.id ?? "") && (
                           <p className="text-sm text-red-600 mt-2">
                             You have already submitted a bid for this auction
-                            and cannot bid again. 
+                            and cannot bid again.
                           </p>
                         )}
                       <div

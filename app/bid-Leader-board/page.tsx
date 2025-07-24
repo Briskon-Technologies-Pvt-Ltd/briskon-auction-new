@@ -92,46 +92,91 @@ export default function BidLeadersBoard({
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {auction?.auctionsubtype === "sealed"
                 ? "My Bid"
+                : auction?.auctionsubtype
+                ? "My Bids"
                 : "Bid Leaders Board"}
             </h3>
           </div>
         </CardHeader>
-
         <CardContent className="overflow-x-auto">
           {auction?.auctionsubtype === "sealed" ? (
             // Only show the logged-in user's bid
             <table className="min-w-full text-sm border border-gray-300">
+    <thead className="bg-blue-100 text-blue-800 text-left text-xs font-medium tracking-wide border-b border-blue-300">
+      <tr>
+        <th className="py-2 px-3 border-r border-blue-300">
+          Bid Amount ({currencySymbol})
+        </th>
+        <th className="py-2 px-3">Date & Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      {topBids
+        .filter((bid) => bid.user_id === loggedInUserId)
+        .map((bid) => (
+          <tr
+            key={bid.id}
+            className="border-t border-gray-300 bg-white font-semibold"
+          >
+            <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
+              {bid.amount.toLocaleString()}
+            </td>
+            <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+              {new Date(bid.created_at).toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </td>
+          </tr>
+        ))}
+      {topBids.filter((b) => b.user_id === loggedInUserId).length === 0 && (
+        <tr>
+          <td
+            colSpan={2}
+            className="text-center py-3 text-sm text-gray-500"
+          >
+            You haven’t placed any bid yet.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+          ) : auction?.auctionsubtype === "silent" ? (
+            <table className="min-w-full text-sm border border-gray-300">
               <thead className="bg-blue-100 text-blue-800 text-left text-xs font-medium tracking-wide border-b border-blue-300">
                 <tr>
                   <th className="py-2 px-3 border-r border-blue-300">
-                    Buyer Name
+                    Bid Amount ({currencySymbol})
                   </th>
-                  <th className="py-2 px-3">Bid Price ({currencySymbol})</th>
+                  <th className="py-2 px-3">Date & Time</th>
                 </tr>
               </thead>
               <tbody>
-                {topBids
-                  .filter((bid) => bid.user_id === loggedInUserId)
-                  .map((bid) => (
-                    <tr
-                      key={bid.id}
-                      className={`border-t border-gray-300 ${
-                        auction?.auctionsubtype === "sealed"
-                          ? "bg-white font-semibold"
-                          : "bg-green-300 font-semibold cursor-pointer hover:bg-green-400 transition"
-                      }`}
-                    >
-                      <td className="py-2 px-3 border-r border-gray-300 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                        <User className="w-4 h-4" />
-                        {bid.profile?.fname || "You"}
-                      </td>
-                      <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
-                        {bid.amount.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                {topBids.filter((b) => b.user_id === loggedInUserId).length ===
-                  0 && (
+                {userBids.length > 0 ? (
+                  userBids
+                    .sort(
+                      (a, b) =>
+                        new Date(b.created_at).getTime() -
+                        new Date(a.created_at).getTime()
+                    )
+
+                    .map((bid) => (
+                      <tr
+                        key={bid.id}
+                        className="border-t border-gray-300 bg-white font-semibold"
+                      >
+                        <td className="py-2 px-3 border-r border-gray-300 text-xs text-gray-600 dark:text-gray-300">
+                          {bid.amount.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-300">
+                          {new Date(bid.created_at).toLocaleString("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                      </tr>
+                    ))
+                ) : (
                   <tr>
                     <td
                       colSpan={2}

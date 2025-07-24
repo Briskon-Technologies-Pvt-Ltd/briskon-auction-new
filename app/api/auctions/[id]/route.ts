@@ -134,8 +134,8 @@ export async function GET(
       requireddocuments: auction.requireddocuments
         ? JSON.stringify(auction.requireddocuments)
         : null,
-         timeLeft: "", // will be overwritten below
-        sellerAuctionCount,
+      timeLeft: "", // will be overwritten below
+      sellerAuctionCount,
     };
 
     console.log("Processed auction data:", processedAuction);
@@ -312,20 +312,21 @@ export async function PUT(
       ) {
         minimumIncrement = auctionData.minimumincrement;
       }
-const base = auctionData.startprice || 0;
-const increment = auctionData.minimumincrement || 1;
-const diff = amount - base;                 
-      if (auctionData.auctionsubtype === "sealed") { // added this logic to make bid multile of min incremement one time
+      const base = auctionData.startprice || 0;
+      const increment = auctionData.minimumincrement || 1;
+      const diff = amount - base;
+      if (auctionData.auctionsubtype === "sealed") {
+        // added this logic to make bid multile of min incremement one time
         if (auctionData.auctiontype === "forward") {
           if (diff < 0 || diff % increment !== 0) {
-  return NextResponse.json(
-    {
-      success: false,
-      error: `Bid must be at least $${increment} above start price and in multiples of $${increment}`,
-    },
-    { status: 400 }
-  );
-}
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Bid must be at least $${increment} above start price and in multiples of $${increment}`,
+              },
+              { status: 400 }
+            );
+          }
         } else if (auctionData.auctiontype === "reverse") {
           if (amount > targetPrice) {
             return NextResponse.json(
@@ -370,22 +371,18 @@ const diff = amount - base;
           }
         } else {
           if (auctionData.auctiontype === "forward") {
-  const diff = roundedAmount - roundedCurrentBid;
+            const diff = roundedAmount - roundedCurrentBid;
 
-  if (
-    diff < roundedIncrement || 
-    diff % roundedIncrement !== 0
-  ) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Bid must be at least $${roundedIncrement.toLocaleString()} more than the current bid and in multiples of that increment.`,
-      },
-      { status: 400 }
-    );
-  }
-}
-          else if (auctionData.auctiontype === "reverse") {
+            if (diff < roundedIncrement || diff % roundedIncrement !== 0) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `Bid must be at least $${roundedIncrement.toLocaleString()} more than the current bid and in multiples of that increment.`,
+                },
+                { status: 400 }
+              );
+            }
+          } else if (auctionData.auctiontype === "reverse") {
             const expectedBid = roundToTwo(
               roundedCurrentBid - roundedIncrement
             );
@@ -426,7 +423,6 @@ const diff = amount - base;
         : [...participants, user_id];
 
       const updatedBidCount = (auctionData.bidcount || 0) + 1;
-      
 
       const { error: bidError } = await supabase.from("bids").insert({
         auction_id: id,
@@ -444,20 +440,20 @@ const diff = amount - base;
         );
       }
 
-const updatedUniqueBidderCount = updatedParticipants.length;
+      const updatedUniqueBidderCount = updatedParticipants.length;
 
-const { data, error: auctionUpdateError } = await supabase
-  .from("auctions")
-  .update({
-    participants: updatedParticipants,
-    bidcount: updatedBidCount,
-    bidder_count: updatedUniqueBidderCount,
-    currentbid: amount,
-    currentbidder: user_email,
-    editable: false,
-  })
-  .eq("id", id)
-  .select();
+      const { data, error: auctionUpdateError } = await supabase
+        .from("auctions")
+        .update({
+          participants: updatedParticipants,
+          bidcount: updatedBidCount,
+          bidder_count: updatedUniqueBidderCount,
+          currentbid: amount,
+          currentbidder: user_email,
+          editable: false,
+        })
+        .eq("id", id)
+        .select();
 
       if (auctionUpdateError) {
         return NextResponse.json(

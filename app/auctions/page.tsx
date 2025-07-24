@@ -484,6 +484,7 @@ export default function AuctionsPage() {
       GBP: "£",
       JPY: "¥",
       CAD: "CA$",
+      AUD: "A$",
       // Add more if needed
     };
     const currencySymbol = auction.currency

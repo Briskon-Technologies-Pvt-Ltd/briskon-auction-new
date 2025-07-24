@@ -242,6 +242,7 @@ export default function AuctionDetailPage() {
       GBP: "£",
       JPY: "¥",
       CAD: "CA$",
+      AUD: "A$",
     };
     return symbols[auction?.currency ?? ""] ?? "";
   }, [auction?.currency]);
@@ -1201,7 +1202,7 @@ const isButtonDisabled =
                           Min Bid Increment:
                         </span>
                       </div>
-                      <span className="font-semibold text-base text-gray-700 dark:text-gray-100 text-sm">
+                      <span className="font-semibold text-sm text-gray-700 dark:text-gray-100 text-sm">
                         {currencySymbol}
                         {auction.bidincrementtype === "percentage" &&
                         auction.percent &&
@@ -1400,13 +1401,13 @@ const isButtonDisabled =
                         >
                           Place Bid
                         </Button>
-                        {(isAuctionNotStarted || isAuctionEnded) && (
+                        {/* {(isAuctionNotStarted || isAuctionEnded) && (
                           <p className="text-sm text-red-600 mt-2">
                             {isAuctionNotStarted
                               ? "Auction has not started yet"
                               : "Auction has ended"}
                           </p>
-                        )}
+                        )} */}
                       </div>
                       {auction.buyNowPrice && (
                         <>

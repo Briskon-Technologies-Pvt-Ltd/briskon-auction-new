@@ -396,30 +396,62 @@ export default function AuctionDetailPage() {
         );
         return;
       }
-    } else if (userAmount !== expectedBid) {
-      let incrementDetails = "";
-      if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
-        incrementDetails = `Minimum increment: $${(
-          auction.minimumincrement ?? 0
-        ).toLocaleString()} (fixed)`;
-      } else if (
-        auction?.bidincrementtype === "percentage" &&
-        auction?.percent &&
-        auction?.currentbid
-      ) {
-        const increment = round(
-          (auction.currentbid ?? 0) * (auction.percent / 100)
-        );
-        incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
-          auction.percent
-        }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
-      }
+    }else if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
+  const baseBid = auction.currentbid ?? auction.startprice ?? 0;
+  const diff = userAmount - baseBid;
 
-      alert(
-        `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
-      );
-      return;
-    }
+   if (
+    userAmount < expectedBid ||
+    diff < 0 ||
+    Math.abs(diff % auction.minimumincrement) > 0.01
+  ) {
+    alert(
+      `Bid must be at least $${expectedBid.toLocaleString()} and in multiples of $${auction.minimumincrement.toLocaleString()} (fixed increment).`
+    );
+    return;
+  }
+} else if (
+  auction?.bidincrementtype === "percentage" &&
+  auction?.percent &&
+  auction?.currentbid
+) {
+  if (userAmount !== expectedBid) {
+    const increment = round(
+      (auction.currentbid ?? 0) * (auction.percent / 100)
+    );
+    const incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${auction.percent}% of $${(auction.currentbid ?? 0).toLocaleString()})`;
+
+    alert(
+      `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+    );
+    return;
+  }
+}
+
+    // } else if (userAmount !== expectedBid) {
+    //   let incrementDetails = "";
+    //   if (auction?.bidincrementtype === "fixed" && auction?.minimumincrement) {
+    //     incrementDetails = `Minimum increment: $${(
+    //       auction.minimumincrement ?? 0
+    //     ).toLocaleString()} (fixed)`;
+    //   } else if (
+    //     auction?.bidincrementtype === "percentage" &&
+    //     auction?.percent &&
+    //     auction?.currentbid
+    //   ) {
+    //     const increment = round(
+    //       (auction.currentbid ?? 0) * (auction.percent / 100)
+    //     );
+    //     incrementDetails = `Minimum increment: $${increment.toLocaleString()} (${
+    //       auction.percent
+    //     }% of $${(auction.currentbid ?? 0).toLocaleString()})`;
+    //   }
+
+    //   alert(
+    //     `Bid must be exactly $${expectedBid.toLocaleString()} (current bid + increment). ${incrementDetails}`
+    //   );
+    //   return;
+    // }
 
     try {
       // console.log("Placing bid:", { auctionId, userId: user.id, amount });
@@ -537,20 +569,39 @@ export default function AuctionDetailPage() {
   };
 
   const getMinimumBid = () => {
-    let minimumBid = auction?.startprice ?? 0;
-    if (auction?.bidcount && auction?.bidcount > 0 && auction?.currentbid) {
-      if (auction.bidincrementtype === "percentage" && auction.percent) {
-        minimumBid = (auction.currentbid ?? 0) * (1 + auction.percent / 100);
-      } else if (
-        auction.bidincrementtype === "fixed" &&
-        auction.minimumincrement
-      ) {
-        minimumBid =
-          (auction.currentbid ?? 0) + (auction.minimumincrement ?? 0);
-      }
-    }
-    return Math.max(minimumBid, auction?.startprice ?? 0);
-  };
+  const startPrice = auction?.startprice ?? 0;
+
+  // If no bids yet, use start price as base
+  if (!auction?.bidcount || auction.bidcount === 0 || !auction.currentbid) {
+    return startPrice;
+  }
+
+  // Percentage-based increment
+  if (
+    auction.bidincrementtype === "percentage" &&
+    auction.percent &&
+    auction.currentbid
+  ) {
+    const minBid =
+      (auction.currentbid ?? 0) * (1 + auction.percent / 100);
+    return Math.max(minBid, startPrice);
+  }
+
+  // Fixed increment logic
+  if (
+    auction.bidincrementtype === "fixed" &&
+    auction.minimumincrement &&
+    auction.currentbid
+  ) {
+    const minBid =
+      (auction.currentbid ?? 0) + (auction.minimumincrement ?? 0);
+    return Math.max(minBid, startPrice);
+  }
+
+  // Fallback
+  return startPrice;
+};
+
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) =>
@@ -683,18 +734,24 @@ export default function AuctionDetailPage() {
   const isSameAmount = (a: number, b: number, epsilon = 0.01) =>
     Math.abs(a - b) < epsilon;
   const bidAmountNumber = Number(bidAmount);
-  const isButtonDisabled =
-    !bidAmount ||
-    isNaN(bidAmountNumber) ||
-    bidAmountNumber < 0 ||
-    (user?.email === auction?.createdby && auction?.createdby !== null) ||
-    isAuctionNotStarted ||
-    isAuctionEnded ||
-    (auction?.auctionsubtype === "sealed"
-      ? auction?.participants?.some(
-          (p) => user?.id && p.includes(user.id ?? "")
-        ) || bidAmountNumber < (auction?.startprice ?? 0)
-      : !isSameAmount(bidAmountNumber, getMinimumBid()));
+  const baseBid = auction?.currentbid ?? auction?.startprice ?? 0;
+const isButtonDisabled =
+  !bidAmount ||
+  isNaN(bidAmountNumber) ||
+  bidAmountNumber < 0 ||
+  (user?.email === auction?.createdby && auction?.createdby !== null) ||
+  isAuctionNotStarted ||
+  isAuctionEnded ||
+  (auction?.auctionsubtype === "sealed"
+  ? auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")) ||              // added this logic to make bid multile of min incremement one time
+    bidAmountNumber < (auction?.startprice ?? 0) ||
+    ((bidAmountNumber - (auction?.startprice ?? 0)) % (auction?.minimumincrement || 1) !== 0)
+    : auction?.bidincrementtype === "fixed" && auction?.minimumincrement
+    ? bidAmountNumber <= baseBid ||
+      Math.abs((bidAmountNumber - baseBid) % auction.minimumincrement) > 0.01
+    : !isSameAmount(bidAmountNumber, baseBid * (1 + (auction?.percent ?? 0) / 100))
+  );
+
   const isSilentAuction =
     auction?.issilentauction || auction?.auctionsubtype === "silent";
 
@@ -1285,24 +1342,37 @@ export default function AuctionDetailPage() {
 
                   {isLoggedIn && !isAuctionEnded && (
                     <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium">
-                          Your Bid Amount
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder={`Minimum: $${getMinimumBid().toLocaleString()}`}
-                          value={bidAmount}
-                          onChange={(e) => setBidAmount(e.target.value)}
-                          className="mt-1 transition-smooth"
-                          disabled={isAuctionNotStarted || isAuctionEnded}
-                        />
-                      </div>
+                         <div className="relative">
+    <Input
+      type="number"
+      placeholder={
+        auction?.auctionsubtype === "sealed"
+          ? `Start Price: $${auction.startprice?.toLocaleString() ?? "0"}`
+          : `Minimum: $${getMinimumBid().toLocaleString()}`
+      }
+      value={bidAmount}
+      onChange={(e) => setBidAmount(e.target.value)}
+      className={`mt-1 transition-smooth pr-10 ${
+        isAuctionNotStarted ||
+        isAuctionEnded ||
+        (auction?.auctionsubtype === "sealed" &&
+          auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")))
+          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+          : ""
+      }`}
+      disabled={
+        isAuctionNotStarted ||
+        isAuctionEnded ||
+        (auction?.auctionsubtype === "sealed" &&
+          auction?.participants?.some((p) => user?.id && p.includes(user.id ?? "")))
+      }
+    />
+    </div>
                       {auction?.auctionsubtype === "sealed" &&
                         auction?.participants?.includes(user?.id ?? "") && (
                           <p className="text-sm text-red-600 mt-2">
                             You have already submitted a bid for this auction
-                            and cannot bid again.
+                            and cannot bid again. 
                           </p>
                         )}
                       <div
@@ -1367,6 +1437,7 @@ export default function AuctionDetailPage() {
                   auctionId={auctionId}
                   loggedInUserId={user.id}
                   currencySymbol={currencySymbol}
+                  auction={auction}
                 />
               </div>
             )}

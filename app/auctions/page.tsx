@@ -94,22 +94,10 @@ type AuctionItem = {
   auctionduration?: { days?: number; hours?: number; minutes?: number };
 };
 
-const categories = [{ value: "all", label: "All Categories" }];
+const categories = [{ value: "all", label: "Category" }];
 
-const locations = [
-  { value: "all", label: "All Locations" },
-  { value: "New York, USA", label: "New York, USA" },
-  { value: "London, UK", label: "London, UK" },
-  { value: "Paris, France", label: "Paris, France" },
-  { value: "San Francisco, USA", label: "San Francisco, USA" },
-  { value: "Chicago, USA", label: "Chicago, USA" },
-  { value: "Detroit, USA", label: "Detroit, USA" },
-  { value: "Austin, USA", label: "Austin, USA" },
-  { value: "Seattle, USA", label: "Seattle, USA" },
-  { value: "Bordeaux, France", label: "Bordeaux, France" },
-];
 const subtypes = [
-  { value: "all", label: "All Styles" },
+  { value: "all", label: "Style" },
   { value: "sealed", label: "Sealed" },
   { value: "silent", label: "Silent" },
   { value: "dutch", label: "Dutch" },
@@ -174,7 +162,7 @@ export default function AuctionsPage() {
   const [selectedLocation, setSelectedLocation] = useState("all");
 
   const [locations, setLocations] = useState([
-    { value: "all", label: "All Locations" },
+    { value: "all", label: "Locations" },
   ]);
   const [selectedauctiontype, setSelectedauctiontype] = useState("all");
   const [sortBy, setSortBy] = useState("ending-soon");
@@ -230,7 +218,7 @@ export default function AuctionsPage() {
       label: loc.charAt(0).toUpperCase() + loc.slice(1),
     }));
 
-    setLocations([{ value: "all", label: "All Locations" }, ...dbLocations]);
+    setLocations([{ value: "all", label: "Location" }, ...dbLocations]);
   }, [allAuctionItems]);
 
   useEffect(() => {

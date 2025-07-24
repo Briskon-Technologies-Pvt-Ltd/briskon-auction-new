@@ -92,7 +92,7 @@ export default function BidLeadersBoard({
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {auction?.auctionsubtype === "sealed"
                 ? "My Bid"
-                : auction?.auctionsubtype
+                : auction?.auctionsubtype ==="silent"
                 ? "My Bids"
                 : "Bid Leaders Board"}
             </h3>

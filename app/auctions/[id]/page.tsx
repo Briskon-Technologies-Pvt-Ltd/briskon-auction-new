@@ -41,6 +41,9 @@ import {
   User,
   Eye,
   Award,
+  ArrowLeft,
+  ChevronLeft,
+  MoveLeft,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
@@ -736,7 +739,7 @@ export default function AuctionDetailPage() {
     Math.abs(a - b) < epsilon;
   const bidAmountNumber = Number(bidAmount);
   const baseBid = auction?.currentbid ?? auction?.startprice ?? 0;
-const isButtonDisabled =
+  const isButtonDisabled =
   !bidAmount ||
   isNaN(bidAmountNumber) ||
   bidAmountNumber < 0 ||
@@ -765,11 +768,21 @@ const isButtonDisabled =
 
   return (
     <div className="min-h-screen py-20">
+      
       <div className="container mx-auto px-4">
+        
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
+            <div className="relative">       
+<button
+  onClick={() => router.push('/auctions')}
+  className="absolute -top-4 -left-44 text-gray-500 hover:text-gray-800 transition-colors"
+>
+  <MoveLeft className="w-6 h-6" />
+</button>
+
             <Card className="hover-lift transition-smooth">
               <CardContent className="p-0 relative">
                 {isVideo ? (
@@ -847,7 +860,7 @@ const isButtonDisabled =
                 </div>
               </CardContent>
             </Card>
-
+                    </div>
             {/* Auction Details */}
             <Card>
               <CardHeader>

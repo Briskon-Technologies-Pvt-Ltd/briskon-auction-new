@@ -26,6 +26,9 @@ import {
   Zap,
   Award,
   Home,
+  LogOut,
+  LayoutDashboard,
+  ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -111,6 +114,12 @@ function Navigation({
               description: "Descending price format",
               icon: <ArrowDown className="h-4 w-4 text-orange-600" />,
             },
+            // {
+            //   title: "Silent Bid Auction",
+            //   href: "/solutions/forward-auction/sealed-bid",
+            //   description: "Private bidding process",
+            //   icon: <FileCheck className="h-4 w-4 text-purple-500" />,
+            // },
             {
               title: "Sealed Bid Auction",
               href: "/solutions/forward-auction/sealed-bid",
@@ -391,12 +400,22 @@ function Navigation({
                     Welcome, {user?.fname?.split(" ")[0]}
                   </span>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    // onClick={() => router.push('/dashboard')}
+                    className="text-sm text-neutral-600 border-gray-300 hover:bg-gray-100 transition-all duration-200 dark:text-neutral-200 dark:border-gray-600 dark:hover:bg-neutral-800 flex items-center gap-2"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                    {/* <ArrowRight className="w-4 h-4" /> */}
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="sm"
                     onClick={logout}
-                    className="text-neutral-700 hover:text-brand-500 hover:bg-neutral-100 transition-all duration-200 dark:text-neutral-200 dark:hover:text-neutral-100 dark:hover:bg-neutral-800"
+                    className="text-sm text-neutral-600 border-gray-300 hover:bg-gray-100 transition-all duration-200 dark:text-neutral-200 dark:border-gray-600 dark:hover:bg-neutral-800 flex items-center gap-2"
                   >
-                    Logout
+                    <LogOut className="w-4 h-4" />
                   </Button>
                 </div>
               </>

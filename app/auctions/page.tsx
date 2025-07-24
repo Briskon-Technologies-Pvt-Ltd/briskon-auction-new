@@ -97,18 +97,17 @@ type AuctionItem = {
 const categories = [{ value: "all", label: "Category" }];
 
 const subtypes = [
-  { value: "all", label: "Style" },
+  { value: "all", label: "Auction Style" },
   { value: "sealed", label: "Sealed" },
   { value: "silent", label: "Silent" },
   { value: "dutch", label: "Dutch" },
   { value: "english", label: "English" },
 ];
-const auctiontypes = [
-  { value: "all", label: "Auction Type" },
-  { value: "forward", label: "Forward Auctions" },
-  { value: "reverse", label: "Reverse Auctions" },
-];
-
+// const auctiontypes = [
+//   { value: "all", label: "Auction Type" },
+//   { value: "forward", label: "Forward Auctions" },
+//   { value: "reverse", label: "Reverse Auctions" },
+// ];
 function LiveTimer({ time }: { time: string }) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -176,17 +175,78 @@ export default function AuctionsPage() {
   const [visibleUpcoming, setVisibleUpcoming] = useState(8);
   const [visibleClosed, setVisibleClosed] = useState(8);
   const [tab, setTab] = useState<"live" | "upcoming" | "closed">("live");
+  const upcomingTabRef = useRef<HTMLButtonElement>(null);
 
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
-  const upcomingTabRef = useRef<HTMLButtonElement>(null);
+  const liveAuctionsCount = allAuctionItems.filter(
+    (item) => item.status === "live"
+  );
+
+  const categoryCounts: Record<string, number> = liveAuctionsCount.reduce(
+    (acc, item) => {
+      const category = item.category || "uncategorized"; // adjust this key if needed
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
   const mergedCategories = [
     ...categories,
-    ...dbCategories.filter(
-      (dbCat) => !categories.some((cat) => cat.value === dbCat.value)
-    ),
+    ...dbCategories
+      .filter((dbCat) => !categories.some((cat) => cat.value === dbCat.value))
+      .map((cat) => ({
+        ...cat,
+        label: `${cat.label} (${categoryCounts[cat.value] || 0})`, // append count
+      })),
   ];
+
+  const liveTypeCounts = liveAuctionsCount.reduce(
+    (acc, item) => {
+      if (item.auctiontype === "forward") acc.forward += 1;
+      else if (item.auctiontype === "reverse") acc.reverse += 1;
+      return acc;
+    },
+    { forward: 0, reverse: 0 }
+  );
+  const auctiontypes = [
+    { value: "all", label: "Auction Type" },
+    { value: "forward", label: `Forward Auctions (${liveTypeCounts.forward})` },
+    { value: "reverse", label: `Reverse Auctions (${liveTypeCounts.reverse})` },
+  ];
+
+  const locationCounts = allAuctionItems.reduce<Record<string, number>>(
+    (acc, item) => {
+      if (item.status === "live" && item.location?.trim()) {
+        acc[item.location] = (acc[item.location] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
+  const locationsCount = [
+    { value: "all", label: "Location" },
+    ...Object.entries(locationCounts).map(([loc, count]) => ({
+      value: loc,
+      label: `${loc} (${count})`,
+    })),
+  ];
+
+  const liveSubtypeCounts: Record<string, number> = allAuctionItems
+    .filter((item) => item.status === "live")
+    .reduce((acc, item) => {
+      const subtype = item.auctionsubtype || "unknown";
+      acc[subtype] = (acc[subtype] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const subtypesWithCounts = subtypes.map((sub) => ({
+    ...sub,
+    label:
+      sub.value === "all"
+        ? sub.label
+        : `${sub.label} (${liveSubtypeCounts[sub.value] || 0})`,
+  }));
 
   useEffect(() => {
     if (allAuctionItems.length === 0) return;
@@ -985,10 +1045,10 @@ export default function AuctionsPage() {
               }}
               className={`text-center p-4 rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden break-words shadow-sm
          ${
-          tab === "live" && selectedauctiontype === "forward"
-          ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
-          : "bg-white"
-        }
+           tab === "live" && selectedauctiontype === "forward"
+             ? "bg-blue-100 shadow-md ring-2 ring-blue-300"
+             : "bg-white"
+         }
          hover:bg-blue-200 hover:shadow-lg`}
             >
               <div className="text-xl font-bold text-orange-600 flex items-center justify-center gap-1">
@@ -1081,29 +1141,29 @@ export default function AuctionsPage() {
                   {/* Location Filter */}
                   <div className="flex gap-2 flex-wrap">
                     <Select
-                  value={selectedauctiontype}
-                  onValueChange={setSelectedauctiontype}
-                >
-                  <SelectTrigger className="w-40 h-12 max-w-full">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {auctiontypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      value={selectedauctiontype}
+                      onValueChange={setSelectedauctiontype}
+                    >
+                      <SelectTrigger className="w-40 h-12 max-w-full">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 text-left">
+                        {auctiontypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Select
                       value={selectedLocation}
                       onValueChange={setSelectedLocation}
                     >
-                      <SelectTrigger className="w-[140px] h-12 max-w-full">
+                      <SelectTrigger className="w-40 h-12 max-w-full">
                         <SelectValue placeholder="All Locations" />
                       </SelectTrigger>
                       <SelectContent className="z-50">
-                        {locations.map((location) => (
+                        {locationsCount.map((location) => (
                           <SelectItem
                             key={location.value}
                             value={location.value}
@@ -1133,13 +1193,7 @@ export default function AuctionsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Sort By Dropdown (your version) */}
-                  {/* <Select value={sortBy} onValueChange={setSortBy}> */}
                 </div>
-
-                {/* Type auction style */}
-                {/* <div className="flex gap-2 flex-wrap"> */}
                 <Select
                   value={selectedSubtype}
                   onValueChange={setSelectedSubtype}
@@ -1147,9 +1201,13 @@ export default function AuctionsPage() {
                   <SelectTrigger className="w-40 h-12 max-w-full">
                     <SelectValue placeholder="Auction style" />
                   </SelectTrigger>
-                  <SelectContent className="z-50">
-                    {subtypes.map((subtype) => (
-                      <SelectItem key={subtype.value} value={subtype.value}>
+                  <SelectContent className="z-50 text-left">
+                    {subtypesWithCounts.map((subtype) => (
+                      <SelectItem
+                        key={subtype.value}
+                        value={subtype.value}
+                        className="pl-8 pr-2 text-sm"
+                      >
                         {subtype.label}
                       </SelectItem>
                     ))}
@@ -1157,7 +1215,7 @@ export default function AuctionsPage() {
                 </Select>
 
                 <Select>
-                  <SelectTrigger className="w-[160px] h-12 max-w-full">
+                  <SelectTrigger className="w-40 h-12 max-w-full">
                     <SelectValue placeholder="Price" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -1173,8 +1231,6 @@ export default function AuctionsPage() {
                     <SelectItem value="newest">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
-
-                
               </div>
             </div>
           </CardContent>

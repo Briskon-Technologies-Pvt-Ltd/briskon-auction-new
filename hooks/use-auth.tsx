@@ -130,7 +130,7 @@ useEffect(() => {
     try {
       console.log("Attempting login with:", { email, password });
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) throw new Error("Your EmailId is not verified. Kindly check your inbox to complete then verification process.");
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: authUser } = await supabase.auth.getUser();

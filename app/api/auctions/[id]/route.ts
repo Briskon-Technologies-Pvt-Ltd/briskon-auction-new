@@ -52,6 +52,7 @@ interface Bid {
   productdocuments: { id: string; url: string }[]; // Array of { id, url } objects
 }
 
+
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -109,6 +110,16 @@ export async function GET(
         { status: 404 }
       );
     }
+    // inside your GET handler
+    
+const { data: allAuctions, error: allError } = await supabase
+  .from("auctions")
+  .select("*, profiles:profiles!createdby(fname, location)");
+
+if (allError) {
+  console.error("Error fetching all auctions:", allError.message);
+}
+
 
     const auction = data as Auction;
     let sellerAuctionCount = 0;
@@ -137,7 +148,14 @@ export async function GET(
       timeLeft: "", // will be overwritten below
       sellerAuctionCount,
     };
-
+return NextResponse.json(
+  {
+    success: true,
+    data: processedAuction,
+    allAuctions: allAuctions || [],
+  },
+  { status: 200 }
+);
     console.log("Processed auction data:", processedAuction);
 
     const nowIST = DateTime.now().setZone("Asia/Kolkata");

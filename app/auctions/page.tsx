@@ -53,7 +53,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-type AuctionItem = {
+export type AuctionItem = {
   id: string;
   title: string;
   category: string;
@@ -61,8 +61,11 @@ type AuctionItem = {
   auctiontype: "forward" | "reverse";
   status: "live" | "upcoming" | "closed";
   location: string;
+    productname: string;
   fname: string;
   featured?: boolean;
+    startprice: number;
+    
   verified?: boolean;
   currentBid?: number;
   timeLeft?: string;
@@ -154,373 +157,7 @@ function getEndDate(
   if (duration.minutes) end.setMinutes(end.getMinutes() + duration.minutes);
   return end;
 }
-
-export default function AuctionsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-
-  const [locations, setLocations] = useState([
-    { value: "all", label: "Locations" },
-  ]);
-  const [selectedauctiontype, setSelectedauctiontype] = useState("all");
-  const [sortBy, setSortBy] = useState("ending-soon");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedSubtype, setSelectedSubtype] = useState("all");
-  const [allAuctionItems, setAllAuctionItems] = useState<AuctionItem[]>([]);
-  // const [showShareMenu, setShowShareMenu] = useState(false);
-  const [auctionStyleSearch, setAuctionStyleSearch] = useState("");
-  const [visibleLive, setVisibleLive] = useState(8);
-  const [visibleUpcoming, setVisibleUpcoming] = useState(8);
-  const [visibleClosed, setVisibleClosed] = useState(8);
-  const [tab, setTab] = useState<"live" | "upcoming" | "closed">("live");
-  const upcomingTabRef = useRef<HTMLButtonElement>(null);
-
-  const [dbCategories, setDbCategories] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const liveAuctionsCount = allAuctionItems.filter(
-    (item) => item.status === "live"
-  );
-
-  const categoryCounts: Record<string, number> = liveAuctionsCount.reduce(
-    (acc, item) => {
-      const category = item.category || "uncategorized"; // adjust this key if needed
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-  const mergedCategories = [
-    ...categories,
-    ...dbCategories
-      .filter((dbCat) => !categories.some((cat) => cat.value === dbCat.value))
-      .map((cat) => ({
-        ...cat,
-        label: `${cat.label} (${categoryCounts[cat.value] || 0})`, // append count
-      })),
-  ];
-
-  const liveTypeCounts = liveAuctionsCount.reduce(
-    (acc, item) => {
-      if (item.auctiontype === "forward") acc.forward += 1;
-      else if (item.auctiontype === "reverse") acc.reverse += 1;
-      return acc;
-    },
-    { forward: 0, reverse: 0 }
-  );
-  const auctiontypes = [
-    { value: "all", label: "Auction Type" },
-    { value: "forward", label: `Forward Auctions (${liveTypeCounts.forward})` },
-    { value: "reverse", label: `Reverse Auctions (${liveTypeCounts.reverse})` },
-  ];
-
-  const locationCounts = allAuctionItems.reduce<Record<string, number>>(
-    (acc, item) => {
-      if (item.status === "live" && item.location?.trim()) {
-        acc[item.location] = (acc[item.location] || 0) + 1;
-      }
-      return acc;
-    },
-    {}
-  );
-  const locationsCount = [
-    { value: "all", label: "Location" },
-    ...Object.entries(locationCounts).map(([loc, count]) => ({
-      value: loc,
-      label: `${loc} (${count})`,
-    })),
-  ];
-
-  const liveSubtypeCounts: Record<string, number> = allAuctionItems
-    .filter((item) => item.status === "live")
-    .reduce((acc, item) => {
-      const subtype = item.auctionsubtype || "unknown";
-      acc[subtype] = (acc[subtype] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-  const subtypesWithCounts = subtypes.map((sub) => ({
-    ...sub,
-    label:
-      sub.value === "all"
-        ? sub.label
-        : `${sub.label} (${liveSubtypeCounts[sub.value] || 0})`,
-  }));
-
-  useEffect(() => {
-    if (allAuctionItems.length === 0) return;
-
-    const uniqueCategoryIds = Array.from(
-      new Set(allAuctionItems.map((item) => item.category).filter(Boolean))
-    );
-
-    const dbCats = uniqueCategoryIds.map((catId) => ({
-      value: catId,
-      label: catId.charAt(0).toUpperCase() + catId.slice(1).replace(/-/g, " "),
-    }));
-
-    setDbCategories([{ value: "all", label: "All Categories" }, ...dbCats]);
-  }, [allAuctionItems]);
-  useEffect(() => {
-    if (allAuctionItems.length === 0) return;
-
-    const uniqueLocations = Array.from(
-      new Set(
-        allAuctionItems
-          .map((item) => item.location)
-          .filter((loc) => loc && loc !== "")
-      )
-    );
-
-    const dbLocations = uniqueLocations.map((loc) => ({
-      value: loc,
-      label: loc.charAt(0).toUpperCase() + loc.slice(1),
-    }));
-
-    setLocations([{ value: "all", label: "Location" }, ...dbLocations]);
-  }, [allAuctionItems]);
-
-  useEffect(() => {
-    const fetchAuctions = async () => {
-      try {
-        const res = await fetch("/api/auctions");
-        const json = await res.json();
-        // console.log("Fetched auctions:", json.data); // Debug log
-        if (!json.success) return;
-
-        const mapped: AuctionItem[] = (json.data || []).map((a: any) => {
-          // Calculate start and end times
-          const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
-          const duration = a.auctionduration
-            ? ((durationObj) =>
-                (durationObj.days || 0) * 24 * 60 * 60 +
-                (durationObj.hours || 0) * 60 * 60 +
-                (durationObj.minutes || 0) * 60)(a.auctionduration)
-            : 0;
-          const end = start
-            ? new Date(start.getTime() + duration * 1000)
-            : null;
-          const now = new Date();
-
-          let status: "live" | "upcoming" | "closed" = "upcoming";
-          if (start && end) {
-            if (now < start) status = "upcoming";
-            else if (now >= start && now < end) status = "live";
-            else if (now >= end) status = "closed";
-          }
-
-          /////////////////////////////////////////////////////////
-
-          return {
-            id: a.id,
-            title: a.productname || a.title || "Untitled Auction",
-            category: a.categoryid || "",
-            image:
-              Array.isArray(a.productimages) && a.productimages.length > 0
-                ? a.productimages[0] // Use first URL from productimages
-                : "/placeholder.svg",
-            auctiontype: a.auctiontype,
-            status,
-            // location: a.profiles?.location || "",
-            scheduledstart: a.scheduledstart || "",
-            auctionduration: a.auctionduration || "",
-            featured: a.featured || false,
-            verified: a.verified || false,
-            bidincrementtype: a.bidincrementtype,
-            percent: a.percent,
-            currentBid: a.currentbid ?? undefined,
-            timeLeft: end && status === "live" ? end.toISOString() : "",
-            bidders: a.bidcount ?? undefined,
-            // seller: a.createdby || "",
-            seller: a.seller || "", // This is now a UUID
-            fname: a.profiles?.fname || "",
-            rating: a.rating ?? undefined,
-            targetPrice: a.targetprice ?? undefined,
-            deadline: "", // You can calculate this if you have end time
-            proposals: a.proposals ?? undefined,
-            buyer: a.buyer || "",
-            startingBid: a.startprice ?? undefined,
-            startsIn: start && status === "upcoming" ? start.toISOString() : "",
-            finalBid: a.finalbid ?? undefined,
-            endedAgo: "", // You can calculate this if you have end time
-            winner: a.winner || "",
-            views: a.views,
-            bidder_count: a.bidder_count,
-            minimumincrement: a.minimumincrement,
-            currency: a.currency,
-            watchers: a.watchers ?? undefined,
-            productimages: a.productimages || [], // Array of Supabase Storage URLs
-            productdocuments: a.productdocuments || [], // Array of Supabase Storage URLs
-            createdat: a.createdat || "", // For sorting if needed
-            auctionsubtype: a.auctionsubtype || undefined, // Map auctionsubtype
-            location: a.profiles?.location || a.location || "",
-            // fname: a.profiles?.fname || "", // add this
-          };
-        });
-        setAllAuctionItems(mapped);
-      } catch (error) {
-        console.error("Failed to fetch auctions:", error);
-      }
-    };
-    fetchAuctions();
-  }, []);
-
-  const filterAndSortAuctions = (
-    status: "live" | "upcoming" | "closed",
-    auctiontype?: "forward" | "reverse"
-  ) => {
-    let items = allAuctionItems.filter((item) => {
-      return (
-        item.status === status &&
-        (auctiontype ? item.auctiontype === auctiontype : true)
-      );
-    });
-
-    if (searchTerm) {
-      items = items.filter((item) =>
-        item.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    if (selectedCategory !== "all") {
-      items = items.filter(
-        (item) =>
-          item.category.toLowerCase().replace(/\s+/g, "-") === selectedCategory
-      );
-    }
-    if (selectedLocation !== "all") {
-      items = items.filter((item) => item.location === selectedLocation);
-    }
-    if (!auctiontype && selectedauctiontype !== "all") {
-      items = items.filter((item) => item.auctiontype === selectedauctiontype);
-    }
-    if (selectedSubtype !== "all") {
-      items = items.filter((item) => item.auctionsubtype === selectedSubtype);
-    }
-
-    // Sorting logic
-    if (status === "live") {
-      if (sortBy === "ending-soon") {
-        items.sort((a, b) =>
-          a.timeLeft && b.timeLeft ? a.timeLeft.localeCompare(b.timeLeft) : 0
-        );
-      } else if (sortBy === "price-high") {
-        items.sort(
-          (a, b) =>
-            (b.currentBid || b.targetPrice || 0) -
-            (a.currentBid || a.targetPrice || 0)
-        );
-      } else if (sortBy === "price-low") {
-        items.sort(
-          (a, b) =>
-            (a.currentBid || a.targetPrice || 0) -
-            (b.currentBid || b.targetPrice || 0)
-        );
-      } else if (sortBy === "most-bids") {
-        items.sort(
-          (a, b) =>
-            (b.bidders || b.proposals || 0) - (a.bidders || a.proposals || 0)
-        );
-      } else if (sortBy === "most-watched") {
-        items.sort((a, b) => (b.watchers || 0) - (a.watchers || 0));
-      } else if (sortBy === "newest") {
-        items.sort((a, b) =>
-          a.createdat && b.createdat
-            ? b.createdat.localeCompare(a.createdat)
-            : 0
-        );
-      }
-    }
-
-    return items;
-  };
-
-  const liveAuctions = useMemo(
-    () => filterAndSortAuctions("live"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const upcomingAuctions = useMemo(
-    () => filterAndSortAuctions("upcoming"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const liveForwardAuctions = useMemo(
-    () => filterAndSortAuctions("live", "forward"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const liveReverseAuctions = useMemo(
-    () => filterAndSortAuctions("live", "reverse"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      // selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const upcomingForwardAuctions = useMemo(
-    () => filterAndSortAuctions("upcoming", "forward"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const upcomingReverseAuctions = useMemo(
-    () => filterAndSortAuctions("upcoming", "reverse"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedSubtype,
-      // selectedauctiontype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-
-  const closedAuctions = useMemo(
-    () => filterAndSortAuctions("closed"),
-    [
-      searchTerm,
-      selectedCategory,
-      selectedLocation,
-      selectedauctiontype,
-      selectedSubtype,
-      sortBy,
-      allAuctionItems,
-    ]
-  );
-  const AuctionCard = ({ auction }: { auction: AuctionItem }) => {
+  export const AuctionCard = ({ auction }: { auction: AuctionItem }) => {
     const { user } = useAuth();
     const isLoggedIn = !!user;
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -998,6 +635,389 @@ export default function AuctionsPage() {
       </Card>
     );
   };
+export default function AuctionsPage({
+  customHide = true,
+  category,
+  excludeId,
+}: {
+  customHide?: boolean;
+  category?: string; // category id or slug passed from auction detail page
+  excludeId?: string; // current auction id to exclude
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
+
+  const [locations, setLocations] = useState([
+    { value: "all", label: "Locations" },
+  ]);
+  const [selectedauctiontype, setSelectedauctiontype] = useState("all");
+  const [sortBy, setSortBy] = useState("ending-soon");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSubtype, setSelectedSubtype] = useState("all");
+  const [allAuctionItems, setAllAuctionItems] = useState<AuctionItem[]>([]);
+  // const [showShareMenu, setShowShareMenu] = useState(false);
+  const [auctionStyleSearch, setAuctionStyleSearch] = useState("");
+  const [visibleLive, setVisibleLive] = useState(8);
+  const [visibleUpcoming, setVisibleUpcoming] = useState(8);
+  const [visibleClosed, setVisibleClosed] = useState(8);
+  const [tab, setTab] = useState<"live" | "upcoming" | "closed">("live");
+  const upcomingTabRef = useRef<HTMLButtonElement>(null);
+
+  const [dbCategories, setDbCategories] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const liveAuctionsCount = allAuctionItems.filter(
+    (item) => item.status === "live"
+  );
+
+  const categoryCounts: Record<string, number> = liveAuctionsCount.reduce(
+    (acc, item) => {
+      const category = item.category || "uncategorized"; // adjust this key if needed
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+    useEffect(() => {
+    if (category) {
+      setSelectedCategory(category.toLowerCase().replace(/\s+/g, "-"));
+    }
+  }, [category]);
+  const mergedCategories = [
+    ...categories,
+    ...dbCategories
+      .filter((dbCat) => !categories.some((cat) => cat.value === dbCat.value))
+      .map((cat) => ({
+        ...cat,
+        label: `${cat.label} (${categoryCounts[cat.value] || 0})`, // append count
+      })),
+  ];
+
+  const liveTypeCounts = liveAuctionsCount.reduce(
+    (acc, item) => {
+      if (item.auctiontype === "forward") acc.forward += 1;
+      else if (item.auctiontype === "reverse") acc.reverse += 1;
+      return acc;
+    },
+    { forward: 0, reverse: 0 }
+  );
+  const auctiontypes = [
+    { value: "all", label: "Auction Type" },
+    { value: "forward", label: `Forward Auctions (${liveTypeCounts.forward})` },
+    { value: "reverse", label: `Reverse Auctions (${liveTypeCounts.reverse})` },
+  ];
+
+  const locationCounts = allAuctionItems.reduce<Record<string, number>>(
+    (acc, item) => {
+      if (item.status === "live" && item.location?.trim()) {
+        acc[item.location] = (acc[item.location] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
+  const locationsCount = [
+    { value: "all", label: "Location" },
+    ...Object.entries(locationCounts).map(([loc, count]) => ({
+      value: loc,
+      label: `${loc} (${count})`,
+    })),
+  ];
+
+  const liveSubtypeCounts: Record<string, number> = allAuctionItems
+    .filter((item) => item.status === "live")
+    .reduce((acc, item) => {
+      const subtype = item.auctionsubtype || "unknown";
+      acc[subtype] = (acc[subtype] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const subtypesWithCounts = subtypes.map((sub) => ({
+    ...sub,
+    label:
+      sub.value === "all"
+        ? sub.label
+        : `${sub.label} (${liveSubtypeCounts[sub.value] || 0})`,
+  }));
+
+  useEffect(() => {
+    if (allAuctionItems.length === 0) return;
+
+    const uniqueCategoryIds = Array.from(
+      new Set(allAuctionItems.map((item) => item.category).filter(Boolean))
+    );
+
+    const dbCats = uniqueCategoryIds.map((catId) => ({
+      value: catId,
+      label: catId.charAt(0).toUpperCase() + catId.slice(1).replace(/-/g, " "),
+    }));
+
+    setDbCategories([{ value: "all", label: "All Categories" }, ...dbCats]);
+  }, [allAuctionItems]);
+  useEffect(() => {
+    if (allAuctionItems.length === 0) return;
+
+    const uniqueLocations = Array.from(
+      new Set(
+        allAuctionItems
+          .map((item) => item.location)
+          .filter((loc) => loc && loc !== "")
+      )
+    );
+
+    const dbLocations = uniqueLocations.map((loc) => ({
+      value: loc,
+      label: loc.charAt(0).toUpperCase() + loc.slice(1),
+    }));
+
+    setLocations([{ value: "all", label: "Location" }, ...dbLocations]);
+  }, [allAuctionItems]);
+
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      try {
+        const res = await fetch("/api/auctions");
+        const json = await res.json();
+        // console.log("Fetched auctions:", json.data); // Debug log
+        if (!json.success) return;
+
+        const mapped: AuctionItem[] = (json.data || []).map((a: any) => {
+          // Calculate start and end times
+          const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
+          const duration = a.auctionduration
+            ? ((durationObj) =>
+                (durationObj.days || 0) * 24 * 60 * 60 +
+                (durationObj.hours || 0) * 60 * 60 +
+                (durationObj.minutes || 0) * 60)(a.auctionduration)
+            : 0;
+          const end = start
+            ? new Date(start.getTime() + duration * 1000)
+            : null;
+          const now = new Date();
+
+          let status: "live" | "upcoming" | "closed" = "upcoming";
+          if (start && end) {
+            if (now < start) status = "upcoming";
+            else if (now >= start && now < end) status = "live";
+            else if (now >= end) status = "closed";
+          }
+
+          /////////////////////////////////////////////////////////
+
+          return {
+            id: a.id,
+            title: a.productname || a.title || "Untitled Auction",
+            category: a.categoryid || "",
+            image:
+              Array.isArray(a.productimages) && a.productimages.length > 0
+                ? a.productimages[0] // Use first URL from productimages
+                : "/placeholder.svg",
+            auctiontype: a.auctiontype,
+            status,
+            // location: a.profiles?.location || "",
+            scheduledstart: a.scheduledstart || "",
+            auctionduration: a.auctionduration || "",
+            featured: a.featured || false,
+            verified: a.verified || false,
+            bidincrementtype: a.bidincrementtype,
+            percent: a.percent,
+            currentBid: a.currentbid ?? undefined,
+            timeLeft: end && status === "live" ? end.toISOString() : "",
+            bidders: a.bidcount ?? undefined,
+            // seller: a.createdby || "",
+            seller: a.seller || "", // This is now a UUID
+            fname: a.profiles?.fname || "",
+            rating: a.rating ?? undefined,
+            targetPrice: a.targetprice ?? undefined,
+            deadline: "", // You can calculate this if you have end time
+            proposals: a.proposals ?? undefined,
+            buyer: a.buyer || "",
+            startingBid: a.startprice ?? undefined,
+            startsIn: start && status === "upcoming" ? start.toISOString() : "",
+            finalBid: a.finalbid ?? undefined,
+            endedAgo: "", // You can calculate this if you have end time
+            winner: a.winner || "",
+            views: a.views,
+            bidder_count: a.bidder_count,
+            minimumincrement: a.minimumincrement,
+            currency: a.currency,
+            watchers: a.watchers ?? undefined,
+            productimages: a.productimages || [], // Array of Supabase Storage URLs
+            productdocuments: a.productdocuments || [], // Array of Supabase Storage URLs
+            createdat: a.createdat || "", // For sorting if needed
+            auctionsubtype: a.auctionsubtype || undefined, // Map auctionsubtype
+            location: a.profiles?.location || a.location || "",
+            // fname: a.profiles?.fname || "", // add this
+          };
+        });
+        setAllAuctionItems(mapped);
+      } catch (error) {
+        console.error("Failed to fetch auctions:", error);
+      }
+    };
+    fetchAuctions();
+  }, []);
+
+  const filterAndSortAuctions = (
+    status: "live" | "upcoming" | "closed",
+    auctiontype?: "forward" | "reverse"
+  ) => {
+    let items = allAuctionItems.filter((item) => {
+      return (
+        item.status === status &&
+        (auctiontype ? item.auctiontype === auctiontype : true)
+      );
+    });
+
+    if (searchTerm) {
+      items = items.filter((item) =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (selectedCategory !== "all") {
+      items = items.filter(
+        (item) =>
+          item.category.toLowerCase().replace(/\s+/g, "-") === selectedCategory
+      );
+    }
+    if (selectedLocation !== "all") {
+      items = items.filter((item) => item.location === selectedLocation);
+    }
+    if (!auctiontype && selectedauctiontype !== "all") {
+      items = items.filter((item) => item.auctiontype === selectedauctiontype);
+    }
+    if (selectedSubtype !== "all") {
+      items = items.filter((item) => item.auctionsubtype === selectedSubtype);
+    }
+
+    // Sorting logic
+    if (status === "live") {
+      if (sortBy === "ending-soon") {
+        items.sort((a, b) =>
+          a.timeLeft && b.timeLeft ? a.timeLeft.localeCompare(b.timeLeft) : 0
+        );
+      } else if (sortBy === "price-high") {
+        items.sort(
+          (a, b) =>
+            (b.currentBid || b.targetPrice || 0) -
+            (a.currentBid || a.targetPrice || 0)
+        );
+      } else if (sortBy === "price-low") {
+        items.sort(
+          (a, b) =>
+            (a.currentBid || a.targetPrice || 0) -
+            (b.currentBid || b.targetPrice || 0)
+        );
+      } else if (sortBy === "most-bids") {
+        items.sort(
+          (a, b) =>
+            (b.bidders || b.proposals || 0) - (a.bidders || a.proposals || 0)
+        );
+      } else if (sortBy === "most-watched") {
+        items.sort((a, b) => (b.watchers || 0) - (a.watchers || 0));
+      } else if (sortBy === "newest") {
+        items.sort((a, b) =>
+          a.createdat && b.createdat
+            ? b.createdat.localeCompare(a.createdat)
+            : 0
+        );
+      }
+    }
+
+    return items;
+  };
+  
+
+  const liveAuctions = useMemo(
+    () => filterAndSortAuctions("live"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const upcomingAuctions = useMemo(
+    () => filterAndSortAuctions("upcoming"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const liveForwardAuctions = useMemo(
+    () => filterAndSortAuctions("live", "forward"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const liveReverseAuctions = useMemo(
+    () => filterAndSortAuctions("live", "reverse"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      // selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const upcomingForwardAuctions = useMemo(
+    () => filterAndSortAuctions("upcoming", "forward"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  const upcomingReverseAuctions = useMemo(
+    () => filterAndSortAuctions("upcoming", "reverse"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedSubtype,
+      // selectedauctiontype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+
+  const closedAuctions = useMemo(
+    () => filterAndSortAuctions("closed"),
+    [
+      searchTerm,
+      selectedCategory,
+      selectedLocation,
+      selectedauctiontype,
+      selectedSubtype,
+      sortBy,
+      allAuctionItems,
+    ]
+  );
+  interface Props {
+    auction: AuctionItem;
+  }
+
   const handleLoadMore = (tab: "live" | "upcoming" | "closed") => {
     if (tab === "live") {
       setVisibleLive((prev) => {
@@ -1018,12 +1038,16 @@ export default function AuctionsPage() {
       });
     }
   };
+  
 
   return (
     <div className="min-h-screen py-20 bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4">
         {/* Hero Section */}
+          {customHide && (
+          <div>
         <div className="text-center mb-12">
+                
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <TrendingUp className="h-4 w-4" />
             Live Auction Marketplace
@@ -1035,7 +1059,7 @@ export default function AuctionsPage() {
             Join thousands of buyers and sellers in our dynamic marketplace.
             Find unique items, great deals, and business opportunities.
           </p>
-
+               
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
             <div
@@ -1119,7 +1143,8 @@ export default function AuctionsPage() {
             </div>
           </div>
         </div>
-
+                
+                
         {/* Search and Filters */}
 
         <Card className="mb-8 shadow-lg border border-gray-200 bg-white overflow-x-hidden ">
@@ -1235,8 +1260,11 @@ export default function AuctionsPage() {
             </div>
           </CardContent>
         </Card>
+                   </div>
+                )}
 
         {/* Auction Tabs */}
+             {customHide ? (
         <Tabs
           value={tab}
           onValueChange={(value) => {
@@ -1383,6 +1411,13 @@ export default function AuctionsPage() {
             )}
           </TabsContent>
         </Tabs>
+                ) : (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {liveAuctions.slice(0, visibleLive).map((auction) => (
+              <AuctionCard key={auction.id} auction={auction} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -339,7 +339,7 @@ function Navigation({
                               </Link>
                             </NavigationMenuLink>
                             {/* Subtypes */}
-                            {subItem.subtypes && (
+                            {subItem.subtype && (
                               <div className="ml-8 mt-2 space-y-1 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700">
                                 {subItem.subtypes.map((subtype) => (
                                   <NavigationMenuLink
@@ -402,13 +402,20 @@ function Navigation({
                   <Button
                     variant="outline"
                     size="sm"
-                    // onClick={() => router.push('/dashboard')}
+                    onClick={onDashboard}
                     className="text-sm text-neutral-600 border-gray-300 hover:bg-gray-100 transition-all duration-200 dark:text-neutral-200 dark:border-gray-600 dark:hover:bg-neutral-800 flex items-center gap-2"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                     {/* <ArrowRight className="w-4 h-4" /> */}
                   </Button>
+                  {/* <Button
+                      variant="outline"
+                      className="w-full mt-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-brand-300 hover:text-brand-600 transition-all duration-200 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:hover:border-brand-400 dark:hover:text-brand-400"
+                      onClick={onDashboard}
+                    >
+                      Dashboard
+                    </Button> */}
                   <Button
                     variant="ghost"
                     size="sm"

@@ -780,7 +780,7 @@ export default function AuctionDetailPage() {
 
   return (
       <div className="min-h-screen py-20">   
-<div className="pl-[280px] pb-2 mb-4 -mt-4">
+<div className="w-full max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 mb-4 -mt-4">
   <nav className="flex items-center text-sm text-gray-600 space-x-1">
     <button
       onClick={() => router.push("/auctions")}
@@ -792,6 +792,9 @@ export default function AuctionDetailPage() {
     <span className="text-gray-800 font-medium">Auction Details</span>
   </nav>
 </div>
+
+
+
 
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
@@ -1165,14 +1168,7 @@ export default function AuctionDetailPage() {
                 </CardContent>
               </Card>
 
-              {!isAuctionEnded && isLoggedIn &&(
-                <>
-                  <h2 className="text-sm text-gray-700 mt-12 mb-2 pl-8">
-                    Related Auctions for {auction.categoryid}
-                  </h2>
-                  
-                </>
-              )}
+              
             </div>
 
             {/* Sidebar */}
@@ -1608,6 +1604,7 @@ export default function AuctionDetailPage() {
             customHide={false}
             category={auction.categoryid}
             excludeId={auction.id}
+            heading={`Related Auctions for ${auction.categoryid}`}
           />
         )}
         <LoginPrompt
@@ -1619,7 +1616,9 @@ export default function AuctionDetailPage() {
             // console.log("User logged in successfully");
           }}
         />
+        
       </div>
+      
 
   );
 }

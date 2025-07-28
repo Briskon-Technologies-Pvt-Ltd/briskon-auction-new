@@ -138,7 +138,7 @@ if (allError) {
         sellerAuctionCount = count || 0;
       }
     }
-    console.log("Raw auction data before processing:", auction);
+    // console.log("Raw auction data before processing:", auction);
 
     const processedAuction: AuctionResponse = {
       ...auction,

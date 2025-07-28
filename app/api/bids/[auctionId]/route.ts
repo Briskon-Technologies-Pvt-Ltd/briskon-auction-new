@@ -67,7 +67,7 @@ export async function GET(
     const params = await context.params;
     const { auctionId } = params;
 
-    console.log("Fetching bids for auctionId:", auctionId);
+    // console.log("Fetching bids for auctionId:", auctionId);
 
     // Step 1: Get bids
     const { data: bids, error: bidsError } = await supabase

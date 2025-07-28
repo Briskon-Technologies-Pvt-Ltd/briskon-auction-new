@@ -29,6 +29,7 @@ import {
   LogOut,
   LayoutDashboard,
   ArrowRight,
+  LogIn,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -400,22 +401,22 @@ function Navigation({
                     Welcome, {user?.fname?.split(" ")[0]}
                   </span>
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
                     onClick={onDashboard}
-                    className="text-sm text-neutral-600 border-gray-300 hover:bg-gray-100 transition-all duration-200 dark:text-neutral-200 dark:border-gray-600 dark:hover:bg-neutral-800 flex items-center gap-2"
+                    className="text-sm font-semibold text-gray-900 bg-gray-100 border border-gray-300 shadow-sm dark:text-gray-800 dark:bg-gray-200 dark:border-gray-700 flex items-center gap-2 px-3 py-2 rounded-md"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
-                    {/* <ArrowRight className="w-4 h-4" /> */}
                   </Button>
+
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={logout}
-                    className="text-sm text-neutral-600 border-gray-300 hover:bg-gray-100 transition-all duration-200 dark:text-neutral-200 dark:border-gray-600 dark:hover:bg-neutral-800 flex items-center gap-2"
+                    className="hidden md:inline-flex p-2 bg-blue-400 hover:bg-blue-600 text-white rounded-md shadow-md transition-all duration-200"
+                    asChild
                   >
-                    <LogOut className="w-4 h-4" />
+                    <Link href="/login">
+                      <LogIn className="w-5 h-5 text-white" />
+                    </Link>
                   </Button>
                 </div>
               </>
@@ -613,13 +614,13 @@ function Navigation({
                         Get Started
                       </Link>
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       className="w-full mt-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-brand-300 hover:text-brand-600 transition-all duration-200 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:hover:border-brand-400 dark:hover:text-brand-400"
                       onClick={onDashboard}
                     >
                       Dashboard
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               </SheetContent>

@@ -21,7 +21,7 @@ export async function GET(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    console.log("Current user ID:", user?.id);
+    // console.log("Current user ID:", user?.id);
     const params = await context.params;
     const { userId } = params;
 

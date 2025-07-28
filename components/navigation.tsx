@@ -411,6 +411,7 @@ function Navigation({
 
                   <Button
                     variant="ghost"
+                    onClick={logout}
                     className="hidden md:inline-flex p-2 bg-blue-400 hover:bg-blue-600 text-white rounded-md shadow-md transition-all duration-200"
                     asChild
                   >

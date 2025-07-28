@@ -793,9 +793,6 @@ export default function AuctionDetailPage() {
   </nav>
 </div>
 
-
-
-
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
@@ -1166,9 +1163,7 @@ export default function AuctionDetailPage() {
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-              </Card>
-
-              
+              </Card>  
             </div>
 
             {/* Sidebar */}

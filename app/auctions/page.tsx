@@ -1053,13 +1053,18 @@ export default function AuctionsPage({
   }
 
   return (
-    <div className="min-h-screen py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+    // <div className="min-h-screen py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div
+      className={`${
+        customHide ? "py-20" : "pt-6 pb-10"
+      } min-h-screen bg-gradient-to-br from-gray-50 to-gray-100`}
+    >
       <div className="w-full max-w-[1390px] mx-auto px-4">
         {heading && (
           <div className="flex items-center gap-2 text-lg font-semibold tracking-wide mb-4 text-gray-800 dark:text-gray-100">
-            <PackageSearch className="w-5 h-5 text-blue-600" />
+            <PackageSearch className="w-5 h-5 text-blue-600 animate-pulse" />
             <h2 className="text-lg font-semibold ">{heading}</h2>
-          </div>
+          </div>  
         )}
         {/* <div className="container mx-auto px-4"> */}
         {/* Hero Section */}

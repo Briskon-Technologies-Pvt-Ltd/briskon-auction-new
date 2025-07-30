@@ -397,9 +397,18 @@ function Navigation({
             {isAuthenticated ? (
               <>
                 <div className="hidden md:flex items-center space-x-2">
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                    Welcome, {user?.fname?.split(" ")[0]}
-                  </span>
+                  <Link href="/settings/profile">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 cursor-pointer hover:ring-2 hover:ring-gray-400 transition">
+                      <Image
+                        src={user?.avatar_url || "/images/user.png"}
+                        alt={user?.fname || "User"}
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </Link>
+
                   <Button
                     variant="ghost"
                     onClick={onDashboard}

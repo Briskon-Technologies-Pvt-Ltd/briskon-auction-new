@@ -158,7 +158,7 @@ return NextResponse.json(
   },
   { status: 200 }
 );
-    // console.log("Processed auction data:", processedAuction);
+    console.log("Processed auction data:", processedAuction);
 
     const nowIST = DateTime.now().setZone("Asia/Kolkata");
     const startIST = processedAuction.scheduledstart
@@ -179,14 +179,14 @@ return NextResponse.json(
     const endIST = startIST.plus({ seconds: duration });
 
     // Debug logs to verify times
-    // console.log(
-    //   "Debug - Now IST:",
-    //   nowIST.toISO(),
-    //   "Start IST:",
-    //   startIST.toISO(),
-    //   "End IST:",
-    //   endIST.toISO()
-    // );
+    console.log(
+      "Debug - Now IST:",
+      nowIST.toISO(),
+      "Start IST:",
+      startIST.toISO(),
+      "End IST:",
+      endIST.toISO()
+    );
 
     processedAuction.timeLeft = calculateTimeLeft(endIST.toISO() ?? "");
     return NextResponse.json(
@@ -230,7 +230,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    // console.log("Received FormData Entries:", [...formData.entries()]);
+    console.log("Received FormData Entries:", [...formData.entries()]);
     const action = formData.get("action") as string;
     // Parse the request body (assuming FormData from frontend)
     // const formData = await request.formData();
@@ -689,7 +689,7 @@ export async function PUT(
         { success: true, data: { questions: updatedQuestions } },
         { status: 200 }
       );
-    }   else if (action === "markEnded") {
+    } else if (action === "markEnded") {
       // New action to mark auction as ended
       const { data: auctionData, error: fetchError } = await supabase
         .from("auctions")
@@ -717,10 +717,16 @@ export async function PUT(
         .eq("id", id);
 
       if (updateError) {
-        return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
+        return NextResponse.json(
+          { success: false, error: updateError.message },
+          { status: 500 }
+        );
       }
 
-      return NextResponse.json({ success: true, data: { ended: true } }, { status: 200 });
+      return NextResponse.json(
+        { success: true, data: { ended: true } },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(
@@ -782,5 +788,5 @@ async function deduplicateAuctionParticipants() {
     }
   }
 
-  // console.log("🎉 Deduplication complete.");
+  console.log("🎉 Deduplication complete.");
 }

@@ -453,6 +453,7 @@ export default function BuyerDashboard() {
                       </span>
                     </h3>
                     {bids.length === 0 ? (
+                      
                       <p className="text-gray-500 italic">
                         No {type} auction bids.
                       </p>

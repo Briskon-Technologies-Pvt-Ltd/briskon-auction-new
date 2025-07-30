@@ -174,8 +174,6 @@ export async function GET(request: Request) {
       bid.totalBids = total;
     });
 
-      
-
     return NextResponse.json(activeBids || []);
   } catch (error) {
     console.error("Error fetching active bids:", error);

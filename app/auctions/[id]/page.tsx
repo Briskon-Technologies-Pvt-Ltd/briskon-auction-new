@@ -508,7 +508,7 @@ export default function AuctionDetailPage() {
       const bidJsonUpdated = await bidResUpdated.json();
       if (bidJsonUpdated.success) {
         const bids = bidJsonUpdated.data || [];
-        // console.log("Fetched Updated Bids (Raw):", bids);
+        console.log("Fetched Updated Bids (Raw):", bids);
         const historyPromises = bids.map(async (bid: Bid) => {
           const profileRes = await fetch(`/api/profiles/${bid.user_id}`);
           const profileJson = await profileRes.json();
@@ -539,7 +539,7 @@ export default function AuctionDetailPage() {
           };
         });
         const history = await Promise.all(historyPromises);
-        // console.log("Processed Updated Bid History (Raw):", history);
+        console.log("Processed Updated Bid History (Raw):", history);
         setBidHistory(history);
       }
 
@@ -645,7 +645,7 @@ export default function AuctionDetailPage() {
       formData.append("question", newQuestion);
 
       for (let [key, value] of formData.entries()) {
-        // console.log("FormData Entry:", key, value);
+        console.log("FormData Entry:", key, value);
       }
 
       const res = await fetch(`/api/auctions/${auctionId}`, {

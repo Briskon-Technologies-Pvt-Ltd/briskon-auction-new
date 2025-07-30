@@ -31,6 +31,8 @@ interface Auction {
   auctionsubtype?: string;
   requireddocuments?: string | null;
   auctiontype?: "forward" | "reverse"; // Added to handle auction type
+  ended?: boolean; // Added to track if auction is ended
+  editable?: boolean
 }
 
 interface AuctionResponse extends Auction {
@@ -156,7 +158,7 @@ return NextResponse.json(
   },
   { status: 200 }
 );
-    console.log("Processed auction data:", processedAuction);
+    // console.log("Processed auction data:", processedAuction);
 
     const nowIST = DateTime.now().setZone("Asia/Kolkata");
     const startIST = processedAuction.scheduledstart
@@ -177,14 +179,14 @@ return NextResponse.json(
     const endIST = startIST.plus({ seconds: duration });
 
     // Debug logs to verify times
-    console.log(
-      "Debug - Now IST:",
-      nowIST.toISO(),
-      "Start IST:",
-      startIST.toISO(),
-      "End IST:",
-      endIST.toISO()
-    );
+    // console.log(
+    //   "Debug - Now IST:",
+    //   nowIST.toISO(),
+    //   "Start IST:",
+    //   startIST.toISO(),
+    //   "End IST:",
+    //   endIST.toISO()
+    // );
 
     processedAuction.timeLeft = calculateTimeLeft(endIST.toISO() ?? "");
     return NextResponse.json(
@@ -208,12 +210,12 @@ export async function PUT(
   try {
     const params = await context.params; // Await params to handle promise
     const { id } = params;
-    console.log("Incoming Request Method:", request.method);
-    console.log(
-      "Incoming Request Headers:",
-      Object.fromEntries(request.headers.entries())
-    );
-    console.log("Request Content-Type:", request.headers.get("content-type"));
+    // console.log("Incoming Request Method:", request.method);
+    // console.log(
+    //   "Incoming Request Headers:",
+    //   Object.fromEntries(request.headers.entries())
+    // );
+    // console.log("Request Content-Type:", request.headers.get("content-type"));
 
     let formData;
     try {
@@ -228,7 +230,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    console.log("Received FormData Entries:", [...formData.entries()]);
+    // console.log("Received FormData Entries:", [...formData.entries()]);
     const action = formData.get("action") as string;
     // Parse the request body (assuming FormData from frontend)
     // const formData = await request.formData();
@@ -293,14 +295,14 @@ export async function PUT(
         : 0;
       const endIST = startIST.plus({ seconds: duration });
 
-      console.log(
-        "Debug - Bid Check: Now IST:",
-        nowIST.toISO(),
-        "Start IST:",
-        startIST.toISO(),
-        "End IST:",
-        endIST.toISO()
-      );
+      // console.log(
+      //   "Debug - Bid Check: Now IST:",
+      //   nowIST.toISO(),
+      //   "Start IST:",
+      //   startIST.toISO(),
+      //   "End IST:",
+      //   endIST.toISO()
+      // );
 
       if (nowIST < startIST) {
         return NextResponse.json(
@@ -687,7 +689,7 @@ export async function PUT(
         { success: true, data: { questions: updatedQuestions } },
         { status: 200 }
       );
-    } else if (action === "markEnded") {
+    }   else if (action === "markEnded") {
       // New action to mark auction as ended
       const { data: auctionData, error: fetchError } = await supabase
         .from("auctions")
@@ -715,16 +717,10 @@ export async function PUT(
         .eq("id", id);
 
       if (updateError) {
-        return NextResponse.json(
-          { success: false, error: updateError.message },
-          { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
       }
 
-      return NextResponse.json(
-        { success: true, data: { ended: true } },
-        { status: 200 }
-      );
+      return NextResponse.json({ success: true, data: { ended: true } }, { status: 200 });
     }
 
     return NextResponse.json(
@@ -747,15 +743,8 @@ const calculateTimeLeft = (endDateISO: string): string => {
   const nowIST = DateTime.now().setZone("Asia/Kolkata");
   const endIST = DateTime.fromISO(endDateISO).setZone("Asia/Kolkata");
 
-  const diff = endIST
-    .diff(nowIST, ["days", "hours", "minutes", "seconds"])
-    .toObject();
-  if (
-    (diff.days ?? 0) <= 0 &&
-    (diff.hours ?? 0) <= 0 &&
-    (diff.minutes ?? 0) <= 0 &&
-    (diff.seconds ?? 0) <= 0
-  ) {
+  const diff = endIST.diff(nowIST, ["days", "hours", "minutes", "seconds"]).toObject();
+  if ((diff.days ?? 0) <= 0 && (diff.hours ?? 0) <= 0 && (diff.minutes ?? 0) <= 0 && (diff.seconds ?? 0) <= 0) {
     return "Auction ended";
   }
 
@@ -793,5 +782,5 @@ async function deduplicateAuctionParticipants() {
     }
   }
 
-  console.log("🎉 Deduplication complete.");
+  // console.log("🎉 Deduplication complete.");
 }

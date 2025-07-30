@@ -20,6 +20,7 @@ interface Auction {
   currentbidder: string;
   ended: boolean;
   targetprice?: number; // Optional field for reverse auctions
+  profiles: { fname: string; lname: string }[];
 }
 
 interface WonAuction {
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
     // Fetch auctions where the user is the current bidder and ended is true
     const { data: wonAuctions, error: auctionsError } = await supabase
       .from("auctions")
-      .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, participants, ended,targetprice")
+      .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, participants, ended,targetprice, profiles:seller (fname, lname)")
       .eq("currentbidder", userEmail)
       .eq("ended", true);
 
@@ -80,6 +81,9 @@ export async function GET(request: Request) {
                 auctionType: auction.auctiontype || auction.auctionsubtype || "yankee",
                 startAmount: auction.startprice || 0,
                 winningBidAmount: auction.currentbid || 0,
+                 sellerName: Array.isArray(auction.profiles)
+          ? auction.profiles[0]?.fname ?? "Unknown"
+          : auction.profiles?.fname ?? "Unknown",
               });
             }
           }
@@ -92,6 +96,9 @@ export async function GET(request: Request) {
             startAmount: auction.startprice || 0,
             winningBidAmount: auction.currentbid || 0,
             targetprice: auction.targetprice, // Include target price if available
+            sellerName: Array.isArray(auction.profiles)
+          ? auction.profiles[0]?.fname ?? "Unknown"
+          : auction.profiles?.fname ?? "Unknown",
           });
         }
       }

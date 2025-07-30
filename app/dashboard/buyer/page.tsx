@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -9,54 +9,260 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
-  ShoppingBag,
   Gavel,
   TrendingUp,
-  History,
-  Settings,
   Heart,
+  ShoppingBag,
+  History,
   Bell,
+  Settings,
+  Trophy,
+  XCircle,
+  Calendar,
+  Clock,
+  TrendingDown,
+  Eye,
 } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth"; // Adjust path based on your project structure
+import { useAuth } from "@/hooks/use-auth";
+type Bid = {
+  id: string;
+  auction_name: string;
+  your_bid: number;
+  seller_name: string;
+  current_bid: number;
+  auctionSubtype: string | null;
+  status: string;
+  scheduledstart?: string | null;
+  auctionduration?: {
+    days?: number;
+    hours?: number;
+    minutes?: number;
+  } | null;
+};
 
+interface ActiveBid {
+  sellerName: string;
+  auctionId: string;
+  productName: string;
+  auctionType: string | null;
+  auctionSubtype: string | null;
+  bidAmount: number;
+  totalBids: number;
+  isWinningBid: boolean;
+  scheduledstart?: string | null; //
+  auctionduration?: {
+    days?: number;
+    hours?: number;
+    minutes?: number;
+  } | null;
+}
+
+type WonAuction = {
+  id: string;
+  sellerName: string;
+  auctionId: string;
+  productName: string;
+  auctionType: "forward" | "reverse" | string;
+  startAmount: number;
+  targetprice?: number;
+  winningBidAmount: number;
+};
+interface WonAuctionEntry {
+  sellerName: string;
+  auctionId: string;
+  productName: string;
+  auctionType: string | null;
+  startAmount: number;
+  winningBidAmount: number;
+  targetprice?: number; // Optional field for target price
+}
 export default function BuyerDashboard() {
-  const { user, isLoading } = useAuth();
   const [stats, setStats] = useState({
     activeBids: 0,
     wonAuctions: 0,
+    lostAuctions: 0,
+    totalSpend: 0,
     recentActivities: [],
   });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  const [selectedSection, setSelectedSection] = useState<
+    "overview" | "activeBids" | "wonAuctions" | "lostAuctions"
+  >("activeBids");
+
+  const [isLoadingBids, setIsLoadingBids] = useState(true);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const { user, isLoading } = useAuth();
+  const [activeBids, setActiveBids] = useState<ActiveBid[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [now, setNow] = useState(new Date());
+  const [forwardBids, setForwardBids] = useState<Bid[]>([]);
+  const [wonAuctions, setWonAuctions] = useState<WonAuctionEntry[]>([]);
+  const [reverseBids, setReverseBids] = useState<Bid[]>([]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  function getEndDate(
+    start: Date,
+    duration: { days?: number; hours?: number; minutes?: number }
+  ) {
+    const end = new Date(start.getTime());
+    if (duration.days) end.setUTCDate(end.getUTCDate() + duration.days);
+    if (duration.hours) end.setUTCHours(end.getUTCHours() + duration.hours);
+    if (duration.minutes)
+      end.setUTCMinutes(end.getUTCMinutes() + duration.minutes);
+    return end;
+  }
+
+  function formatDuration(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours > 0 ? hours + "h " : ""}${minutes}m ${seconds}s`;
+  }
+  function getTimeLeftLabel(
+    now: Date,
+    startTime: string,
+    duration: { days?: number; hours?: number; minutes?: number }
+  ): string {
+    const start = new Date(startTime);
+    const end = getEndDate(start, duration);
+
+    if (now < start) {
+      return "Starts in " + formatDuration(start.getTime() - now.getTime());
+    } else if (now >= start && now < end) {
+      return formatDuration(end.getTime() - now.getTime());
+    } else {
+      return "";
+    }
+  }
 
   useEffect(() => {
-    const fetchStats = async () => {
-      setIsLoadingStats(true);
+    if (!user?.id || !user?.email) return;
+    const fetchActiveBids = async () => {
+      setIsLoadingBids(true);
       try {
         const response = await fetch(
-          `/api/buyer/stats?email=${encodeURIComponent(
-            user?.email || ""
-          )}&id=${encodeURIComponent(user?.id || "")}`
+          `/api/buyer/active-bids?id=${user.id}&email=${user.email}`
         );
-        if (!response.ok) throw new Error("Failed to fetch stats");
+        if (!response.ok) throw new Error("Failed to fetch active bids");
         const data = await response.json();
-        setStats(data);
+        setActiveBids(data);
+        setStats((prevStats) => ({
+          ...prevStats,
+          activeBids: Array.isArray(data) ? data.length : 0,
+        }));
       } catch (error) {
-        console.error("Error fetching stats:", error);
-        setStats({ activeBids: 0, wonAuctions: 0, recentActivities: [] }); // Fallback values
+        console.error("Error fetching active bids:", error);
+        setActiveBids([]);
+        setStats((prevStats) => ({ ...prevStats, activeBids: 0 }));
       } finally {
-        setIsLoadingStats(false);
+        setIsLoadingBids(false);
+      }
+    };
+    fetchActiveBids();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      setLoadingDetails(true);
+      try {
+        if (selectedSection === "activeBids") {
+          // Split active bids by type
+          const forward = activeBids
+            .filter((a) => a.auctionType === "forward")
+            .map((a) => ({
+              id: a.auctionId,
+              auction_name: a.productName,
+              seller_name: a.sellerName,
+              your_bid: a.bidAmount,
+              current_bid: a.currentbid ?? 0,
+              status: a.isWinningBid ? "leading" : "outbid",
+              scheduledstart: a.scheduledstart ?? null,
+              auctionduration: a.auctionduration ?? null,
+              auctionSubtype: a.auctionSubtype,
+            }));
+
+          const reverse = activeBids
+            .filter((a) => a.auctionType === "reverse")
+            .map((a) => ({
+              id: a.auctionId,
+              auction_name: a.productName,
+              seller_name: a.sellerName,
+              your_bid: a.bidAmount,
+              current_bid: a.currentbid ?? 0,
+              status: a.isWinningBid ? "leading" : "outbid",
+              scheduledstart: a.scheduledstart ?? null,
+              auctionduration: a.auctionduration ?? null,
+              auctionSubtype: a.auctionSubtype,
+            }));
+
+          setForwardBids(forward);
+          setReverseBids(reverse);
+          return;
+        }
+
+        let endpoint = "";
+        switch (selectedSection) {
+          case "wonAuctions":
+            endpoint = "/api/buyer/won-auctions";
+            break;
+          case "lostAuctions":
+            endpoint = "/api/buyer/bid-history";
+            break;
+          default:
+            return;
+        }
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        const filtered =
+          selectedSection === "lostAuctions"
+            ? Array.isArray(data)
+              ? data.filter((item: any) => item.status === "lost")
+              : []
+            : data;
+
+        setBids(filtered);
+      } catch (err) {
+        console.error("Error loading detail data:", err);
+        setBids([]);
+      } finally {
+        setLoadingDetails(false);
       }
     };
 
-    if (user) {
-      fetchStats();
-    }
+    fetchDetails();
+  }, [selectedSection, activeBids]);
+
+  useEffect(() => {
+    const fetchWonAuctions = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(
+          `/api/buyer/won-auctions?email=${encodeURIComponent(
+            user.email
+          )}&id=${encodeURIComponent(user.id)}`
+        );
+        const data = await res.json();
+        setWonAuctions(data || []);
+        setStats((prevStats) => ({
+          ...prevStats,
+          wonAuctions: Array.isArray(data) ? data.length : 0,
+        }));
+      } catch (error) {
+        console.error("Error fetching won auctions:", error);
+      }
+    };
+
+    fetchWonAuctions();
   }, [user]);
 
-  if (isLoading || isLoadingStats) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading user and dashboard data...</p>
@@ -68,182 +274,344 @@ export default function BuyerDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Not logged in. Please log in to access the buyer dashboard.</p>
-        {/* Optionally, redirect to login page */}
-      </div>
-    );
-  }
-
-  if (user.role !== "buyer" && user.role !== "both") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Access Denied. This dashboard is for buyers.</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
-      <div className="container mx-auto px-4 ">
-        <header className="mb-8 md:mb-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center"></div>
-        </header>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="container mx-auto px-4">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           {/* Active Bids */}
-          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-100">
-                Active Bids
-              </CardTitle>
-              <Gavel className="h-5 w-5 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">
-                {stats.activeBids}
+          <Card
+            onClick={() => setSelectedSection("activeBids")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "activeBids" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Gavel className="h-5 w-5 text-blue-500 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Active Bids
+                </CardTitle>
               </div>
-              <Link
-                href="/active-bids"
-                className="text-xs text-gray-500 hover:underline"
-              >
-                View Bidding History
-              </Link>
-            </CardContent>
+              <div className="mt-1">
+                <div className="text-2xl  font-bold">{stats.activeBids}</div>
+                {/* <p className="text-xs text-gray-500">Total Lifetime</p> */}
+              </div>
+            </CardHeader>
           </Card>
 
-          {/* Won Auctions */}
-          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-100">
-                Won Auctions
-              </CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">
-                {stats.wonAuctions}
+          {/* Auctions Won */}
+          <Card
+            onClick={() => setSelectedSection("wonAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "wonAuctions" ? "ring-2 ring-green-500" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-green-500 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Auctions Won
+                </CardTitle>
               </div>
-              <p className="text-xs text-gray-500">Lifetime total</p>
-            </CardContent>
+              <div className="mt-1">
+                <div className="text-2xl  font-bold">{stats.wonAuctions}</div>
+                <p className="text-xs text-gray-500">All Time</p>
+              </div>
+            </CardHeader>
           </Card>
-
           {/* Lost Auctions */}
-          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-100">
-                Lost Auctions
-              </CardTitle>
-              <Heart className="h-5 w-5 text-red-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">
-                {stats.lostAuctions}
+          <Card
+            onClick={() => setSelectedSection("lostAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "lostAuctions" ? "ring-2 ring-red-400" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-400 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Lost Auctions
+                </CardTitle>
               </div>
-              <p className="text-xs text-gray-500">Try bidding higher!</p>
-            </CardContent>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{stats.lostAuctions}</div>
+                <p className="text-xs text-gray-500">All Time</p>
+              </div>
+            </CardHeader>
+          </Card>
+          {/* won auction */}
+
+          {/* Live Auctions */}
+
+          <Link href="/auctions?tab=live">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
+                  <CardTitle className="text-sm font-medium">
+                    Live Auctions
+                  </CardTitle>
+                </div>
+                <div className="mt-1">
+                  <div className="text-2xl font-bold">
+                    {stats.liveAuctions ?? 2}
+                  </div>
+                  <p className="text-xs text-gray-500">Ongoing now</p>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+          {/* Auction Calendar */}
+          <Card className="cursor-default">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-indigo-500 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Auction Calendar
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">
+                  {stats.monthlyAuctions ?? 22}
+                </div>
+                <p className="text-xs text-gray-500">Total this month</p>
+              </div>
+            </CardHeader>
           </Card>
 
-          {/* Total Spend */}
-          <Card className="bg-white dark:bg-gray-900 shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-100">
-                Total Spend
-              </CardTitle>
-              <ShoppingBag className="h-5 w-5 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">
-                ₹{Number(stats.totalSpend).toLocaleString("en-IN")}
+          {/* My Profile */}
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-blue-600 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  My Profile
+                </CardTitle>
               </div>
-              <p className="text-xs text-gray-500">Across all won bids</p>
-            </CardContent>
+              <div className="mt-1 space-y-1">
+                <Link
+                  href="/settings/profile"
+                  className="text-xs text-blue-500 hover:underline block"
+                >
+                  Edit Profile
+                </Link>
+                <Link
+                  href="/settings/password"
+                  className="text-xs text-blue-500 hover:underline block"
+                >
+                  Change Password
+                </Link>
+              </div>
+            </CardHeader>
           </Card>
         </div>
+        {/* Section Table */}
+        <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+          {loadingDetails ? (
+            <p>Loading...</p>
+          ) : selectedSection === "activeBids" ? (
+            <>
+              {[
+                {
+                  type: "forward",
+                  label: "Forward Auctions",
+                  bids: forwardBids,
+                  headingColor: "text-green-700 dark:text-green-400",
+                  headingSpacing: "mt-2 mb-4",
+                  icon: <TrendingUp className="h-3 w-3 text-gray-500" />,
+                },
+                {
+                  type: "reverse",
+                  label: "Reverse Auctions",
+                  bids: reverseBids,
+                  headingColor: "text-red-700 dark:text-red-400",
+                  headingSpacing: "mt-2 mb-4",
+                  icon: <TrendingDown className="w-3 h-3 text-gray-500" />,
+                },
+              ].map(
+                ({ type, label, bids, headingColor, headingSpacing, icon }) => (
+                  <div key={type} className="mb-8">
+                    <h3
+                      className={`flex items-center gap-2 text-lg font-semibold text-blue-800 dark:text-blue-300 ${headingSpacing}`}
+                    >
+                      {/* Icon with soft blue background */}
+                      <span className="inline-flex items-center justify-center  dark:bg-blue-900">
+                        {icon}
+                      </span>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Manage your buying activities.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center"
-                asChild
-              >
-                <Link href="/auctions">
-                  <ShoppingBag className="h-6 w-6 mb-1" /> All Auctions
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center"
-                asChild
-              >
-                <Link href="/dashboard/buyer/active-bids">
-                  <Gavel className="h-6 w-6 mb-1" /> My Active Bids
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center"
-                asChild
-              >
-                <Link href="/dashboard/buyer/won-auctions">
-                  <TrendingUp className="h-6 w-6 mb-1" /> My Won Auctions
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center"
-                asChild
-              >
-                <Link href="/dashboard/buyer/bid-history">
-                  <History className="h-6 w-6 mb-1" /> Bid History
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-  <CardHeader className="flex items-center gap-2 pt-2">
-    <Bell className="text-yellow-500" />
-    <CardTitle>Alerts & Notifications</CardTitle>
-  </CardHeader>
+                      {/* Heading Text */}
+                      <span>
+                        Active Bids:
+                        <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 font-semibold">
+                          {label}
+                        </span>
+                      </span>
+                    </h3>
+                    {bids.length === 0 ? (
+                      <p className="text-gray-500 italic">
+                        No {type} auction bids.
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto rounded-md">
+                        <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                          <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Auction</th>
+                              <th className="px-4 py-2 text-left">Seller</th>
+                              <th className="px-4 py-2 text-left">Time Left</th>
+                              <th className="px-4 py-2 text-left">Your Bid</th>
+                              <th className="px-4 py-2 text-left">
+                                Current Bid
+                              </th>
+                              <th className="px-4 py-2 text-left">Status</th>
+                              <th className="px-4 py-2 text-left">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bids.map((bid, idx) => (
+                              <tr
+                                key={bid.id}
+                                className={
+                                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                }
+                              >
+                                <td className="px-4 py-2 ">
+                                  <Link
+                                    href={`/auctions/${bid.id}`}
+                                    className=" text-gray-700 dark:text-gray-100 hover:underline"
+                                  >
+                                    {bid.auction_name}
+                                  </Link>
+                                </td>
+                                <td className="px-4 py-2 text-gray-600">
+                                  {bid.seller_name}
+                                </td>
+                                <td className="px-4 py-2 text-red-700">
+                                  {bid.scheduledstart && bid.auctionduration
+                                    ? getTimeLeftLabel(
+                                        now,
+                                        bid.scheduledstart,
+                                        bid.auctionduration
+                                      )
+                                    : "N/A"}
+                                </td>
+                                <td className="px-4 py-2 text-gray-600">
+                                  ${bid.your_bid.toLocaleString("en-IN")}
+                                </td>
+                                <td className="px-4 py-2 text-gray-600">
+                                  {bid.auctionSubtype &&
+                                  ["sealed", "silent"].includes(
+                                    bid.auctionSubtype.toLowerCase()
+                                  ) ? (
+                                    <span className=" text-gray-600">
+                                      Confidential
+                                    </span>
+                                  ) : (
+                                    `$${bid.current_bid.toLocaleString(
+                                      "en-IN"
+                                    )}`
+                                  )}
+                                </td>
 
-  <CardContent>
-    <ul className="space-y-3 text-sm">
-      {stats.recentActivities.length > 0 ? (
-        stats.recentActivities.map((activity, index) => (
-          <li key={index} className="text-gray-700 dark:text-gray-300">
-            • {activity}
-          </li>
-        ))
-      ) : (
-        <li className="text-gray-500 italic">No recent notifications.</li>
-      )}
-    </ul>
-  </CardContent>
-</Card>
-          <Card className="lg:col-span-3">
-  <CardHeader className="flex items-center gap-2 pt-2">
-    <Settings className="text-gray-600" />
-    <CardTitle>Account</CardTitle>
-  </CardHeader>
-  <CardContent className="text-sm space-y-2">
-    <div>
-      <Link
-        href="/settings/profile"
-        className="text-blue-600 hover:underline"
-      >
-        View & Edit Profile
-      </Link>
-    </div>
-    <div>Change password, logout, manage preferences.</div>
-  </CardContent>
-</Card>
+                                <td className="px-4 py-2 text-gray-600">
+                                  {bid.status === "leading" ? (
+                                    <span className="text-green-600 font-semibold">
+                                      ✔ Position 1 Leading
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      Trailing
+                                    </span>
+                                  )}
+                                </td>
 
+                                <td className="p-2">
+                                  <Link
+                                    href={`/auctions/${bid.id}`}
+                                    className="flex items-center gap-1 text-gray-700 hover:underline transition-colors"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    {bid.status === "leading"
+                                      ? "View Bid"
+                                      : "Bid"}
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+            </>
+          ) : selectedSection === "wonAuctions" ? (
+            wonAuctions.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left p-2">Auction</th>
+                      <th className="text-left p-2">Seller</th>
+                      <th className="text-left p-2">Starting Bid</th>
+                      <th className="text-left p-2">Winning Bid</th>
+                      <th className="text-left p-2">Auction Type</th>
+                      <th className="text-left p-2">Payment and Delivery</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wonAuctions.map((auction, index) => (
+                      <tr
+                        key={auction.auctionId}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.auctionId}`}
+                            className=" text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            {auction.productName}
+                          </Link>
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.sellerName}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          $
+                          {(auction.auctionType === "reverse"
+                            ? auction.targetprice
+                            : auction.startAmount
+                          )?.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 font-semibold text-green-700">
+                          ${auction.winningBidAmount.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.auctionType || "standard"}
+                        </td>
+                        <td className="p-2  text-gray-600">
+                          Contact Admin/Seller
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No auctions won.</p>
+            )
+          ) : null}
         </div>
-        
+
+        {/* Notifications and Account */}
       </div>
     </div>
   );

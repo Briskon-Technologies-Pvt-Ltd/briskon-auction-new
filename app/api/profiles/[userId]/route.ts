@@ -25,7 +25,7 @@ export async function GET(
     const params = await context.params;
     const { userId } = params;
 
-    console.log("Fetching profile for userId:", userId); // Debug log
+    // console.log("Fetching profile for userId:", userId); 
 
     const { data, error } = await supabase
       .from("profiles")

@@ -161,7 +161,6 @@ export async function POST(request: Request) {
       templateid: null,
       categoryid: null,
       subcategoryid: null,
-      // seller: createdby,
       seller: user.id,
       //  seller: seller || createdby,
     };

@@ -11,6 +11,7 @@ interface Profile {
   fname?: string;
   lname?: string;
   email?: string;
+  role?: string;
 }
 
 export async function GET(
@@ -29,7 +30,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, fname, lname, email")
+      .select("id, fname, lname, email, role, location, type")
       .eq("id", userId) // Adjust column name if different (e.g., user_id)
       .single();
 

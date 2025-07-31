@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     // Get user's bid history
     const { data: bids, error: bidsError } = await supabase
       .from("bids")
-      .select("auction_id, amount")
+      .select("auction_id, amount, created_at")
       .eq("user_id", userId);
 
     if (bidsError) throw bidsError;
@@ -136,10 +136,19 @@ export async function GET(request: Request) {
     if (auctionsError) throw auctionsError;
 
     const auctions = auctionsRaw as Auction[];
+const latestBidsMap = new Map<string | number, { amount: number }>();
 
+bids
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  .forEach((bid) => {
+    if (!latestBidsMap.has(bid.auction_id)) {
+      latestBidsMap.set(bid.auction_id, { amount: bid.amount });
+    }
+  });
+  
     // Combine auction and bid data
     const activeBids = auctions.map((auction) => {
-      const userBid = bids.find((b) => b.auction_id === auction.id);
+      const userBid = latestBidsMap.get(auction.id);
       return {
         auctionId: auction.id,
         productName: auction.productname,

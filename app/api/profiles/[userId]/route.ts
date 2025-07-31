@@ -30,7 +30,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, fname, lname, email, role, location, type")
+      .select("id, fname, lname, email, role, location, type, avatar_url")
       .eq("id", userId) // Adjust column name if different (e.g., user_id)
       .single();
 
@@ -41,6 +41,7 @@ export async function GET(
         { status: 404 }
       );
     }
+    
 
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (error) {

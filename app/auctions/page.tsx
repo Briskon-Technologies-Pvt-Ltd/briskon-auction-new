@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export type AuctionItem = {
   id: string;
@@ -678,6 +679,14 @@ export default function AuctionsPage({
   const liveAuctionsCount = allAuctionItems.filter(
     (item) => item.status === "live"
   );
+  const searchParams = useSearchParams();
+  useEffect(() => {
+  const urlTab = searchParams.get("tab");
+
+  if (urlTab === "live" || urlTab === "upcoming" || urlTab === "closed") {
+    setTab(urlTab);
+  }
+}, [searchParams]);
 
   const categoryCounts: Record<string, number> = liveAuctionsCount.reduce(
     (acc, item) => {

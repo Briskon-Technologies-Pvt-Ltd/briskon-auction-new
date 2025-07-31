@@ -25,6 +25,8 @@ import {
   Clock,
   TrendingDown,
   Eye,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 type Bid = {
@@ -36,6 +38,7 @@ type Bid = {
   auctionSubtype: string | null;
   status: string;
   scheduledstart?: string | null;
+  position?: number;
   auctionduration?: {
     days?: number;
     hours?: number;
@@ -49,9 +52,10 @@ interface ActiveBid {
   productName: string;
   auctionType: string | null;
   auctionSubtype: string | null;
-    bidAmount: number;
+  bidAmount: number;
   totalBids: number;
   isWinningBid: boolean;
+  position: number;
   scheduledstart?: string | null; //
   auctionduration?: {
     days?: number;
@@ -85,7 +89,7 @@ type LostAuctionEntry = {
   productName: string;
   auctionType: string | null;
   startAmount: number;
-  userBidAmount:number | null;
+  userBidAmount: number | null;
   winningBidAmount: number;
 };
 
@@ -99,7 +103,7 @@ export default function BuyerDashboard() {
   });
 
   const [selectedSection, setSelectedSection] = useState<
-    "overview" | "activeBids" | "wonAuctions" | "lostAuctions"
+    "liveAuction" | "activeBids" | "wonAuctions" | "lostAuctions"
   >("activeBids");
 
   const [isLoadingBids, setIsLoadingBids] = useState(true);
@@ -112,8 +116,8 @@ export default function BuyerDashboard() {
   const [wonAuctions, setWonAuctions] = useState<WonAuctionEntry[]>([]);
   const [lostAuctions, setLostAuctions] = useState<LostAuctionEntry[]>([]);
   const [allAuctionItems, setAllAuctionItems] = useState([]);
-const [liveCount, setLiveCount] = useState(0);
-const [upcomingCount, setUpcomingCount] = useState(0);
+  const [liveCount, setLiveCount] = useState(0);
+  const [upcomingCount, setUpcomingCount] = useState(0);
 
   const [reverseBids, setReverseBids] = useState<Bid[]>([]);
   useEffect(() => {
@@ -202,6 +206,7 @@ const [upcomingCount, setUpcomingCount] = useState(0);
               scheduledstart: a.scheduledstart ?? null,
               auctionduration: a.auctionduration ?? null,
               auctionSubtype: a.auctionSubtype,
+              position: a.position,
             }));
 
           const reverse = activeBids
@@ -301,44 +306,49 @@ const [upcomingCount, setUpcomingCount] = useState(0);
     fetchLostAuctions();
   }, [user]);
 
-useEffect(() => {
-  const fetchAuctions = async () => {
-    try {
-      const res = await fetch("/api/auctions");
-      const json = await res.json();
-      if (!json.success) return;
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      try {
+        const res = await fetch("/api/auctions");
+        const json = await res.json();
+        if (!json.success) return;
 
-      const now = new Date();
+        const now = new Date();
 
-      let live = 0;
-      let upcoming = 0;
+        let live = 0;
+        let upcoming = 0;
 
-      (json.data || []).forEach((a: any) => {
-        const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
-        const durationInSeconds = a.auctionduration
-          ? ((d: any) =>
-              (d.days || 0) * 86400 + (d.hours || 0) * 3600 + (d.minutes || 0) * 60)(a.auctionduration)
-          : 0;
-        const end = start ? new Date(start.getTime() + durationInSeconds * 1000) : null;
+        (json.data || []).forEach((a: any) => {
+          const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
+          const durationInSeconds = a.auctionduration
+            ? ((d: any) =>
+                (d.days || 0) * 86400 +
+                (d.hours || 0) * 3600 +
+                (d.minutes || 0) * 60)(a.auctionduration)
+            : 0;
+          const end = start
+            ? new Date(start.getTime() + durationInSeconds * 1000)
+            : null;
 
-        if (start && end) {
-          if (now < start) {
-            upcoming += 1;
-          } else if (now >= start && now < end) {
-            live += 1;
+          if (start && end) {
+            if (now < start) {
+              upcoming += 1;
+            } else if (now >= start && now < end) {
+              live += 1;
+            }
           }
-        }
-      });
+        });
 
-      setLiveCount(live);
-      setUpcomingCount(upcoming);
-    } catch (err) {
-      console.error("Error fetching auctions:", err);
-    }
-  };
+        setLiveCount(live);
+        setUpcomingCount(upcoming);
+      } catch (err) {
+        console.error("Error fetching auctions:", err);
+      }
+    };
 
-  fetchAuctions();
-}, []);
+    fetchAuctions();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -376,7 +386,9 @@ useEffect(() => {
               </div>
               <div className="mt-1">
                 <div className="text-2xl  font-bold">{stats.activeBids}</div>
-                <p className="text-xs text-gray-500">All Forward/Reverse Bids</p>
+                <p className="text-xs text-gray-500">
+                  All Forward/Reverse Bids
+                </p>
               </div>
             </CardHeader>
           </Card>
@@ -421,12 +433,15 @@ useEffect(() => {
               </div>
             </CardHeader>
           </Card>
-          {/* won auction */}
-
           {/* Live Auctions */}
-
-          <Link href="/auctions?tab=live">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Link href="/auctions">
+            <Card
+              className={`cursor-pointer transition-shadow hover:shadow-lg ${
+                selectedSection === "liveAuction"
+                  ? "ring-2 text-orange-400"
+                  : ""
+              }`}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
@@ -435,32 +450,28 @@ useEffect(() => {
                   </CardTitle>
                 </div>
                 <div className="mt-1">
-                  <div className="text-2xl font-bold">
-                    {liveCount}
-                  </div>
+                  <div className="text-2xl font-bold">{liveCount}</div>
                   <p className="text-xs text-gray-500">Ongoing now</p>
                 </div>
               </CardHeader>
             </Card>
           </Link>
-          {/* Auction Calendar */}
+          {/* Upcoming Auction*/}
           <Link href="/auctions?tab=upcoming">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 animate-bounce" />
-                <CardTitle className="text-sm font-medium">
-                  Upcoming Auctions
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl font-bold">
-                  {upcomingCount}
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 animate-bounce" />
+                  <CardTitle className="text-sm font-medium">
+                    Upcoming Auctions
+                  </CardTitle>
                 </div>
-                <p className="text-xs text-gray-500">All Time</p>
-              </div>
-            </CardHeader>
-          </Card>
+                <div className="mt-1">
+                  <div className="text-2xl font-bold">{upcomingCount}</div>
+                  <p className="text-xs text-gray-500">All Time</p>
+                </div>
+              </CardHeader>
+            </Card>
           </Link>
 
           {/* My Profile */}
@@ -540,14 +551,18 @@ useEffect(() => {
                         <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
                           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                             <tr>
-                              <th className="px-4 py-2 text-left">Auction Name</th>
+                              <th className="px-4 py-2 text-left">
+                                Auction Name
+                              </th>
                               <th className="px-4 py-2 text-left">Seller</th>
                               <th className="px-4 py-2 text-left">Time Left</th>
                               <th className="px-4 py-2 text-left">Your Bid</th>
                               <th className="px-4 py-2 text-left">
                                 Current Bid
                               </th>
-                              <th className="px-4 py-2 text-left">Status</th>
+                              <th className="px-4 py-2 text-left">
+                                Your Position
+                              </th>
                               <th className="px-4 py-2 text-left">Action</th>
                             </tr>
                           </thead>
@@ -598,13 +613,19 @@ useEffect(() => {
                                 </td>
 
                                 <td className="px-4 py-2 text-gray-600">
-                                  {bid.status === "leading" ? (
-                                    <span className="text-green-600 font-semibold">
-                                      ✔ Position 1 Leading
+                                  {bid.position === 1 ? (
+                                    <span className="text-green-600 font-semibold flex items-center gap-1">
+                                      <ArrowUpIcon size={16} />
+                                      Leading - Position 1
+                                    </span>
+                                  ) : bid.position ? (
+                                    <span className="text-red-600 font-semibold flex items-center gap-1">
+                                      <ArrowDownIcon size={16} />
+                                      Trailing - Position {bid.position}
                                     </span>
                                   ) : (
                                     <span className="text-gray-600">
-                                      Trailing
+                                      No Rank
                                     </span>
                                   )}
                                 </td>
@@ -614,10 +635,17 @@ useEffect(() => {
                                     href={`/auctions/${bid.id}`}
                                     className="flex items-center gap-1 text-gray-700 hover:underline transition-colors"
                                   >
-                                    <Eye className="w-4 h-4" />
-                                    {bid.status === "leading"
-                                      ? "View Bid"
-                                      : "Bid"}
+                                    {bid.status === "leading" ? (
+                                      <>
+                                        <Eye className="w-4 h-4" />
+                                        View Bid
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Gavel className="w-4 h-4" />
+                                        Bid
+                                      </>
+                                    )}
                                   </Link>
                                 </td>
                               </tr>
@@ -710,12 +738,12 @@ useEffect(() => {
                         } dark:bg-transparent`}
                       >
                         <td className="p-2">
-                        <Link
-                          href={`/auctions/${auction.auctionId}`}
-                          className=" text-gray-700 dark:text-gray-100 hover:underline"
-                        >
-                          {auction.productName}
-                        </Link>
+                          <Link
+                            href={`/auctions/${auction.auctionId}`}
+                            className=" text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            {auction.productName}
+                          </Link>
                         </td>
                         <td className="p-2 capitalize text-gray-600">
                           {auction.auctionType}
@@ -727,7 +755,7 @@ useEffect(() => {
                           {auction.startAmount.toLocaleString("en-IN")}
                         </td>
                         <td className="p-2 text-gray-600">
-                        {auction.userBidAmount?.toLocaleString("en-IN")}
+                          {auction.userBidAmount?.toLocaleString("en-IN")}
                         </td>
                         <td className="p-2 text-gray-600">
                           {auction.winningBidAmount.toLocaleString("en-IN")}

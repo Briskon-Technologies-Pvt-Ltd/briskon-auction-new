@@ -10,6 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
 import {
   Gavel,
   TrendingUp,
@@ -48,7 +49,7 @@ interface ActiveBid {
   productName: string;
   auctionType: string | null;
   auctionSubtype: string | null;
-  bidAmount: number;
+    bidAmount: number;
   totalBids: number;
   isWinningBid: boolean;
   scheduledstart?: string | null; //
@@ -78,6 +79,16 @@ interface WonAuctionEntry {
   winningBidAmount: number;
   targetprice?: number; // Optional field for target price
 }
+type LostAuctionEntry = {
+  auctionId: string;
+  sellerName: string;
+  productName: string;
+  auctionType: string | null;
+  startAmount: number;
+  userBidAmount:number | null;
+  winningBidAmount: number;
+};
+
 export default function BuyerDashboard() {
   const [stats, setStats] = useState({
     activeBids: 0,
@@ -99,6 +110,8 @@ export default function BuyerDashboard() {
   const [now, setNow] = useState(new Date());
   const [forwardBids, setForwardBids] = useState<Bid[]>([]);
   const [wonAuctions, setWonAuctions] = useState<WonAuctionEntry[]>([]);
+  const [lostAuctions, setLostAuctions] = useState<LostAuctionEntry[]>([]);
+
   const [reverseBids, setReverseBids] = useState<Bid[]>([]);
   useEffect(() => {
     const interval = setInterval(() => {
@@ -213,7 +226,7 @@ export default function BuyerDashboard() {
             endpoint = "/api/buyer/won-auctions";
             break;
           case "lostAuctions":
-            endpoint = "/api/buyer/bid-history";
+            endpoint = "/api/buyer/lost-auctions";
             break;
           default:
             return;
@@ -262,6 +275,29 @@ export default function BuyerDashboard() {
     fetchWonAuctions();
   }, [user]);
 
+  useEffect(() => {
+    const fetchLostAuctions = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(
+          `/api/buyer/lost-auctions?email=${encodeURIComponent(
+            user.email
+          )}&id=${encodeURIComponent(user.id)}`
+        );
+        const data = await res.json();
+        setLostAuctions(data || []);
+        setStats((prevStats) => ({
+          ...prevStats,
+          lostAuctions: Array.isArray(data) ? data.length : 0,
+        }));
+      } catch (error) {
+        console.error("Error fetching lost auctions:", error);
+      }
+    };
+
+    fetchLostAuctions();
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -299,7 +335,7 @@ export default function BuyerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl  font-bold">{stats.activeBids}</div>
-                {/* <p className="text-xs text-gray-500">Total Lifetime</p> */}
+                <p className="text-xs text-gray-500">All Forward/Reverse Bids</p>
               </div>
             </CardHeader>
           </Card>
@@ -367,22 +403,24 @@ export default function BuyerDashboard() {
             </Card>
           </Link>
           {/* Auction Calendar */}
-          <Card className="cursor-default">
+          <Link href="/auctions?tab=upcoming">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-indigo-500 animate-bounce" />
+                <Calendar className="h-4 w-4 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
-                  Auction Calendar
+                  Upcoming Auctions
                 </CardTitle>
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">
-                  {stats.monthlyAuctions ?? 22}
+                  { 1}
                 </div>
-                <p className="text-xs text-gray-500">Total this month</p>
+                <p className="text-xs text-gray-500">All Time</p>
               </div>
             </CardHeader>
           </Card>
+          </Link>
 
           {/* My Profile */}
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
@@ -453,7 +491,6 @@ export default function BuyerDashboard() {
                       </span>
                     </h3>
                     {bids.length === 0 ? (
-                      
                       <p className="text-gray-500 italic">
                         No {type} auction bids.
                       </p>
@@ -462,7 +499,7 @@ export default function BuyerDashboard() {
                         <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
                           <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                             <tr>
-                              <th className="px-4 py-2 text-left">Auction</th>
+                              <th className="px-4 py-2 text-left">Auction Name</th>
                               <th className="px-4 py-2 text-left">Seller</th>
                               <th className="px-4 py-2 text-left">Time Left</th>
                               <th className="px-4 py-2 text-left">Your Bid</th>
@@ -558,11 +595,11 @@ export default function BuyerDashboard() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                     <tr>
-                      <th className="text-left p-2">Auction</th>
+                      <th className="text-left p-2">Auction Name</th>
+                      <th className="text-left p-2">Auction Type</th>
                       <th className="text-left p-2">Seller</th>
                       <th className="text-left p-2">Starting Bid</th>
                       <th className="text-left p-2">Winning Bid</th>
-                      <th className="text-left p-2">Auction Type</th>
                       <th className="text-left p-2">Payment and Delivery</th>
                     </tr>
                   </thead>
@@ -582,6 +619,9 @@ export default function BuyerDashboard() {
                             {auction.productName}
                           </Link>
                         </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.auctionType || "standard"}
+                        </td>
                         <td className="p-2 text-gray-600">
                           {auction.sellerName}
                         </td>
@@ -595,9 +635,6 @@ export default function BuyerDashboard() {
                         <td className="p-2 font-semibold text-green-700">
                           ${auction.winningBidAmount.toLocaleString("en-IN")}
                         </td>
-                        <td className="p-2 capitalize text-gray-600">
-                          {auction.auctionType || "standard"}
-                        </td>
                         <td className="p-2  text-gray-600">
                           Contact Admin/Seller
                         </td>
@@ -608,6 +645,59 @@ export default function BuyerDashboard() {
               </div>
             ) : (
               <p className="text-gray-500 italic">No auctions won.</p>
+            )
+          ) : selectedSection === "lostAuctions" ? (
+            lostAuctions.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left p-2">Auction Name</th>
+                      <th className="text-left p-2">Auction Type</th>
+                      <th className="text-left p-2">Seller</th>
+                      <th className="text-left p-2">Starting Bid</th>
+                      <th className="text-left p-2">Your Bid</th>
+                      <th className="text-left p-2">Winning Bid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lostAuctions.map((auction, index) => (
+                      <tr
+                        key={auction.auctionId}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                        <Link
+                          href={`/auctions/${auction.auctionId}`}
+                          className=" text-gray-700 dark:text-gray-100 hover:underline"
+                        >
+                          {auction.productName}
+                        </Link>
+                        </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.auctionType}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.sellerName}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.startAmount.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                        {auction.userBidAmount?.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.winningBidAmount.toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No lost auctions.</p>
             )
           ) : null}
         </div>

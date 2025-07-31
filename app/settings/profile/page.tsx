@@ -35,7 +35,8 @@ export default function ProfileSettingsPage() {
         const response = await fetch(`/api/profiles/${userId}`);
         if (!response.ok) throw new Error("Failed to fetch profile");
         const data = await response.json();
-        if (!data.success) throw new Error(data.error || "Failed to load profile");
+        if (!data.success)
+          throw new Error(data.error || "Failed to load profile");
         setProfile(data.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -50,13 +51,17 @@ export default function ProfileSettingsPage() {
   }, [userId]);
 
   if (loading) return <div className="text-center py-20">Loading...</div>;
-  if (error) return <div className="text-center py-20 text-red-600">{error}</div>;
-  if (!profile) return <div className="text-center py-20">Profile not found</div>;
+  if (error)
+    return <div className="text-center py-20 text-red-600">{error}</div>;
+  if (!profile)
+    return <div className="text-center py-20">Profile not found</div>;
 
-  const createdAtIST = DateTime.fromISO(profile.created_at, { zone: "utc" }).setZone("Asia/Kolkata").toLocaleString(DateTime.DATETIME_FULL);
+  const createdAtIST = DateTime.fromISO(profile.created_at, { zone: "utc" })
+    .setZone("Asia/Kolkata")
+    .toLocaleString(DateTime.DATETIME_FULL);
 
   return (
-     <div className="min-h-screen py-16 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen py-16 bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4">
         <Card className="max-w-2xl mx-auto shadow-md border border-gray-200 dark:border-gray-700">
           <CardHeader className="text-center space-y-4">
@@ -71,9 +76,12 @@ export default function ProfileSettingsPage() {
               </div>
             </div>
             <div>
-              <Button variant="secondary" size="sm" className="mt-2">
-                Change Photo
-              </Button>
+              <input type="file" hidden id="profile-upload" />
+              <label htmlFor="profile-upload">
+                <Button variant="secondary" size="sm" className="mt-2">
+                  Change Photo
+                </Button>
+              </label>
             </div>
             <CardTitle className="text-2xl font-bold text-gray-800 dark:text-gray-100">
               Profile Settings
@@ -82,19 +90,31 @@ export default function ProfileSettingsPage() {
 
           <CardContent className="space-y-6 text-sm">
             <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-200">Full Name</h3>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+                Full Name
+              </h3>
               <p className="text-gray-600 dark:text-gray-400">{`${profile.fname} ${profile.lname}`}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-200">Role</h3>
-              <p className="text-gray-600 dark:text-gray-400 capitalize">{profile.role}</p>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+                Role
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 capitalize">
+                {profile.role}
+              </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-200">Email</h3>
-              <p className="text-gray-600 dark:text-gray-400">{profile.email}</p>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+                Email
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {profile.email}
+              </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-200">Joined</h3>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+                Joined
+              </h3>
               <p className="text-gray-600 dark:text-gray-400">{createdAtIST}</p>
             </div>
 

@@ -35,7 +35,12 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { createClient } from "@supabase/supabase-js";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 function Navigation({
   highlightSolutions = false,
 }: {
@@ -47,6 +52,7 @@ function Navigation({
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const { user, logout, isAuthenticated } = useAuth();
+  const [profile, setProfile] = useState<{ avatar_url: string; fname: string } | null>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -224,6 +230,25 @@ function Navigation({
       window.location.href = "/dashboard/buyer";
     }
   };
+  useEffect(() => {
+  const fetchProfile = async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("avatar_url, fname")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch profile", error.message);
+    } else {
+      setProfile(data);
+    }
+  };
+
+  fetchProfile();
+}, [user]);
+
 
   return (
     <header
@@ -400,12 +425,13 @@ function Navigation({
                   <Link href="/settings/profile">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 cursor-pointer hover:ring-2 hover:ring-gray-400 transition">
                       <Image
-                        src={user?.avatar_url || "/images/user.png"}
-                        alt={user?.fname || "User"}
-                        width={32}
-                        height={32}
-                        className="w-full h-full object-cover"
-                      />
+  src={profile?.avatar_url || "/images/user.png"}
+  alt={profile?.fname || "User"}
+  width={32}
+  height={32}
+  className="w-full h-full object-cover rounded-full"
+/>
+
                     </div>
                   </Link>
 

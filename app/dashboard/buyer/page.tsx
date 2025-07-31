@@ -111,6 +111,9 @@ export default function BuyerDashboard() {
   const [forwardBids, setForwardBids] = useState<Bid[]>([]);
   const [wonAuctions, setWonAuctions] = useState<WonAuctionEntry[]>([]);
   const [lostAuctions, setLostAuctions] = useState<LostAuctionEntry[]>([]);
+  const [allAuctionItems, setAllAuctionItems] = useState([]);
+const [liveCount, setLiveCount] = useState(0);
+const [upcomingCount, setUpcomingCount] = useState(0);
 
   const [reverseBids, setReverseBids] = useState<Bid[]>([]);
   useEffect(() => {
@@ -298,6 +301,44 @@ export default function BuyerDashboard() {
     fetchLostAuctions();
   }, [user]);
 
+useEffect(() => {
+  const fetchAuctions = async () => {
+    try {
+      const res = await fetch("/api/auctions");
+      const json = await res.json();
+      if (!json.success) return;
+
+      const now = new Date();
+
+      let live = 0;
+      let upcoming = 0;
+
+      (json.data || []).forEach((a: any) => {
+        const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
+        const durationInSeconds = a.auctionduration
+          ? ((d: any) =>
+              (d.days || 0) * 86400 + (d.hours || 0) * 3600 + (d.minutes || 0) * 60)(a.auctionduration)
+          : 0;
+        const end = start ? new Date(start.getTime() + durationInSeconds * 1000) : null;
+
+        if (start && end) {
+          if (now < start) {
+            upcoming += 1;
+          } else if (now >= start && now < end) {
+            live += 1;
+          }
+        }
+      });
+
+      setLiveCount(live);
+      setUpcomingCount(upcoming);
+    } catch (err) {
+      console.error("Error fetching auctions:", err);
+    }
+  };
+
+  fetchAuctions();
+}, []);
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -395,7 +436,7 @@ export default function BuyerDashboard() {
                 </div>
                 <div className="mt-1">
                   <div className="text-2xl font-bold">
-                    {stats.liveAuctions ?? 2}
+                    {liveCount}
                   </div>
                   <p className="text-xs text-gray-500">Ongoing now</p>
                 </div>
@@ -414,7 +455,7 @@ export default function BuyerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">
-                  { 1}
+                  {upcomingCount}
                 </div>
                 <p className="text-xs text-gray-500">All Time</p>
               </div>

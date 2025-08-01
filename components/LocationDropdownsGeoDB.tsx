@@ -17,7 +17,7 @@
 //     city: string;
 //   }) => void;
 // }
-
+ 
 // const headers = {
 //   "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPIDAPI_KEY || "YOUR_RAPIDAPI_KEY",
 //   "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com",

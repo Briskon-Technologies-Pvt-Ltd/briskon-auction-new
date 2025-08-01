@@ -52,13 +52,33 @@ export async function GET(request: Request) {
         profiles:seller (fname, lname)
       `)
       .in("id", auctionIds)
-      .or("ended.is.null,ended.eq.false")
+      .eq("ended", false)
       .returns<Auction[]>();
 
     if (auctionsError) throw auctionsError;
 
     const auctions = auctionsRaw as Auction[];
+const now = new Date();
+await Promise.all(
+  auctions.map(async (auction) => {
+    if (auction.scheduledstart && auction.auctionduration) {
+      const startTime = new Date(auction.scheduledstart);
+      const duration = auction.auctionduration;
 
+      const endTime = new Date(startTime);
+      if (duration.days) endTime.setDate(endTime.getDate() + duration.days);
+      if (duration.hours) endTime.setHours(endTime.getHours() + duration.hours);
+      if (duration.minutes) endTime.setMinutes(endTime.getMinutes() + duration.minutes);
+
+      if (now > endTime) {
+        await supabase
+          .from("auctions")
+          .update({ ended: true })
+          .eq("id", auction.id);
+      }
+    }
+  })
+);
     // Step 3: Find latest bid by user per auction
     const latestBidsMap = new Map<string | number, { amount: number }>();
     userBids

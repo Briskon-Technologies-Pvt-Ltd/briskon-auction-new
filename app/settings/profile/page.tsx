@@ -10,7 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@supabase/auth-helpers-react";
+
 import { createClient } from "@supabase/supabase-js";
+
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -35,7 +40,8 @@ export default function ProfileSettingsPage() {
   const router = useRouter();
 
   const userId = params.id || user?.id;
-
+  const [address1, setAddress1] = useState("");
+  const [address2, setAddress2] = useState("");
   const [activeTab, setActiveTab] = useState("view");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,8 +122,8 @@ export default function ProfileSettingsPage() {
     } else {
       alert("Profile picture updated!");
       setProfile((prev) =>
-  prev ? { ...prev, avatar_url: `${publicUrl}?t=${Date.now()}` } : prev
-);
+        prev ? { ...prev, avatar_url: `${publicUrl}?t=${Date.now()}` } : prev
+      );
     }
   };
 
@@ -170,294 +176,203 @@ export default function ProfileSettingsPage() {
     setNewPassword("");
     setConfirmPassword("");
   };
+  const handleSaveChanges = async () => {
+    try {
+      const updates = {
+        id: user?.id,
+        fname,
+        lname,
+        address1,
+        address2,
+        phone,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", user?.id);
+
+      if (error) {
+        toast.error("Failed to update profile.");
+        console.error(error);
+      } else {
+        toast.success("Profile updated successfully.");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      toast.error("Unexpected error occurred.");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-16">
-      <div className="container mx-auto px-4">
-        <div className="flex max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex w-full"
-          >
-            {/* Sidebar Tabs */}
-            <TabsList
-              className="
-            flex flex-col
-            items-start
-            justify-start
-            w-1/4
-            min-w-[150px]
-            border-r border-gray-200 dark:border-gray-700
-            p-6 gap-4
-            bg-gray-100 dark:bg-gray-700
-            h-full
-          "
-            >
-              <TabsTrigger
-                value="view"
-                className="
-    w-full
-    justify-start
-    border
-    border-gray-300
-    bg-white
-    text-black
-    hover:bg-gray-100
-    data-[state=active]:font-semibold
-    data-[state=active]:bg-gray-200
-  "
-                style={{ minHeight: "40px" }}
-              >
-                View Details
-              </TabsTrigger>
-              <TabsTrigger
-                value="edit"
-                className="
-    w-full
-    justify-start
-    border
-    border-gray-300
-    bg-white
-    text-black
-    hover:bg-gray-100
-    data-[state=active]:font-semibold
-    data-[state=active]:bg-gray-200
-  "
-                style={{ minHeight: "40px" }}
-              >
-                Edit Profile
-              </TabsTrigger>
-              <TabsTrigger
-                value="password"
-                className="
-    w-full
-    justify-start
-    border
-    border-gray-300
-    bg-white
-    text-black
-    hover:bg-gray-100
-    data-[state=active]:font-semibold
-    data-[state=active]:bg-gray-200
-  "
-                style={{ minHeight: "40px" }}
-              >
-                Change Password
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab Content */}
-            <div className="w-3/4 p-8 relative">
-              {/* View Details */}
-              <TabsContent value="view" className="space-y-6 text-sm">
-                {/* Profile Image */}
-                <div className="absolute top-8 right-8 text-center">
-                  <div className="w-24 h-24 relative rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 mx-auto">
-                    <Image
-  src={
-    profile.avatar_url
-      ? `${profile.avatar_url}?t=${Date.now()}`
-      : "/images/user.png"
-  }
-  alt="Profile"
-  fill
-  className="object-cover"
-/>
-
-                  </div>
-
-                  {/* Invisible but clickable file input */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="profile-upload"
-                    onChange={handleFileChange}
-                    style={{
-                      opacity: 0,
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      cursor: "pointer",
-                      top: 0,
-                      left: 0,
-                      zIndex: 10,
-                    }}
-                  />
-
-                  {/* Label acts as button */}
-                  <label
-                    htmlFor="profile-upload"
-                    className="relative cursor-pointer inline-block mt-2 text-xs"
-                  >
-                    <Button variant="secondary" size="sm">
-                      Change Photo
-                    </Button>
-                  </label>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-200">
-                    Full Name
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {profile.fname} {profile.lname}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-200">
-                    Email
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {profile.email}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-200">
-                    Role
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 capitalize">
-                    {profile.role}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-200">
-                    Joined
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {createdAtIST}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="mt-6"
-                  onClick={() => router.push("/dashboard/buyer")}
-                >
-                  Back to Dashboard
-                </Button>
-              </TabsContent>
-
-              {/* Edit Profile */}
-              <TabsContent value="edit" className="space-y-6 text-sm">
-                <div>
-                  <label
-                    htmlFor="fname"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    First Name
-                  </label>
-                  <Input
-                    id="fname"
-                    value={fname}
-                    onChange={(e) => setFname(e.target.value)}
-                    placeholder="First Name"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="lname"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    Last Name
-                  </label>
-                  <Input
-                    id="lname"
-                    value={lname}
-                    onChange={(e) => setLname(e.target.value)}
-                    placeholder="Last Name"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="address"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    Address
-                  </label>
-                  <Textarea
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter your address..."
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    Phone Number
-                  </label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Your phone number"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <Button className="mt-4" onClick={handleSaveProfile}>
-                    Save Changes
-                  </Button>
-                </div>
-              </TabsContent>
-
-              {/* Change Password */}
-              <TabsContent value="password" className="space-y-6 text-sm">
-                <div>
-                  <label
-                    htmlFor="old-password"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    Current Password
-                  </label>
-                  <Input
-                    id="old-password"
-                    type="password"
-                    placeholder="Current password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="new-password"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    New Password
-                  </label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="New password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="confirm-password"
-                    className="block text-gray-700 dark:text-gray-200"
-                  >
-                    Confirm New Password
-                  </label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="Confirm password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <Button className="mt-4" onClick={handleUpdatePassword}>
-                    Update Password
-                  </Button>
-                </div>
-              </TabsContent>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-16 px-4">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-xl p-10 space-y-12">
+        {/* Top Info Section */}
+        <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
+          My Profile
+        </div>
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+          {/* Profile Picture */}
+          <div className="flex-1 w-full flex flex-col gap-4 text-sm mt-4 md:mt-0">
+            <div>
+              <Label className="text-gray-600">Email</Label>
+              <div className="text-base font-medium text-gray-700 dark:text-white">
+                {profile.email}
+              </div>
             </div>
-          </Tabs>
+            <div>
+              <Label className="text-gray-600">Role</Label>
+              <div className="text-base font-medium text-gray-700 dark:text-white capitalize">
+                {profile.role}
+              </div>
+            </div>
+            <div>
+              <Label className="text-gray-600">Joined On</Label>
+              <div className="text-base font-medium text-gray-700 dark:text-white">
+                {createdAtIST}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-3">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 relative">
+              <Image
+                src={
+                  profile.avatar_url
+                    ? `${profile.avatar_url}?t=${Date.now()}`
+                    : "/images/user.png"
+                }
+                alt="Profile"
+                width={128}
+                height={128}
+                className="object-cover w-full h-full"
+              />
+            </div>
+
+            {/* THIS label must wrap BOTH input and button */}
+
+            <input
+              type="file"
+              accept="image/*"
+              id="profile-upload"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            <label htmlFor="profile-upload" className="cursor-pointer">
+              <Button variant="secondary" size="sm">
+                Change Photo
+              </Button>
+            </label>
+          </div>
+
+          {/* Read-only Info */}
+        </div>
+
+        {/* Editable Form Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-white" htmlFor="fname">First Name</Label>
+            <Input
+              id="fname"
+              value={fname}
+              onChange={(e) => setFname(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-gray-600" htmlFor="lname">Last Name</Label>
+            <Input
+              id="lname"
+              value={lname}
+              onChange={(e) => setLname(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-gray-600" htmlFor="address1">Address Line 1</Label>
+            <Input
+              id="address1"
+              placeholder="e.g., 123 Main St"
+              value={address1}
+              onChange={(e) => setAddress1(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-600" htmlFor="address2">Address Line 2</Label>
+            <Input
+              id="address2"
+              placeholder="e.g., Apartment, Landmark"
+              value={address2}
+              onChange={(e) => setAddress2(e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-1 text-gray-600">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="Phone number"
+              className="w-full"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div className="md:col-span-2 text-center">
+            <Button
+              className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+              onClick={handleSaveChanges}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+
+        {/* Change Password Section */}
+        <div className="space-y-6 pt-10">
+          <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
+            My Profile
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
+            <div>
+              <Label htmlFor="old-password">Current Password</Label>
+              <Input
+                id="old-password"
+                type="password"
+                placeholder="Current password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-1">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-2 text-center">
+              <Button
+                className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+                onClick={handleUpdatePassword}
+              >
+                Update Password
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

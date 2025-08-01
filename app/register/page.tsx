@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+// import LocationDropdownsGeoDB from "@/components/LocationDropdownsGeoDB";
 
 export default function RegisterPage() {
   const { register, isLoading: authLoading, isAuthenticated, user } = useAuth();
@@ -58,14 +59,22 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     accountType: "buyer", // Default to 'buyer'
     sellerType: "individual", // Default to 'individual' for seller/both
+    buyerType: "individual", // Default for buyer when accountType is buyer or both
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
     password: "",
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    country: "",
     confirmPassword: "",
     organizationName: "", // New field for organization
     organizationContact: "", // New field for organization contact
+    buyerOrganizationName: "", // new field for buyer organizations
+    buyerOrganizationContact: "", // new field for buyer organizations
     location: "",
     agreeToTerms: false,
     subscribeNewsletter: false,
@@ -124,7 +133,12 @@ export default function RegisterPage() {
     setFormData((prev) => ({
       ...prev,
       accountType: value,
-      sellerType: value === "buyer" ? "individual" : prev.sellerType,
+      sellerType: value === "buyer" ? "individual" : "individual",
+      buyerType: "individual",
+      organizationName: "",
+      organizationContact: "",
+      buyerOrganizationName: "",
+      buyerOrganizationContact: "",
     }));
     setError("");
     setSuccessMessage("");
@@ -137,6 +151,18 @@ export default function RegisterPage() {
       organizationName: value === "organization" ? prev.organizationName : "",
       organizationContact:
         value === "organization" ? prev.organizationContact : "",
+    }));
+    setError("");
+    setSuccessMessage("");
+  };
+  const handleBuyerTypeChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      buyerType: value,
+      buyerOrganizationName:
+        value === "organization" ? prev.buyerOrganizationName : "",
+      buyerOrganizationContact:
+        value === "organization" ? prev.buyerOrganizationContact : "",
     }));
     setError("");
     setSuccessMessage("");
@@ -195,6 +221,9 @@ export default function RegisterPage() {
           password: formData.password,
           fname: formData.firstName,
           lname: formData.lastName,
+          city: formData.city,
+          state: formData.state,
+          country: formData.country,
           location: formData.location,
           role: formData.accountType,
           type:
@@ -209,6 +238,10 @@ export default function RegisterPage() {
             formData.sellerType === "organization"
               ? formData.organizationContact
               : undefined,
+          address: `${formData.address1}${
+            formData.address2 ? ", " + formData.address2 : ""
+          }`,
+          phone: formData.phone,
         }),
       });
 
@@ -383,7 +416,7 @@ export default function RegisterPage() {
                   <RadioGroup
                     value={formData.accountType}
                     onValueChange={handleRadioChange}
-                    className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
                   >
                     {[
                       {
@@ -410,18 +443,18 @@ export default function RegisterPage() {
                           "Analytics",
                         ],
                       },
-                      {
-                        value: "both",
-                        label: "Buyer & Seller",
-                        icon: Shield,
-                        desc: "Complete platform access",
-                        color: "from-blue-500 to-indigo-600",
-                        features: [
-                          "All buyer features",
-                          "All seller features",
-                          "Priority support",
-                        ],
-                      },
+                      // {
+                      //   value: "both",
+                      //   label: "Buyer & Seller",
+                      //   icon: Shield,
+                      //   desc: "Complete platform access",
+                      //   color: "from-blue-500 to-indigo-600",
+                      //   features: [
+                      //     "All buyer features",
+                      //     "All seller features",
+                      //     "Priority support",
+                      //   ],
+                      // },
                     ].map((item) => {
                       const Icon = item.icon;
                       const isSelected = formData.accountType === item.value;
@@ -579,6 +612,109 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 </div>
+                {/* Buyer Type Section */}
+                {(formData.accountType === "buyer" ||
+                  formData.accountType === "both") && (
+                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                    <Label className="text-lg font-semibold text-gray-900 block text-center">
+                      Buyer Type
+                    </Label>
+                    <RadioGroup
+                      key={`${formData.accountType}-${formData.buyerType}`}
+                      value={formData.buyerType}
+                      onValueChange={handleBuyerTypeChange}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                      {[
+                        { value: "individual", label: "Individual" },
+                        { value: "organization", label: "Organization" },
+                      ].map((item) => {
+                        const isSelected = formData.buyerType === item.value;
+                        const isBuyer = formData.accountType === "buyer";
+                        const isBoth = formData.accountType === "both";
+
+                        const selectedGradient = isBuyer
+                          ? "bg-gradient-to-r from-green-200 to-emerald-300 "
+                          : isBoth
+                          ? "bg-gradient-to-r from-yellow-100 to-yellow-300 "
+                          : "";
+
+                        const hoverGradient = isBuyer
+                          ? "hover:bg-gradient-to-r hover:from-green-200 hover:to-emerald-300 "
+                          : isBoth
+                          ? "hover:bg-gradient-to-r hover:from-yellow-100 hover:to-yellow-300 "
+                          : "";
+
+                        return (
+                          <div key={item.value} className="relative">
+                            <RadioGroupItem
+                              value={item.value}
+                              id={`buyer-${item.value}`}
+                              className="peer sr-only"
+                            />
+                            <Label
+                              htmlFor={`buyer-${item.value}`}
+                              className={`flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 w-full
+                ${
+                  isSelected
+                    ? ` ${selectedGradient} `
+                    : `border-gray-200 bg-white ${hoverGradient}`
+                }`}
+                            >
+                              {item.label}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </RadioGroup>
+
+                    {formData.buyerType === "organization" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="buyerOrganizationName"
+                            className="text-gray-700 font-medium"
+                          >
+                            Organization Name
+                          </Label>
+                          <div className="relative">
+                            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                            <Input
+                              id="buyerOrganizationName"
+                              name="buyerOrganizationName"
+                              placeholder="e.g., Briskon Ltd"
+                              className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                              value={formData.buyerOrganizationName}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="buyerOrganizationContact"
+                            className="text-gray-700 font-medium"
+                          >
+                            Organization Contact
+                          </Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                            <Input
+                              id="buyerOrganizationContact"
+                              name="buyerOrganizationContact"
+                              type="tel"
+                              placeholder="+1 (555) 987-6543"
+                              className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                              value={formData.buyerOrganizationContact}
+                              onChange={handleInputChange}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Seller Type Section */}
 
@@ -687,9 +823,9 @@ export default function RegisterPage() {
 
                 <div className="space-y-4 pt-4 border-t border-gray-200">
                   <h3 className="font-semibold text-lg text-gray-900">
-                    Location & Security
+                    Address & Security
                   </h3>
-                  <div className="space-y-1.5">
+                  {/* <div className="space-y-1.5">
                     <Label htmlFor="location" className="text-gray-700">
                       Primary Location (City, Country)
                     </Label>
@@ -701,6 +837,95 @@ export default function RegisterPage() {
                         placeholder="e.g., New York, USA"
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                         value={formData.location}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div> */}
+                  {/* <div className="space-y-1.5">
+    <Label htmlFor="location" className="text-gray-700">
+      Primary Location (City, Country)
+    </Label>
+    <div className="relative">
+      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+      <Input
+        id="location"
+        name="location"
+        placeholder="e.g., New York, USA"
+        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+        value={formData.location}
+        onChange={handleInputChange}
+      />
+    </div>
+  </div> */}
+
+                  {/* Address Line 1 */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address1" className="text-gray-700">
+                      Address Line 1
+                    </Label>
+                    <Input
+                      id="address1"
+                      name="address1"
+                      placeholder="e.g., 123 Main St"
+                      className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                      value={formData.address1}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  {/* Address Line 2 */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address2" className="text-gray-700">
+                      Address Line 2 (optional)
+                    </Label>
+                    <Input
+                      id="address2"
+                      name="address2"
+                      placeholder="e.g., Apartment, suite, unit, building, etc."
+                      className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                      value={formData.address2}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  {/* City, State, Country - in one row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city" className="text-gray-700">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        placeholder="City"
+                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state" className="text-gray-700">
+                        State
+                      </Label>
+                      <Input
+                        id="state"
+                        name="state"
+                        placeholder="State"
+                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="country" className="text-gray-700">
+                        Country
+                      </Label>
+                      <Input
+                        id="country"
+                        name="country"
+                        placeholder="Country"
+                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                        value={formData.country}
                         onChange={handleInputChange}
                       />
                     </div>

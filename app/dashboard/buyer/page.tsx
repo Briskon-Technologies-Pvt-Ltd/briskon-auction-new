@@ -475,30 +475,25 @@ export default function BuyerDashboard() {
           </Link>
 
           {/* My Profile */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-blue-600 animate-bounce" />
-                <CardTitle className="text-sm font-medium">
-                  My Profile
-                </CardTitle>
-              </div>
-              <div className="mt-1 space-y-1">
-                <Link
-                  href="/settings/profile"
-                  className="text-xs text-blue-500 hover:underline block"
-                >
-                  Edit Profile
-                </Link>
-                <Link
-                  href="/settings/password"
-                  className="text-xs text-blue-500 hover:underline block"
-                >
-                  Change Password
-                </Link>
-              </div>
-            </CardHeader>
-          </Card>
+
+          <Link href="/settings/profile">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-blue-600 animate-bounce" />
+                  <CardTitle className="text-sm font-medium">
+                    My Profile
+                  </CardTitle>
+                </div>
+                <div className="mt-1">
+                  <div className="text-xs font-bold invisible">1</div>
+                  <p className="text-xs text-gray-500">
+                    Edit Profile & Change Password
+                  </p>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
         {/* Section Table */}
         <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">

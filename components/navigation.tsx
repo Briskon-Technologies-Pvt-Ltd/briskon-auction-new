@@ -52,7 +52,10 @@ function Navigation({
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const { user, logout, isAuthenticated } = useAuth();
-  const [profile, setProfile] = useState<{ avatar_url: string; fname: string } | null>(null)
+  const [profile, setProfile] = useState<{
+    avatar_url: string;
+    fname: string;
+  } | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -231,24 +234,23 @@ function Navigation({
     }
   };
   useEffect(() => {
-  const fetchProfile = async () => {
-    if (!user?.id) return;
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("avatar_url, fname")
-      .eq("id", user.id)
-      .single();
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("avatar_url, fname")
+        .eq("id", user.id)
+        .single();
 
-    if (error) {
-      console.error("Failed to fetch profile", error.message);
-    } else {
-      setProfile(data);
-    }
-  };
+      if (error) {
+        console.error("Failed to fetch profile", error.message);
+      } else {
+        setProfile(data);
+      }
+    };
 
-  fetchProfile();
-}, [user]);
-
+    fetchProfile();
+  }, [user]);
 
   return (
     <header
@@ -425,13 +427,16 @@ function Navigation({
                   <Link href="/settings/profile">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 cursor-pointer hover:ring-2 hover:ring-gray-400 transition">
                       <Image
-  src={profile?.avatar_url || "/images/user.png"}
-  alt={profile?.fname || "User"}
-  width={32}
-  height={32}
-  className="w-full h-full object-cover rounded-full"
-/>
-
+                        src={
+                          profile?.avatar_url
+                            ? `${profile.avatar_url}?t=${Date.now()}`
+                            : "/images/user.png"
+                        }
+                        alt={profile?.fname || "User"}
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover rounded-full"
+                      />
                     </div>
                   </Link>
 

@@ -78,6 +78,7 @@ export default function ProfileSettingsPage() {
 
     if (userId) fetchProfile();
   }, [userId]);
+
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -254,11 +255,16 @@ export default function ProfileSettingsPage() {
                 <div className="absolute top-8 right-8 text-center">
                   <div className="w-24 h-24 relative rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 mx-auto">
                     <Image
-                      src={`${profile.avatar_url || "/images/user.png"}`}
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                    />
+  src={
+    profile.avatar_url
+      ? `${profile.avatar_url}?t=${Date.now()}`
+      : "/images/user.png"
+  }
+  alt="Profile"
+  fill
+  className="object-cover"
+/>
+
                   </div>
 
                   {/* Invisible but clickable file input */}

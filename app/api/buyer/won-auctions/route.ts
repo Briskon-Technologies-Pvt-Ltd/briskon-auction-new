@@ -30,6 +30,7 @@ interface WonAuction {
   startAmount: number;
   winningBidAmount: number;
   targetprice?: number; // Optional field for target price
+  productimage: string;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -42,7 +43,10 @@ export async function GET(request: Request) {
   const userId = url.searchParams.get("id");
 
   if (!userEmail) {
-    return NextResponse.json({ error: "User email is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "User email is required" },
+      { status: 400 }
+    );
   }
   if (!userId) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -52,11 +56,14 @@ export async function GET(request: Request) {
     // Fetch auctions where the user is the current bidder and ended is true
     const { data: wonAuctions, error: auctionsError } = await supabase
       .from("auctions")
-      .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, participants, ended,targetprice, profiles:seller (fname, lname)")
+      .select(
+        "id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, participants, ended,targetprice, profiles:seller (fname, lname), productimages"
+      )
       .eq("currentbidder", userEmail)
       .eq("ended", true);
 
-    if (auctionsError) throw new Error(`Failed to fetch auctions: ${auctionsError.message}`);
+    if (auctionsError)
+      throw new Error(`Failed to fetch auctions: ${auctionsError.message}`);
 
     const wonAuctionsData: WonAuction[] = [];
 
@@ -65,40 +72,68 @@ export async function GET(request: Request) {
         .from("bids")
         .select("auction_id, user_id, amount");
 
-      if (bidsError) throw new Error(`Failed to fetch bids: ${bidsError.message}`);
+      if (bidsError)
+        throw new Error(`Failed to fetch bids: ${bidsError.message}`);
 
       for (const auction of wonAuctions) {
-        if (auction.auctiontype === "yankee" || auction.auctionsubtype === "yankee") {
+        if (
+          auction.auctiontype === "yankee" ||
+          auction.auctionsubtype === "yankee"
+        ) {
           // Handle Yankee auction
-          const bidsForAuction = allBids.filter((bid) => bid.auction_id === auction.id);
+          const bidsForAuction = allBids.filter(
+            (bid) => bid.auction_id === auction.id
+          );
           if (bidsForAuction.length > 0) {
-            const sortedBids = bidsForAuction.sort((a, b) => b.amount - a.amount); // Descending order
-            const topNBids = sortedBids.slice(0, Math.min(auction.productquantity, bidsForAuction.length));
-            if (topNBids.some((bid) => bid.user_id === userId) || (bidsForAuction.length === 1 && bidsForAuction[0].user_id === userId)) {
+            const sortedBids = bidsForAuction.sort(
+              (a, b) => b.amount - a.amount
+            ); // Descending order
+            const topNBids = sortedBids.slice(
+              0,
+              Math.min(auction.productquantity, bidsForAuction.length)
+            );
+            if (
+              topNBids.some((bid) => bid.user_id === userId) ||
+              (bidsForAuction.length === 1 &&
+                bidsForAuction[0].user_id === userId)
+            ) {
+              const productimage =
+                Array.isArray(auction.productimages) &&
+                auction.productimages.length > 0
+                  ? auction.productimages[0]
+                  : "/placeholder.svg";
               wonAuctionsData.push({
                 auctionId: auction.id,
+                productimage,
                 productName: auction.productname,
-                auctionType: auction.auctiontype || auction.auctionsubtype || "yankee",
+                auctionType:
+                  auction.auctiontype || auction.auctionsubtype || "yankee",
                 startAmount: auction.startprice || 0,
                 winningBidAmount: auction.currentbid || 0,
-                 sellerName: Array.isArray(auction.profiles)
-          ? auction.profiles[0]?.fname ?? "Unknown"
-          : auction.profiles?.fname ?? "Unknown",
+                sellerName: Array.isArray(auction.profiles)
+                  ? auction.profiles[0]?.fname ?? "Unknown"
+                  : auction.profiles?.fname ?? "Unknown",
               });
             }
           }
         } else {
+          const productimage =
+            Array.isArray(auction.productimages) &&
+            auction.productimages.length > 0
+              ? auction.productimages[0]
+              : "/placeholder.svg";
           // Handle non-Yankee auction
           wonAuctionsData.push({
             auctionId: auction.id,
             productName: auction.productname,
             auctionType: auction.auctiontype || "standard",
             startAmount: auction.startprice || 0,
+            productimage,
             winningBidAmount: auction.currentbid || 0,
             targetprice: auction.targetprice, // Include target price if available
             sellerName: Array.isArray(auction.profiles)
-          ? auction.profiles[0]?.fname ?? "Unknown"
-          : auction.profiles?.fname ?? "Unknown",
+              ? auction.profiles[0]?.fname ?? "Unknown"
+              : auction.profiles?.fname ?? "Unknown",
           });
         }
       }
@@ -107,6 +142,9 @@ export async function GET(request: Request) {
     return NextResponse.json(wonAuctionsData || []);
   } catch (error) {
     console.error("Error fetching won auctions:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

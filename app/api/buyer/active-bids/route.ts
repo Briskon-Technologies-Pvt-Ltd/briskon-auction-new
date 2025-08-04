@@ -13,6 +13,7 @@ interface Auction {
   auctiontype: string | null;
   auctionsubtype: string | null;
   scheduledstart?: string;
+  productimages: string[];
   auctionduration?: { days?: number; hours?: number; minutes?: number } | null;
   profiles: { fname: string; lname: string }[] | { fname: string; lname: string };
 }
@@ -49,7 +50,8 @@ export async function GET(request: Request) {
         auctionsubtype,
         auctionduration,
         scheduledstart,
-        profiles:seller (fname, lname)
+        profiles:seller (fname, lname),
+        productimages
       `)
       .in("id", auctionIds)
       .eq("ended", false)
@@ -58,13 +60,13 @@ export async function GET(request: Request) {
     if (auctionsError) throw auctionsError;
 
     const auctions = auctionsRaw as Auction[];
+    
 const now = new Date();
 await Promise.all(
   auctions.map(async (auction) => {
     if (auction.scheduledstart && auction.auctionduration) {
       const startTime = new Date(auction.scheduledstart);
       const duration = auction.auctionduration;
-
       const endTime = new Date(startTime);
       if (duration.days) endTime.setDate(endTime.getDate() + duration.days);
       if (duration.hours) endTime.setHours(endTime.getHours() + duration.hours);
@@ -118,9 +120,13 @@ await Promise.all(
   })
 );
 
+
     // Step 5: Build response
     const activeBids = auctions.map((auction) => {
       const userBid = latestBidsMap.get(auction.id);
+      const productimage = Array.isArray(auction.productimages) && auction.productimages.length > 0
+  ? auction.productimages[0]
+  : "/placeholder.svg"; // fallback image
       const bidList = rankings[auction.id] || [];
       const position = bidList.findIndex((b) => b.userId === userId);
       return {
@@ -131,6 +137,7 @@ await Promise.all(
           : auction.profiles?.fname ?? "Unknown",
         auctionType: auction.auctiontype || "standard",
         auctionSubtype: auction.auctionsubtype,
+        productimage,
         scheduledstart: auction.scheduledstart ?? null,
         auctionduration: auction.auctionduration ?? null,
         bidAmount: userBid?.amount || 0,

@@ -8,9 +8,13 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function POST(request: Request) {
   try {
-    const { email, password, fname, lname, location, role, type } = await request.json();
-    console.log("Received:", { email, password, fname, lname, location, role, type});
-
+    const { email, password, fname, lname, location, role, type, address, phone,city, state, country  } = await request.json();
+    console.log("Received:", { email, password, fname, lname, location, role, type, address, phone,city, state, country });
+    const addressinfo = {
+  city,
+  state,
+  country,
+};
     // Validate required fields
     if (!email || !password || !fname || !lname || !role) {
       console.log("Validation failed: Missing fields");
@@ -54,6 +58,9 @@ export async function POST(request: Request) {
           location,
           role,
           type,
+          address, 
+          phone,
+          addressinfo,
           verified: false,
         },
       },
@@ -73,6 +80,9 @@ export async function POST(request: Request) {
         role,
         location,
         type,
+        address,
+        phone,
+        addressinfo,
         created_at: new Date().toISOString(),
         verified: false,
       });

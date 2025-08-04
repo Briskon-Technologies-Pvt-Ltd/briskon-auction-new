@@ -15,6 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +30,8 @@ interface Profile {
   email: string;
   created_at: string;
   avatar_url?: string;
-  address?: string;
+  addressline1?: string;
+  addressline2?: string;
   phone?: string;
 }
 
@@ -46,11 +48,9 @@ export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   // For edit form fields
   const [fname, setFname] = useState("");
   const [lname, setLname] = useState("");
-  const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
 
   // Password change fields
@@ -58,6 +58,9 @@ export default function ProfileSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -73,7 +76,8 @@ export default function ProfileSettingsPage() {
         // Populate edit fields on load
         setFname(data.data.fname);
         setLname(data.data.lname);
-        setAddress(data.data.address || "");
+        setAddress1(data.data.addressline1 || "");
+        setAddress2(data.data.addressline2 || "");
         setPhone(data.data.phone || "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -152,56 +156,85 @@ export default function ProfileSettingsPage() {
   const createdAtIST = DateTime.fromISO(profile.created_at, { zone: "utc" })
     .setZone("Asia/Kolkata")
     .toLocaleString(DateTime.DATETIME_FULL);
+  const handleUpdatePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      alert("Please fill in all fields.");
+      return;
+    }
 
-  // Handlers for save buttons (placeholders)
-  const handleSaveProfile = () => {
-    // Implement your API call to update profile here
-    alert(`Saving profile:
-    First Name: ${fname}
-    Last Name: ${lname}
-    Address: ${address}
-    Phone: ${phone}`);
-    setActiveTab("view");
-  };
+    if (newPassword.length < 6) {
+      alert("New password must be at least 6 characters.");
+      return;
+    }
 
-  const handleUpdatePassword = () => {
     if (newPassword !== confirmPassword) {
       alert("New password and confirm password do not match!");
       return;
     }
-    // Implement your API call to update password here
-    alert(`Password update requested`);
-    // Optionally clear fields after update
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user?.email) {
+      alert("User session invalid. Please log in again.");
+      return;
+    }
+
+    // Re-authenticate with old password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: oldPassword,
+    });
+
+    if (signInError) {
+      alert("Current password is incorrect.");
+      return;
+    }
+
+    // Update to new password
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      alert(`Error updating password: ${error.message}`);
+      return;
+    }
+
+    alert("Password changed successfully. Please log in again.");
+     setTimeout(async () => {
+  await supabase.auth.signOut();
+  router.push("/login");
+}, 1000); // delay 1 second
   };
+
   const handleSaveChanges = async () => {
-    try {
-      const updates = {
-        id: user?.id,
-        fname,
-        lname,
-        address1,
-        address2,
-        phone,
-        updated_at: new Date().toISOString(),
-      };
+    if (!user?.id) {
+      toast.error("User not logged in");
+      return;
+    }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", user?.id);
+    const updates = {
+      fname,
+      lname,
+      addressline1: address1, // ✅ match your DB column
+      addressline2: address2,
+      phone,
+      // updated_at: new Date().toISOString(),
+    };
 
-      if (error) {
-        toast.error("Failed to update profile.");
-        console.error(error);
-      } else {
-        toast.success("Profile updated successfully.");
-      }
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      toast.error("Unexpected error occurred.");
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", user.id);
+
+    if (error) {
+      toast.error("Failed to update profile.");
+      console.error(error);
+    } else {
+      alert("Profile updated successfully!");
     }
   };
 
@@ -272,7 +305,12 @@ export default function ProfileSettingsPage() {
         {/* Editable Form Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label className="text-sm font-medium text-gray-700 dark:text-white" htmlFor="fname">First Name</Label>
+            <Label
+              className="text-sm font-medium text-gray-700 dark:text-white"
+              htmlFor="fname"
+            >
+              First Name
+            </Label>
             <Input
               id="fname"
               value={fname}
@@ -280,7 +318,9 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <Label className="text-gray-600" htmlFor="lname">Last Name</Label>
+            <Label className="text-gray-600" htmlFor="lname">
+              Last Name
+            </Label>
             <Input
               id="lname"
               value={lname}
@@ -288,20 +328,22 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <Label className="text-gray-600" htmlFor="address1">Address Line 1</Label>
+            <Label className="text-gray-600" htmlFor="address1">
+              Address Line 1
+            </Label>
             <Input
-              id="address1"
-              placeholder="e.g., 123 Main St"
+              id="addressline1"
               value={address1}
               onChange={(e) => setAddress1(e.target.value)}
             />
           </div>
 
           <div>
-            <Label className="text-gray-600" htmlFor="address2">Address Line 2</Label>
+            <Label className="text-gray-600" htmlFor="address2">
+              Address Line 2
+            </Label>
             <Input
-              id="address2"
-              placeholder="e.g., Apartment, Landmark"
+              id="addressline2"
               value={address2}
               onChange={(e) => setAddress2(e.target.value)}
             />
@@ -320,7 +362,7 @@ export default function ProfileSettingsPage() {
 
           <div className="md:col-span-2 text-center">
             <Button
-              className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+              className="bg-blue-100 hover:bg-blue-200 text-blue-800 active:scale-95 transition-transform duration-100"
               onClick={handleSaveChanges}
             >
               Save Changes
@@ -331,45 +373,73 @@ export default function ProfileSettingsPage() {
         {/* Change Password Section */}
         <div className="space-y-6 pt-10">
           <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
-            My Profile
+            Change Password
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
-            <div>
+            {/* Old Password */}
+            <div className="relative">
               <Label htmlFor="old-password">Current Password</Label>
               <Input
+                required
                 id="old-password"
-                type="password"
+                type={showOldPassword ? "text" : "password"}
                 placeholder="Current password"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
+              <div
+                className="absolute right-3 top-[38px] cursor-pointer text-gray-400"
+                onClick={() => setShowOldPassword((prev) => !prev)}
+              >
+                {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </div>
             </div>
-            <div>
+
+            {/* New Password */}
+            <div className="relative">
               <Label htmlFor="new-password">New Password</Label>
               <Input
+                required
                 id="new-password"
-                type="password"
+                type={showNewPassword ? "text" : "password"}
                 placeholder="New password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
+              <div
+                className="absolute right-3 top-[38px] cursor-pointer text-gray-400"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </div>
             </div>
-            <div className="md:col-span-1">
+
+            {/* Confirm Password */}
+            <div className="relative md:col-span-1">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
               <Input
+                required
                 id="confirm-password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              <div
+                className="absolute right-3 top-[38px] cursor-pointer text-gray-400"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </div>
             </div>
+
+            {/* Button */}
             <div className="md:col-span-2 text-center">
               <Button
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+                className="bg-blue-100 hover:bg-blue-200 text-blue-800 active:scale-95 transition-transform duration-100"
                 onClick={handleUpdatePassword}
               >
-                Update Password
+                Change Password
               </Button>
             </div>
           </div>

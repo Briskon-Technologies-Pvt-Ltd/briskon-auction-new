@@ -30,7 +30,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, fname, lname, email, role, location, type, avatar_url")
+      .select("id, fname, lname, email, role, location, type, avatar_url, phone, addressline1, addressline2")
       .eq("id", userId) // Adjust column name if different (e.g., user_id)
       .single();
 

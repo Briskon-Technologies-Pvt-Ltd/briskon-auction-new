@@ -10,12 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@supabase/auth-helpers-react";
-
+import { useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Lock } from "lucide-react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +40,6 @@ export default function ProfileSettingsPage() {
 
   const params = useParams<{ id: string }>();
   const router = useRouter();
-
   const userId = params.id || user?.id;
   const [address1, setAddress1] = useState("");
   const [address2, setAddress2] = useState("");
@@ -52,12 +51,11 @@ export default function ProfileSettingsPage() {
   const [fname, setFname] = useState("");
   const [lname, setLname] = useState("");
   const [phone, setPhone] = useState("");
-
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Password change fields
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -70,9 +68,7 @@ export default function ProfileSettingsPage() {
         const data = await res.json();
         if (!data.success)
           throw new Error(data.error || "Failed to load profile");
-
         setProfile(data.data);
-
         // Populate edit fields on load
         setFname(data.data.fname);
         setLname(data.data.lname);
@@ -129,6 +125,10 @@ export default function ProfileSettingsPage() {
         prev ? { ...prev, avatar_url: `${publicUrl}?t=${Date.now()}` } : prev
       );
     }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   // --- END handleFileChange ---
@@ -204,10 +204,10 @@ export default function ProfileSettingsPage() {
     }
 
     alert("Password changed successfully. Please log in again.");
-     setTimeout(async () => {
-  await supabase.auth.signOut();
-  router.push("/login");
-}, 1000); // delay 1 second
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+      router.push("/login");
+    }, 1000); // delay 1 second
   };
 
   const handleSaveChanges = async () => {
@@ -240,35 +240,21 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-16 px-4">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-xl p-10 space-y-12">
-        {/* Top Info Section */}
-        <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-xl p-10 space-y-6">
+        {/* Header */}
+        <div className="text-xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6 flex items-center gap-2">
+          <User className="w-4 h-4 text-gray-600 dark:text-gray-300 animate-bounce" />
           My Profile
         </div>
-        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-          {/* Profile Picture */}
-          <div className="flex-1 w-full flex flex-col gap-4 text-sm mt-4 md:mt-0">
-            <div>
-              <Label className="text-gray-600">Email</Label>
-              <div className="text-base font-medium text-gray-700 dark:text-white">
-                {profile.email}
-              </div>
-            </div>
-            <div>
-              <Label className="text-gray-600">Role</Label>
-              <div className="text-base font-medium text-gray-700 dark:text-white capitalize">
-                {profile.role}
-              </div>
-            </div>
-            <div>
-              <Label className="text-gray-600">Joined On</Label>
-              <div className="text-base font-medium text-gray-700 dark:text-white">
-                {createdAtIST}
-              </div>
-            </div>
+        <div className="flex items-center justify-between">
+          {/* Name */}
+          <div className="font-medium text-[30px] text-gray-800 dark:text-white mt-2">
+            {fname} {lname}
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 relative">
+
+          {/* Image + Change Photo button */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 relative">
               <Image
                 src={
                   profile.avatar_url
@@ -281,102 +267,178 @@ export default function ProfileSettingsPage() {
                 className="object-cover w-full h-full"
               />
             </div>
-
-            {/* THIS label must wrap BOTH input and button */}
-
-            <input
-              type="file"
-              accept="image/*"
-              id="profile-upload"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            <label htmlFor="profile-upload" className="cursor-pointer">
-              <Button variant="secondary" size="sm">
+            <label className="cursor-pointer">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={triggerFileInput}
+                className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+              >
                 Change Photo
               </Button>
             </label>
           </div>
+        </div>
 
-          {/* Read-only Info */}
+        {/* Read-only Info */}
+        <div className="flex flex-col md:flex-row justify-between gap-6 mt-4">
+          {/* Left Side: Info Fields */}
+          <div className="flex-1 space-y-4 text-sm text-gray-700 dark:text-white">
+            {/* Email, Role, Joined */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <Label className="text-gray-600">Email</Label>
+                <div className="font-medium">{profile.email}</div>
+              </div>
+              <div>
+                <Label className="text-gray-600">Role</Label>
+                <div className="font-medium capitalize">{profile.role}</div>
+              </div>
+              <div>
+                <Label className="text-gray-600">Joined On</Label>
+                <div className="font-medium">{createdAtIST}</div>
+              </div>
+            </div>
+
+            {/* <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 relative">
+              <Image
+                src={
+                  profile.avatar_url
+                    ? `${profile.avatar_url}?t=${Date.now()}`
+                    : "/images/user.png"
+                }
+                alt="Profile"
+                width={128}
+                height={128}
+                className="object-cover w-full h-full"
+              />
+            </div>
+            <label className="cursor-pointer">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={triggerFileInput}
+                className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+              >
+                Change Photo
+              </Button>
+            </label>
+          </div> */}
+
+            {/* Fname, Lname */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="fname" className="text-gray-600">
+                  First Name
+                </Label>
+                <Input
+                  id="fname"
+                  className="w-full text-gray-700"
+                  placeholder="Enter First Name"
+                  value={fname}
+                  onChange={(e) => setFname(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="lname" className="text-gray-600">
+                  Last Name
+                </Label>
+                <Input
+                  id="lname"
+                  className="w-full text-gray-700"
+                  placeholder="Enter Last Name"
+                  value={lname}
+                  onChange={(e) => setLname(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Address1, Phone */}
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="addressline1" className="text-gray-600">
+                  Address Line 1
+                </Label>
+                <Input
+                  id="addressline1"
+                  className="w-full text-gray-700"
+                  placeholder="Eg: Florida"
+                  value={address1}
+                  onChange={(e) => setAddress1(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="addressline2" className="text-gray-600">
+                  Address Line 2
+                </Label>
+                <Input
+                  id="addressline2"
+                  className="w-full text-gray-700"
+                  placeholder="Optional"
+                  value={address2}
+                  onChange={(e) => setAddress2(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone" className="text-gray-600">
+                  Phone
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  className="w-full text-gray-700"
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Image */}
+        </div>
+
+        {/* Save Button */}
+        <div className="md:col-span-2 text-center mt-6">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+            onClick={handleSaveChanges}
+          >
+            Save Changes
+          </Button>
         </div>
 
         {/* Editable Form Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label
-              className="text-sm font-medium text-gray-700 dark:text-white"
-              htmlFor="fname"
-            >
-              First Name
-            </Label>
-            <Input
-              id="fname"
-              value={fname}
-              onChange={(e) => setFname(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label className="text-gray-600" htmlFor="lname">
-              Last Name
-            </Label>
-            <Input
-              id="lname"
-              value={lname}
-              onChange={(e) => setLname(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label className="text-gray-600" htmlFor="address1">
-              Address Line 1
-            </Label>
-            <Input
-              id="addressline1"
-              value={address1}
-              onChange={(e) => setAddress1(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label className="text-gray-600" htmlFor="address2">
-              Address Line 2
-            </Label>
-            <Input
-              id="addressline2"
-              value={address2}
-              onChange={(e) => setAddress2(e.target.value)}
-            />
-          </div>
-          <div className="md:col-span-1 text-gray-600">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="Phone number"
-              className="w-full"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-
-          <div className="md:col-span-2 text-center">
-            <Button
-              className="bg-blue-100 hover:bg-blue-200 text-blue-800 active:scale-95 transition-transform duration-100"
-              onClick={handleSaveChanges}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </div>
 
         {/* Change Password Section */}
-        <div className="space-y-6 pt-10">
-          <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
+        <div className="pt-1">
+          <div className="text-xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-gray-600 dark:text-gray-300 animate-bounce" />
             Change Password
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
-            {/* Old Password */}
+
+          <div className="grid grid-cols-2 gap-4 text-gray-600">
+            {/* Current Password */}
             <div className="relative">
               <Label htmlFor="old-password">Current Password</Label>
               <Input
@@ -394,6 +456,9 @@ export default function ProfileSettingsPage() {
                 {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </div>
             </div>
+
+            {/* Empty space */}
+            <div></div>
 
             {/* New Password */}
             <div className="relative">
@@ -413,9 +478,9 @@ export default function ProfileSettingsPage() {
                 {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </div>
             </div>
-
+            <div></div>
             {/* Confirm Password */}
-            <div className="relative md:col-span-1">
+            <div className="relative">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
               <Input
                 required
@@ -432,11 +497,13 @@ export default function ProfileSettingsPage() {
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </div>
             </div>
-
-            {/* Button */}
-            <div className="md:col-span-2 text-center">
+            <div></div>
+            {/* Button (spanning full width) */}
+            <div className="md:col-span- text-center">
               <Button
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800 active:scale-95 transition-transform duration-100"
+                variant="secondary"
+                size="sm"
+                className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
                 onClick={handleUpdatePassword}
               >
                 Change Password

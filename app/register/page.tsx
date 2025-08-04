@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { countriesData } from "@/Data/Location";
 import {
   Card,
   CardContent,
@@ -43,6 +44,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 // import LocationDropdownsGeoDB from "@/components/LocationDropdownsGeoDB";
+import type { Country } from "@/lib/locationTypes";
 
 export default function RegisterPage() {
   const { register, isLoading: authLoading, isAuthenticated, user } = useAuth();
@@ -55,6 +57,10 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [countries, setCountries] = useState<Country[]>([]);
 
   const [formData, setFormData] = useState({
     accountType: "buyer", // Default to 'buyer'
@@ -65,8 +71,8 @@ export default function RegisterPage() {
     email: "",
     phone: "",
     password: "",
-    address1: "",
-    address2: "",
+    addressline1: "",
+    addressline2: "",
     city: "",
     state: "",
     country: "",
@@ -81,11 +87,8 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    const typeParam = searchParams.get("type");
-    if (typeParam && ["buyer", "seller", "both"].includes(typeParam)) {
-      setFormData((prev) => ({ ...prev, accountType: typeParam }));
-    }
-  }, [searchParams]);
+    setCountries(countriesData); // Only set once on mount
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -208,7 +211,7 @@ export default function RegisterPage() {
       setError("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
-
+    const location = `${formData.city}, ${formData.country}`;
     setIsLoading(true);
     try {
       const response = await fetch("/api/profiles", {
@@ -224,7 +227,7 @@ export default function RegisterPage() {
           city: formData.city,
           state: formData.state,
           country: formData.country,
-          location: formData.location,
+          location,
           role: formData.accountType,
           type:
             formData.accountType === "seller" || formData.accountType === "both"
@@ -238,9 +241,8 @@ export default function RegisterPage() {
             formData.sellerType === "organization"
               ? formData.organizationContact
               : undefined,
-          address: `${formData.address1}${
-            formData.address2 ? ", " + formData.address2 : ""
-          }`,
+          addressline1: formData.addressline1,
+          addressline2: formData.addressline2,
           phone: formData.phone,
         }),
       });
@@ -860,36 +862,120 @@ export default function RegisterPage() {
 
                   {/* Address Line 1 */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="address1" className="text-gray-700">
+                    <Label htmlFor="addressline1" className="text-gray-700">
                       Address Line 1
                     </Label>
                     <Input
-                      id="address1"
-                      name="address1"
+                      id="addressline1"
+                      name="addressline1"
                       placeholder="e.g., 123 Main St"
                       className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
-                      value={formData.address1}
+                      value={formData.addressline1}
                       onChange={handleInputChange}
                     />
                   </div>
 
                   {/* Address Line 2 */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="address2" className="text-gray-700">
+                    <Label htmlFor="addressline2" className="text-gray-700">
                       Address Line 2 (optional)
                     </Label>
                     <Input
-                      id="address2"
-                      name="address2"
+                      id="addressline2"
+                      name="addressline2"
                       placeholder="e.g., Apartment, suite, unit, building, etc."
                       className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
-                      value={formData.address2}
+                      value={formData.addressline2}
                       onChange={handleInputChange}
                     />
                   </div>
 
                   {/* City, State, Country - in one row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="country" className="text-gray-700">
+                        Country
+                      </Label>
+                      <select
+                        id="country"
+                        name="country"
+                        className="w-full border-gray-300 rounded-lg p-2"
+                        value={formData.country}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({
+                            ...formData,
+                            country: value,
+                            state: "",
+                            city: "",
+                          });
+                          setSelectedCountry(value);
+                          setSelectedState("");
+                          setSelectedCity("");
+                        }}
+                      >
+                        <option value="">Select Country</option>
+                        {countries.map((country) => (
+                          <option key={country.id} value={country.name}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="state" className="text-gray-700">
+                        State
+                      </label>
+                      <select
+                        id="state"
+                        className="w-full border border-gray-300 rounded-lg p-2"
+                        value={selectedState}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ ...formData, state: value, city: "" });
+                          setSelectedState(value);
+                          setSelectedCity("");
+                        }}
+                      >
+                        <option value="">Select State</option>
+                        {countries
+                          .find((country) => country.name === selectedCountry)
+                          ?.states?.map((state) => (
+                            <option key={state.id} value={state.name}>
+                              {state.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="city" className="text-gray-700">
+                        City
+                      </label>
+                      <select
+                        id="city"
+                        className="w-full border border-gray-300 rounded-lg p-2"
+                        value={selectedCity}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ ...formData, city: value });
+                          setSelectedCity(value);
+                        }}
+                      >
+                        <option value="">Select City</option>
+                        {countries
+                          .find((country) => country.name === selectedCountry)
+                          ?.states.find((state) => state.name === selectedState)
+                          ?.cities?.map((city) => (
+                            <option key={city.id} value={city.name}>
+                              {city.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="city" className="text-gray-700">
                         City
@@ -902,33 +988,7 @@ export default function RegisterPage() {
                         value={formData.city}
                         onChange={handleInputChange}
                       />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="state" className="text-gray-700">
-                        State
-                      </Label>
-                      <Input
-                        id="state"
-                        name="state"
-                        placeholder="State"
-                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
-                        value={formData.state}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="country" className="text-gray-700">
-                        Country
-                      </Label>
-                      <Input
-                        id="country"
-                        name="country"
-                        placeholder="Country"
-                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
-                        value={formData.country}
-                        onChange={handleInputChange}
-                      />
-                    </div>
+                    </div> */}
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">

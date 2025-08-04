@@ -29,7 +29,8 @@ interface Profile {
   email: string;
   created_at: string;
   avatar_url?: string;
-  address?: string;
+  addressline1?: string;
+  addressline2?: string;
   phone?: string;
 }
 
@@ -46,11 +47,9 @@ export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   // For edit form fields
   const [fname, setFname] = useState("");
   const [lname, setLname] = useState("");
-  const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
 
   // Password change fields
@@ -73,7 +72,8 @@ export default function ProfileSettingsPage() {
         // Populate edit fields on load
         setFname(data.data.fname);
         setLname(data.data.lname);
-        setAddress(data.data.address || "");
+        setAddress1(data.data.addressline1 || "");
+        setAddress2(data.data.addressline2 || "");
         setPhone(data.data.phone || "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -272,7 +272,12 @@ export default function ProfileSettingsPage() {
         {/* Editable Form Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label className="text-sm font-medium text-gray-700 dark:text-white" htmlFor="fname">First Name</Label>
+            <Label
+              className="text-sm font-medium text-gray-700 dark:text-white"
+              htmlFor="fname"
+            >
+              First Name
+            </Label>
             <Input
               id="fname"
               value={fname}
@@ -280,7 +285,9 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <Label className="text-gray-600" htmlFor="lname">Last Name</Label>
+            <Label className="text-gray-600" htmlFor="lname">
+              Last Name
+            </Label>
             <Input
               id="lname"
               value={lname}
@@ -288,20 +295,22 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <Label className="text-gray-600" htmlFor="address1">Address Line 1</Label>
-            <Input
-              id="address1"
-              placeholder="e.g., 123 Main St"
+            <Label className="text-gray-600" htmlFor="address1">
+              Address Line 1
+            </Label>
+           <Input
+              id="addressline1"
               value={address1}
               onChange={(e) => setAddress1(e.target.value)}
             />
           </div>
 
           <div>
-            <Label className="text-gray-600" htmlFor="address2">Address Line 2</Label>
+            <Label className="text-gray-600" htmlFor="address2">
+              Address Line 2
+            </Label>
             <Input
-              id="address2"
-              placeholder="e.g., Apartment, Landmark"
+              id="addressline2"
               value={address2}
               onChange={(e) => setAddress2(e.target.value)}
             />
@@ -331,7 +340,7 @@ export default function ProfileSettingsPage() {
         {/* Change Password Section */}
         <div className="space-y-6 pt-10">
           <div className="text-2xl font-semibold text-gray-800 dark:text-white border-b pb-2 mb-6">
-            My Profile
+            Change Password
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-600">
             <div>

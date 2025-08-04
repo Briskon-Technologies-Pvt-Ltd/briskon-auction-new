@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     // 2. Fetch all ended auctions the user bid in
     const { data: auctions, error: auctionsError } = await supabase
       .from("auctions")
-      .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, currentbidder, ended, targetprice, profiles:seller(fname)")
+      .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, currentbidder, ended, targetprice, profiles:seller(fname), productimages")
       .in("id", auctionIds)
       .eq("ended", true);
 
@@ -69,7 +69,11 @@ export async function GET(request: Request) {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const userBidAmount = userBidsForAuction.length > 0 ? userBidsForAuction[0].amount : 0;
-
+const productimage =
+                Array.isArray(auction.productimages) &&
+                auction.productimages.length > 0
+                  ? auction.productimages[0]
+                  : "/placeholder.svg";
   lostAuctions.push({
     auctionId: auction.id,
     productName: auction.productname,
@@ -77,6 +81,7 @@ export async function GET(request: Request) {
     startAmount: auction.startprice || 0,
     winningBidAmount,
     userBidAmount,
+    productimage,
     targetprice: auction.targetprice,
     sellerName: Array.isArray(auction.profiles)
       ? auction.profiles[0]?.fname ?? "Unknown"

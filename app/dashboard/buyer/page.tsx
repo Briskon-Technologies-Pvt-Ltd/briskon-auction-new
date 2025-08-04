@@ -39,6 +39,7 @@ type Bid = {
   status: string;
   scheduledstart?: string | null;
   position?: number;
+  productimage: string;
   auctionduration?: {
     days?: number;
     hours?: number;
@@ -57,6 +58,7 @@ interface ActiveBid {
   isWinningBid: boolean;
   position: number;
   scheduledstart?: string | null; //
+  productimage: string;
   auctionduration?: {
     days?: number;
     hours?: number;
@@ -82,6 +84,7 @@ interface WonAuctionEntry {
   startAmount: number;
   winningBidAmount: number;
   targetprice?: number; // Optional field for target price
+  productimage: string;
 }
 type LostAuctionEntry = {
   auctionId: string;
@@ -91,6 +94,7 @@ type LostAuctionEntry = {
   startAmount: number;
   userBidAmount: number | null;
   winningBidAmount: number;
+  productimage: string;
 };
 
 export default function BuyerDashboard() {
@@ -207,6 +211,7 @@ export default function BuyerDashboard() {
               auctionduration: a.auctionduration ?? null,
               auctionSubtype: a.auctionSubtype,
               position: a.position,
+              productimage: a.productimage,
             }));
 
           const reverse = activeBids
@@ -221,6 +226,7 @@ export default function BuyerDashboard() {
               scheduledstart: a.scheduledstart ?? null,
               auctionduration: a.auctionduration ?? null,
               auctionSubtype: a.auctionSubtype,
+              productimage: a.productimage,
             }));
 
           setForwardBids(forward);
@@ -569,14 +575,20 @@ export default function BuyerDashboard() {
                                   idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                                 }
                               >
-                                <td className="px-4 py-2 ">
+                                <td className="px-4 py-2">
                                   <Link
                                     href={`/auctions/${bid.id}`}
-                                    className=" text-gray-700 dark:text-gray-100 hover:underline"
+                                    className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
                                   >
+                                    <img
+                                      src={bid.productimage}
+                                      alt={bid.auction_name}
+                                      className="w-6 h-6 rounded-full object-cover"
+                                    />
                                     {bid.auction_name}
                                   </Link>
                                 </td>
+
                                 <td className="px-4 py-2 text-gray-600">
                                   {bid.seller_name}
                                 </td>
@@ -678,11 +690,17 @@ export default function BuyerDashboard() {
                         <td className="p-2">
                           <Link
                             href={`/auctions/${auction.auctionId}`}
-                            className=" text-gray-700 dark:text-gray-100 hover:underline"
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
                           >
+                            <img
+                              src={auction.productimage}
+                              alt={auction.productName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
                             {auction.productName}
                           </Link>
                         </td>
+
                         <td className="p-2 capitalize text-gray-600">
                           {auction.auctionType || "standard"}
                         </td>
@@ -735,8 +753,13 @@ export default function BuyerDashboard() {
                         <td className="p-2">
                           <Link
                             href={`/auctions/${auction.auctionId}`}
-                            className=" text-gray-700 dark:text-gray-100 hover:underline"
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
                           >
+                            <img
+                              src={auction.productimage}
+                              alt={auction.productName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
                             {auction.productName}
                           </Link>
                         </td>

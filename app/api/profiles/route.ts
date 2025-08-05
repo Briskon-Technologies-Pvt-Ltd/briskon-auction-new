@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function POST(request: Request) {
   try {
     const { email, password, fname, lname, location, role, type, phone,city, state, country,addressline1, addressline2  } = await request.json();
-    const formattedLocation = city && country ? `${city}, ${country}` : "";
+    const formattedLocation = city && country ? `${city}, ${country}, ${state}` : "";
     console.log("Received:", { email, password, fname, lname, location: formattedLocation, role, type, addressline1, addressline2, phone,city, state, country });
 //     const addressinfo = {
 //   city,

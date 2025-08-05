@@ -974,21 +974,6 @@ export default function RegisterPage() {
                           ))}
                       </select>
                     </div>
-
-                    {/* </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-gray-700">
-                        City
-                      </Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        placeholder="City"
-                        className="bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                      />
-                    </div> */}
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">

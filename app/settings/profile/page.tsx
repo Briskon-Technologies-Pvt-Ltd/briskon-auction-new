@@ -12,11 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
-
+import LocationSelector from "@/components/LocationSelector";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
-
+import type { Country } from "@/lib/locationTypes";
+import { countriesData } from "@/Data/Location";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,6 +31,7 @@ interface Profile {
   email: string;
   created_at: string;
   avatar_url?: string;
+  type: string;
   addressline1?: string;
   addressline2?: string;
   phone?: string;
@@ -59,6 +61,37 @@ export default function ProfileSettingsPage() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [formData, setFormData] = useState({
+    accountType: "buyer", // Default to 'buyer'
+    sellerType: "individual", // Default to 'individual' for seller/both
+    buyerType: "individual", // Default for buyer when accountType is buyer or both
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    addressline1: "",
+    addressline2: "",
+    city: "",
+    state: "",
+    country: "",
+    confirmPassword: "",
+    organizationName: "", // New field for organization
+    organizationContact: "", // New field for organization contact
+    buyerOrganizationName: "", // new field for buyer organizations
+    buyerOrganizationContact: "", // new field for buyer organizations
+    location: "",
+    agreeToTerms: false,
+    subscribeNewsletter: false,
+  });
+
+  useEffect(() => {
+    setCountries(countriesData); // Only set once on mount
+  }, []);
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -155,7 +188,8 @@ export default function ProfileSettingsPage() {
 
   const createdAtIST = DateTime.fromISO(profile.created_at, { zone: "utc" })
     .setZone("Asia/Kolkata")
-    .toLocaleString(DateTime.DATETIME_FULL);
+    .toLocaleString(DateTime.DATE_FULL);
+
   const handleUpdatePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       alert("Please fill in all fields.");
@@ -248,12 +282,28 @@ export default function ProfileSettingsPage() {
         </div>
         <div className="flex items-center justify-between">
           {/* Name */}
-          <div className="font-medium text-[30px] text-gray-800 dark:text-white mt-2">
-            {fname} {lname}
+          <div className="flex flex-col">
+            <div className="font-medium text-[30px] text-gray-800 dark:text-white mt-2">
+              {fname} {lname}
+            </div>
+            {/* Email, Role, Joined */}
+            <div className="flex flex-wrap gap-x-1 gap-y-2 mt-1 text-xs text-gray-500 dark:text-gray-300">
+              <div>
+                <div className="font-normal">{profile.type},</div>
+              </div>
+              <div>
+                <div className="font-normal capitalize">{profile.role},</div>
+              </div>
+              <div>
+                <div className="font-normal">{profile.email},</div>
+              </div>
+              <div>
+                <div className="font-normal">Joined on: {createdAtIST}</div>
+              </div>
+            </div>
           </div>
-
           {/* Image + Change Photo button */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 ">
             <div className="w-24 h-24 rounded-full overflow-hidden border-4 relative">
               <Image
                 src={
@@ -280,7 +330,7 @@ export default function ProfileSettingsPage() {
                 variant="secondary"
                 size="sm"
                 onClick={triggerFileInput}
-                className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+                className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-md px-5 py-2"
               >
                 Change Photo
               </Button>
@@ -291,23 +341,7 @@ export default function ProfileSettingsPage() {
         {/* Read-only Info */}
         <div className="flex flex-col md:flex-row justify-between gap-6 mt-4">
           {/* Left Side: Info Fields */}
-          <div className="flex-1 space-y-4 text-sm text-gray-700 dark:text-white">
-            {/* Email, Role, Joined */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <Label className="text-gray-600">Email</Label>
-                <div className="font-medium">{profile.email}</div>
-              </div>
-              <div>
-                <Label className="text-gray-600">Role</Label>
-                <div className="font-medium capitalize">{profile.role}</div>
-              </div>
-              <div>
-                <Label className="text-gray-600">Joined On</Label>
-                <div className="font-medium">{createdAtIST}</div>
-              </div>
-            </div>
-
+          <div className="flex-1 space-y-2 text-sm text-gray-700 dark:text-white">
             {/* <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
             <div className="w-28 h-28 rounded-full overflow-hidden border-4 relative">
               <Image
@@ -343,26 +377,26 @@ export default function ProfileSettingsPage() {
           </div> */}
 
             {/* Fname, Lname */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 -mt-2">
               <div>
-                <Label htmlFor="fname" className="text-gray-600">
+                <Label htmlFor="fname" className="text-gray-600 mb-2 block">
                   First Name
                 </Label>
                 <Input
                   id="fname"
-                  className="w-full text-gray-700"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Enter First Name"
                   value={fname}
                   onChange={(e) => setFname(e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="lname" className="text-gray-600">
+                <Label htmlFor="lname" className="text-gray-600 mb-2 block">
                   Last Name
                 </Label>
                 <Input
                   id="lname"
-                  className="w-full text-gray-700"
+                  className="  bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Enter Last Name"
                   value={lname}
                   onChange={(e) => setLname(e.target.value)}
@@ -372,43 +406,143 @@ export default function ProfileSettingsPage() {
 
             {/* Address1, Phone */}
             <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="addressline1" className="text-gray-600">
+              <div className="col-span-2">
+                <Label
+                  htmlFor="addressline1"
+                  className="text-gray-600 mb-2 block"
+                >
                   Address Line 1
                 </Label>
                 <Input
                   id="addressline1"
-                  className="w-full text-gray-700"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Eg: Florida"
                   value={address1}
                   onChange={(e) => setAddress1(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="addressline2" className="text-gray-600">
+
+              <div className="col-span-2">
+                <Label
+                  htmlFor="addressline2"
+                  className="text-gray-600 mb-2 block"
+                >
                   Address Line 2
                 </Label>
                 <Input
                   id="addressline2"
-                  className="w-full text-gray-700"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Optional"
                   value={address2}
                   onChange={(e) => setAddress2(e.target.value)}
                 />
               </div>
+            </div>
+            {/* City, State, Country - in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="country" className="text-gray-600">
+                  Country
+                </Label>
+                <select
+                  id="country"
+                  name="country"
+                  className="w-full bg-white  border-gray-300 text-gray-500 transition-all focus:border-blue-500 focus:bg-white shadow-md rounded-lg p-2"
+                  value={formData.country}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData,
+                      country: value,
+                      state: "",
+                      city: "",
+                    });
+                    setSelectedCountry(value);
+                    setSelectedState("");
+                    setSelectedCity("");
+                  }}
+                >
+                  <option className="text-gray-600" value="">Select Country</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <div>
-                <Label htmlFor="phone" className="text-gray-600">
+              <div className="space-y-1.5">
+                <label htmlFor="state" className="text-gray-600">
+                  State
+                </label>
+                <select
+                  id="state"
+                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-md  rounded-lg p-2"
+                  value={selectedState}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, state: value, city: "" });
+                    setSelectedState(value);
+                    setSelectedCity("");
+                  }}
+                >
+                  <option value="">Select State</option>
+                  {countries
+                    .find((country) => country.name === selectedCountry)
+                    ?.states?.map((state) => (
+                      <option key={state.id} value={state.name}>
+                        {state.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="city" className="text-gray-600">
+                  City
+                </label>
+                <select
+                  id="city"
+                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-md  rounded-lg p-2"
+                  value={selectedCity}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, city: value });
+                    setSelectedCity(value);
+                  }}
+                >
+                  <option className="" value="">Select City</option>
+                  {countries
+                    .find((country) => country.name === selectedCountry)
+                    ?.states.find((state) => state.name === selectedState)
+                    ?.cities?.map((city) => (
+                      <option className="" key={city.id} value={city.name}>
+                        {city.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Phone input (half width) */}
+              <div className="col-span-1">
+                <Label htmlFor="phone" className="text-gray-600 mb-2 block">
                   Phone
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
-                  className="w-full text-gray-700"
+                  className="w-full bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Phone number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
+              </div>
+
+              {/* Put another field here to use the second column, or leave empty */}
+              <div className="col-span-1">
+                {/* Optional: second input or leave blank */}
               </div>
             </div>
           </div>
@@ -417,14 +551,14 @@ export default function ProfileSettingsPage() {
         </div>
 
         {/* Save Button */}
-        <div className="md:col-span-2 text-center mt-6">
+        <div className="md:col-span-2 text-center flex justify-start mt-6">
           <Button
             size="sm"
             variant="secondary"
-            className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+            className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-md px-5 py-2"
             onClick={handleSaveChanges}
           >
-            Save Changes
+            Update Profile
           </Button>
         </div>
 
@@ -440,12 +574,18 @@ export default function ProfileSettingsPage() {
           <div className="grid grid-cols-2 gap-4 text-gray-600">
             {/* Current Password */}
             <div className="relative">
-              <Label htmlFor="old-password">Current Password</Label>
+              <Label
+                htmlFor="old-password"
+                className="text-gray-600 mb-2 block"
+              >
+                Current Password
+              </Label>
               <Input
                 required
                 id="old-password"
                 type={showOldPassword ? "text" : "password"}
                 placeholder="Current password"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
@@ -462,12 +602,18 @@ export default function ProfileSettingsPage() {
 
             {/* New Password */}
             <div className="relative">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label
+                htmlFor="new-password"
+                className="text-gray-600  mb-2 block"
+              >
+                New Password
+              </Label>
               <Input
                 required
                 id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 placeholder="New password"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -481,12 +627,18 @@ export default function ProfileSettingsPage() {
             <div></div>
             {/* Confirm Password */}
             <div className="relative">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Label
+                htmlFor="confirm-password"
+                className="mb-2 block text-gray-600"
+              >
+                Confirm New Password
+              </Label>
               <Input
                 required
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -499,11 +651,11 @@ export default function ProfileSettingsPage() {
             </div>
             <div></div>
             {/* Button (spanning full width) */}
-            <div className="md:col-span- text-center">
+            <div className="md:col-span-2 flex justify-start mt-6">
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-gray-200 text-gray-800 hover:bg-gray-300 hover:text-black transition-colors duration-200"
+                className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-md px-5 py-2"
                 onClick={handleUpdatePassword}
               >
                 Change Password

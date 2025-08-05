@@ -289,10 +289,10 @@ export default function ProfileSettingsPage() {
             {/* Email, Role, Joined */}
             <div className="flex flex-wrap gap-x-1 gap-y-2 mt-1 text-xs text-gray-500 dark:text-gray-300">
               <div>
-                <div className="font-normal">{profile.type},</div>
+                {profile.type.charAt(0).toUpperCase() + profile.type.slice(1)}
               </div>
               <div>
-                <div className="font-normal capitalize">{profile.role},</div>
+                <div className="font-normal capitalize">{profile.role} - </div>
               </div>
               <div>
                 <div className="font-normal">{profile.email},</div>

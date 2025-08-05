@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
 import type { Country } from "@/lib/locationTypes";
 import { countriesData } from "@/Data/Location";
+// import useSWR from "swr";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -32,6 +33,7 @@ interface Profile {
   created_at: string;
   avatar_url?: string;
   type: string;
+  location:string;
   addressline1?: string;
   addressline2?: string;
   phone?: string;
@@ -108,6 +110,22 @@ export default function ProfileSettingsPage() {
         setAddress1(data.data.addressline1 || "");
         setAddress2(data.data.addressline2 || "");
         setPhone(data.data.phone || "");
+
+         const [city = "", state = "", country = ""] = (data.data.location || "")
+  .split(",")
+  .map((s: string) => s.trim());
+      // Set form values
+      setFormData(prev => ({
+        ...prev,
+        city,
+        state,
+        country,
+      }));
+
+      // Set selected dropdowns
+      setSelectedCity(city);
+      setSelectedState(state);
+      setSelectedCountry(country);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -249,13 +267,16 @@ export default function ProfileSettingsPage() {
       toast.error("User not logged in");
       return;
     }
-
+    const location = [formData.city, formData.state, formData.country]
+      .filter(Boolean) // removes any empty strings or nulls
+      .join(", ");
     const updates = {
       fname,
       lname,
       addressline1: address1, // ✅ match your DB column
       addressline2: address2,
       phone,
+      location,
       // updated_at: new Date().toISOString(),
     };
 
@@ -282,7 +303,7 @@ export default function ProfileSettingsPage() {
         </div>
         <div className="flex items-center justify-between">
           {/* Name */}
-          <div className="flex flex-col">
+          <div className="flex flex-col -mt-[100px]">
             <div className="font-medium text-[30px] text-gray-800 dark:text-white mt-2">
               {fname} {lname}
             </div>
@@ -447,22 +468,25 @@ export default function ProfileSettingsPage() {
                 <select
                   id="country"
                   name="country"
+                  
                   className="w-full bg-white  border-gray-300 text-gray-500 transition-all focus:border-blue-500 focus:bg-white shadow-md rounded-lg p-2"
                   value={formData.country}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setFormData({
-                      ...formData,
+                    setFormData((prev) => ({
+                      ...prev,
                       country: value,
                       state: "",
                       city: "",
-                    });
+                    }));
                     setSelectedCountry(value);
                     setSelectedState("");
                     setSelectedCity("");
                   }}
                 >
-                  <option className="text-gray-600" value="">Select Country</option>
+                  <option className="text-gray-600" value="">
+                    Select Country
+                  </option>
                   {countries.map((country) => (
                     <option key={country.id} value={country.name}>
                       {country.name}
@@ -481,7 +505,15 @@ export default function ProfileSettingsPage() {
                   value={selectedState}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setFormData({ ...formData, state: value, city: "" });
+
+                    // Update formData with selected state, reset city
+                    setFormData((prevFormData) => ({
+                      ...prevFormData,
+                      state: value,
+                      city: "", // Reset city when state changes
+                    }));
+
+                    // Update selected state and reset city
                     setSelectedState(value);
                     setSelectedCity("");
                   }}
@@ -507,11 +539,18 @@ export default function ProfileSettingsPage() {
                   value={selectedCity}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setFormData({ ...formData, city: value });
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      city: value,
+                    }));
+
                     setSelectedCity(value);
                   }}
                 >
-                  <option className="" value="">Select City</option>
+                  <option className="" value="">
+                    Select City
+                  </option>
                   {countries
                     .find((country) => country.name === selectedCountry)
                     ?.states.find((state) => state.name === selectedState)

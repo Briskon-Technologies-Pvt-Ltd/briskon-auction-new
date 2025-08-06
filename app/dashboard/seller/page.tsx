@@ -20,6 +20,7 @@ import {
   Gavel,
   Calendar,
   XCircle,
+  PackageCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,7 +62,7 @@ export default function SellerDashboard() {
   const [liveCount, setLiveCount] = useState(0);
 
   const [selectedSection, setSelectedSection] = useState<
-    "leaderboard" | "activeBids" | "wonAuctions" | "liveAuction"
+    "leaderboard" | "activeBids" | "winners" | "liveAuction"
   >("leaderboard");
   const fetchStats = async () => {
     try {
@@ -284,20 +285,24 @@ export default function SellerDashboard() {
               </CardHeader>
             </Card>
           </Link>
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Gavel className="h-5 w-5 text-blue-500 animate-bounce" />
-                <CardTitle className="text-sm font-medium">
-                  Items Sold
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl  font-bold">$ 15000</div>
-                <p className="text-xs text-gray-500">View Winners</p>
-              </div>
-            </CardHeader>
-          </Card>
+          <Card
+  onClick={() => setSelectedSection("winners")}
+  className={`cursor-pointer transition-shadow hover:shadow-lg ${
+    selectedSection === "winners" ? "ring-2 ring-blue-500" : ""
+  }`}
+>
+  <CardHeader className="pb-2">
+    <div className="flex items-center gap-2">
+      <PackageCheck className="h-5 w-5 text-blue-500 animate-bounce" />
+      <CardTitle className="text-sm font-medium">Items Sold</CardTitle>
+    </div>
+    <div className="mt-1">
+      <div className="text-2xl font-bold">${stats?.totalSales || 0}</div>
+      <p className="text-xs text-gray-500">View Winners</p>
+    </div>
+  </CardHeader>
+</Card>
+
 
           {/* Auctions Won */}
           <Card>
@@ -451,6 +456,47 @@ export default function SellerDashboard() {
               ))}
           </div>
         )}
+        {/* {selectedSection === "winners" && (
+  <div className="bg-white dark:bg-gray-900 p-4 rounded shadow mt-6">
+    {!soldAuctions ? (
+      <p className="text-gray-500 italic">Loading winning products...</p>
+    ) : soldAuctions.length === 0 ? (
+      <p className="text-gray-500 italic">No winning products available.</p>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {soldAuctions.map((auction) => (
+          <div
+            key={auction.id}
+            className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm"
+          >
+            <img
+              src={auction.productimages}
+              alt={auction.productname}
+              className="w-full h-32 object-cover rounded mb-2"
+            />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              {auction.productname}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Final Bid: ${auction.current_bid}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Winner: {auction.winnername || "N/A"}
+            </p>
+            <Link
+              href={`/auctions/${auction.id}`}
+              className="text-blue-600 text-sm mt-2 inline-block hover:underline"
+            >
+              View Summary
+            </Link>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)} */}
+
+        
       </div>
     </div>
   );

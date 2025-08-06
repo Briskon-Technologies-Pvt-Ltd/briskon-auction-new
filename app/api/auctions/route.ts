@@ -187,7 +187,7 @@ export async function GET() {
       .from("auctions")
       .select(`
         *,
-        profiles:seller (fname, lname, location)
+        profiles:seller (fname, lname, location, role)
       `)
       .eq(  "approved", true)
       .order("createdat", { ascending: false });

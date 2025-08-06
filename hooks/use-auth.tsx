@@ -162,8 +162,9 @@ useEffect(() => {
       return { success: true };
     } catch (error: any) {
       console.error("Login error:", error);
-      setIsLoading(false);
       return { success: false, error: error.message || "Invalid email or password" };
+    } finally{
+      setIsLoading(false);
     }
   };
 

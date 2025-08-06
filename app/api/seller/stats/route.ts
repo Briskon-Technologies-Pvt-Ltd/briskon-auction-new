@@ -9,7 +9,20 @@ interface Stats {
   activeListings: number;
   totalSales: number;
   totalBids: number;
+  topAuctions: {
+    id: string;
+    productname: string;
+    productimages:string;
+    category: string;
+    type: string;
+    format: string;
+    starting_bid: number;
+    current_bid: string;
+    gain: number;
+    bidders: number;
+  }[];
 }
+
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +33,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Fetch seller's profile to get user ID
+    // Step 1: Get seller's ID
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id")
@@ -33,7 +46,7 @@ export async function GET(request: Request) {
 
     const sellerId = profileData.id;
 
-    // Fetch active listings (ongoing auctions created by seller)
+    // Step 2: Active Listings (not ended)
     const { data: activeListingsData, error: activeListingsError } = await supabase
       .from("auctions")
       .select("id", { count: "exact" })
@@ -46,7 +59,7 @@ export async function GET(request: Request) {
 
     const activeListings = activeListingsData.length;
 
-    // Fetch total sales (sum of currentbid for all auctions created by seller)
+    // Step 3: Total Sales (sum of currentbid)
     const { data: totalSalesData, error: totalSalesError } = await supabase
       .from("auctions")
       .select("currentbid")
@@ -58,7 +71,7 @@ export async function GET(request: Request) {
 
     const totalSales = totalSalesData.reduce((sum, auction) => sum + (auction.currentbid || 0), 0);
 
-    // Fetch total bids (sum of bidcount for all auctions created by seller)
+    // Step 4: Total Bids (sum of bidcount)
     const { data: totalBidsData, error: totalBidsError } = await supabase
       .from("auctions")
       .select("bidcount")
@@ -70,10 +83,60 @@ export async function GET(request: Request) {
 
     const totalBids = totalBidsData.reduce((sum, auction) => sum + (auction.bidcount || 0), 0);
 
+    // Step 5: Top 5 Auctions by currentbid
+    // Step 5: All auctions by this seller that have at least one bid
+    const { data: auctionsWithBids, error: auctionsWithBidsError } = await supabase
+      .from("bids")
+      .select(`
+        auction_id,
+        auctions (
+          id,
+          productname,
+          currentbid,
+          createdby,
+          categoryid,
+          auctiontype,
+          auctionsubtype,
+          startprice,
+          bidder_count,
+          productimages
+        )
+      `)
+      .eq("auctions.createdby", userEmail);
+
+    if (auctionsWithBidsError) {
+      return NextResponse.json({ error: "Failed to fetch auctions with bids" }, { status: 500 });
+    }
+
+    // Deduplicate auctions (in case multiple bids exist for same auction)
+    const uniqueAuctionsMap = new Map();
+    auctionsWithBids.forEach((entry: any) => {
+      const auction = entry.auctions;
+      if (auction && !uniqueAuctionsMap.has(auction.id)) {
+        uniqueAuctionsMap.set(auction.id, auction);
+      }
+    });
+
+    const topAuctions = Array.from(uniqueAuctionsMap.values()).map((auction: any) => ({
+  id: auction.id,
+  productname: auction.productname,
+  category: auction.categoryid,
+  type: auction.auctiontype,
+  format: auction.auctionsubtype,
+  starting_bid: auction.startprice,
+  current_bid: auction.currentbid,
+  gain: auction.currentbid - auction.startprice,
+  bidders: auction.bidder_count,
+  productimages: auction.productimages
+}));
+
+
+
     const stats: Stats = {
       activeListings,
       totalSales,
       totalBids,
+      topAuctions,
     };
 
     return NextResponse.json({ success: true, data: stats });

@@ -390,6 +390,11 @@ export default function SellerDashboard() {
         </div>
         {selectedSection === "leaderboard" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <div className="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-white mb-4">
+  <Trophy className="w-5 h-5 text-yellow-500 animate-bounce"/>
+  <span>Leader Board</span>
+</div>
+
             {/* Replace with your actual leaderboard data */}
             {selectedSection === "leaderboard" &&
               (!stats ? (

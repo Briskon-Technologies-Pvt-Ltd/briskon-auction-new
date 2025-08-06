@@ -899,7 +899,7 @@ export default function RegisterPage() {
                       <select
                         id="country"
                         name="country"
-                        className="w-full border-gray-300 rounded-lg p-2"
+                        className="w-full bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg p-2"
                         value={formData.country}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -929,7 +929,7 @@ export default function RegisterPage() {
                       </label>
                       <select
                         id="state"
-                        className="w-full border border-gray-300 rounded-lg p-2"
+                        className="w-full bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg p-2"
                         value={selectedState}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -955,7 +955,7 @@ export default function RegisterPage() {
                       </label>
                       <select
                         id="city"
-                        className="w-full border border-gray-300 rounded-lg p-2"
+                        className="w-full bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:bg-white transition-all rounded-lg p-2"
                         value={selectedCity}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -963,7 +963,7 @@ export default function RegisterPage() {
                           setSelectedCity(value);
                         }}
                       >
-                        <option value="">Select City</option>
+                        <option className="text-gray-500" value="">Select City</option>
                         {countries
                           .find((country) => country.name === selectedCountry)
                           ?.states.find((state) => state.name === selectedState)

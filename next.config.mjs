@@ -9,6 +9,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  webpack: (config) => {
+    config.module.exprContextCritical = false;
+    return config;
+  },
 }
 
-export default nextConfig
+export default nextConfig;

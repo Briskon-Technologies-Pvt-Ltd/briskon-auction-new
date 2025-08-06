@@ -65,6 +65,7 @@ export type AuctionItem = {
   location: string;
   productname: string;
   fname: string;
+  role: string;
   featured?: boolean;
   startprice: number;
 
@@ -620,23 +621,27 @@ export const AuctionCard = ({
         )}
 
         {/* Button at the bottom */}
-        <div className="mt-auto pt-3">
-          <Button
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
-            size="sm"
-            asChild
-          >
-            <Link href={auctionPath}>
-              {auction.status === "closed"
-                ? "Auction Summary"
-                : auction.status === "live"
-                ? isLoggedIn
-                  ? "View & Bid"
-                  : "View Auction"
-                : "View Auction"}
-            </Link>
-          </Button>
-        </div>
+      <div className="mt-auto pt-3">
+  <Button
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
+    size="sm"
+    asChild
+  >
+     <Link href={auctionPath}>
+  {auction.role === "seller"
+    ? "View"
+    : auction.status === "closed"
+    ? "Auction Summary"
+    : auction.status === "live"
+    ? isLoggedIn
+      ? "View & Bid"
+      : "View Auction"
+    : "View Auction"}
+</Link>
+
+  </Button>
+</div>
+
       </CardContent>
     </Card>
   );
@@ -844,6 +849,7 @@ export default function AuctionsPage({
             // seller: a.createdby || "",
             seller: a.seller || "", // This is now a UUID
             fname: a.profiles?.fname || "",
+            role: a.prfiles?.role || "",
             rating: a.rating ?? undefined,
             targetPrice: a.targetprice ?? undefined,
             deadline: "", // You can calculate this if you have end time

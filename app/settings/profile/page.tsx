@@ -33,7 +33,7 @@ interface Profile {
   created_at: string;
   avatar_url?: string;
   type: string;
-  location:string;
+  location: string;
   addressline1?: string;
   addressline2?: string;
   phone?: string;
@@ -111,21 +111,21 @@ export default function ProfileSettingsPage() {
         setAddress2(data.data.addressline2 || "");
         setPhone(data.data.phone || "");
 
-         const [city = "", state = "", country = ""] = (data.data.location || "")
-  .split(",")
-  .map((s: string) => s.trim());
-      // Set form values
-      setFormData(prev => ({
-        ...prev,
-        city,
-        state,
-        country,
-      }));
+        const [city = "", state = "", country = ""] = (data.data.location || "")
+          .split(",")
+          .map((s: string) => s.trim());
+        // Set form values
+        setFormData((prev) => ({
+          ...prev,
+          city,
+          state,
+          country,
+        }));
 
-      // Set selected dropdowns
-      setSelectedCity(city);
-      setSelectedState(state);
-      setSelectedCountry(country);
+        // Set selected dropdowns
+        setSelectedCity(city);
+        setSelectedState(state);
+        setSelectedCountry(country);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -468,7 +468,6 @@ export default function ProfileSettingsPage() {
                 <select
                   id="country"
                   name="country"
-                  
                   className="w-full bg-white  border-gray-300 text-gray-500 transition-all focus:border-blue-500 focus:bg-white shadow-md rounded-lg p-2"
                   value={formData.country}
                   onChange={(e) => {
@@ -572,7 +571,7 @@ export default function ProfileSettingsPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  className="w-full bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className="bg-white border border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Phone number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

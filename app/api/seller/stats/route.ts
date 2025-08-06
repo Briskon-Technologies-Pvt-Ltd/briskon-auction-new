@@ -107,6 +107,18 @@ export async function GET(request: Request) {
     if (auctionsWithBidsError) {
       return NextResponse.json({ error: "Failed to fetch auctions with bids" }, { status: 500 });
     }
+    const {data: { user },} = await supabase.auth.getUser();
+
+const { data: soldAuctions, error } = await supabase
+  .from("auctions")
+  .select("id, currentbid")
+  .eq("createdby", user?.id)
+  .eq("status", "closed"); // only sold auctions
+const totalSoldAmount = soldAuctions?.reduce(
+  (sum, auction) => sum + (auction.currentbid || 0),
+  0
+);
+
 
     // Deduplicate auctions (in case multiple bids exist for same auction)
     const uniqueAuctionsMap = new Map();
@@ -127,7 +139,7 @@ export async function GET(request: Request) {
   current_bid: auction.currentbid,
   gain: auction.currentbid - auction.startprice,
   bidders: auction.bidder_count,
-  productimages: auction.productimages
+  productimages: auction.productimages,
 }));
 
 

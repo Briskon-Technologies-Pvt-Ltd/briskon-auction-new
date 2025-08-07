@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const email = searchParams.get("email");
 
   if (!email) {
-    return Response.json({ success: false, error: "Missing email" });
+    return NextResponse.json({ success: false, error: "Missing email" });
   }
 
   const { data: profile } = await supabase
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     .single();
 
   if (!profile) {
-    return Response.json({ success: false, error: "Seller not found" });
+    return NextResponse.json({ success: false, error: "Seller not found" });
   }
 
   const { data, error } = await supabase
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
       id,
       productname,
       productimages,
-      current_bid,
+      currentbid,
       scheduledstart,
       ended,
       currentbidder,
@@ -53,19 +53,20 @@ export async function GET(req: Request) {
     .gt("current_bid", 0);
 
   if (error) {
-    return Response.json({ success: false, error: error.message });
+    return NextResponse.json({ success: false, error: error.message });
   }
 
   // Transform data
-const winners: Winner[] = data.map((auction: any): Winner => ({
-  id: auction.id,
-  productname: auction.productname,
-  productimages: auction.productimages,
-  soldprice: auction.current_bid,
-  buyername: auction.profiles?.fname ?? "Unknown",
-  buyeremail: auction.profiles?.email ?? "N/A",
-  closedat: auction.scheduledstart,
-}));
+  const winners: Winner[] = data.map((auction: any): Winner => ({
+    id: auction.id,
+    productname: auction.productname,
+    productimages: auction.productimages,
+    soldprice: auction.current_bid,
+    buyername: auction.profiles?.fname ?? "Unknown",
+    buyeremail: auction.profiles?.email ?? "N/A",
+    closedat: auction.scheduledstart,
+  }));
+  console.log("========================Returning winners:", winners);
 
 
   return NextResponse.json({ success: true, data: winners });

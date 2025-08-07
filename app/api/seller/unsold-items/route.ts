@@ -6,12 +6,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-interface Sale {
+interface UnsoldSale {
   id: string;
   productname: string;
   salePrice: number;
   buyer: string;
   starting_bid: string;
+  auction_type:string;
+  auction_subtype:string;
+  auction_category:string;
   productimages:string;
   saleDate: string | null;
 }
@@ -38,34 +41,34 @@ export async function GET(request: Request) {
     }
 
     const sellerId = profileData.id;
-const { data: auctionData, count: soldCount, error: auctionError } = await supabase
+    const { data: unsoldData, error: unsoldError } = await supabase
   .from("auctions")
   .select(`
     id,
     productname,
-    currentbid,
-    productimages,
     startprice,
-    createdby
-  `, { count: 'exact' }) // <--- get count
+    productimages,
+    currentbid,
+    auctiontype,
+    categoryid,
+    auctionsubtype
+  `)
   .eq("createdby", userEmail)
   .eq("ended", true)
-  .gt("bidder_count", 0)
-  .not("currentbid", "is", null);
+  .eq("bidder_count", 0); // means no one bid
 
+if (unsoldError) {
+  console.error("Error fetching unsold auctions:", unsoldError);
+  return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 });
+}
 
-    if (auctionError) {
-      console.log("Auction error:", auctionError);
-      return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 });
-    }
-
-    console.log("Auction data:", auctionData);
-    if (!auctionData || auctionData.length === 0) {
+    console.log("unsold data :", unsoldData);
+    if (!unsoldData || unsoldData.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    const sales: Sale[] = await Promise.all(
-      auctionData.map(async (auction) => {
+    const sales: UnsoldSale[] = await Promise.all(
+      unsoldData.map(async (auction) => {
         console.log("Processing auction:", auction.id, "with currentbid:", auction.currentbid);
         const { data: bidData, error: bidError } = await supabase
           .from("bids")
@@ -104,17 +107,20 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
        const productimages = Array.isArray(auction.productimages) && auction.productimages.length > 0
   ? auction.productimages[0]
   : "/placeholder.svg"; // fallback image
-        const sale = {
+        const UnsoldSales = {
           id: auction.id,
           productname: auction.productname || "Untitled",
           salePrice: auction.currentbid || 0,
           starting_bid: auction.startprice || 0,
+          auction_type: auction.auctiontype || null,
+          auction_subtype: auction.auctionsubtype || null,
+          auction_category: auction.categoryid || null,
           productimages,
           buyer,
           saleDate,
         };
-        console.log("Sale object for auction", auction.id, ":", sale);
-        return sale;
+        console.log("Sale object for auction", auction.id, ":", UnsoldSales);
+        return UnsoldSales;
       })
     );
     

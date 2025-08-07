@@ -53,6 +53,19 @@ interface Sale {
   starting_bid:number;
 }
 
+interface UnsoldSale {
+  id: string;
+  productname: string;
+  auction_type:string;
+  auction_subtype:string;
+  productimages: string;
+  salePrice: number;
+  buyer: string;
+  auction_category:string;
+  saleDate: string | null;
+  starting_bid:number;
+}
+
 interface Stats {
   activeListings: number;
   totalSales: number;
@@ -89,12 +102,14 @@ export default function SellerDashboard() {
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
   const [upcomingCount, setUpcomingCount] = useState(0);
+  const [unsoldCount, setUnsoldCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [unsoldSales, setUnsoldSale] = useState<UnsoldSale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<
-    "leaderboard" | "activeBids" | "winners" | "liveAuction"
+    "leaderboard" | "activeBids" | "winners" | "liveAuction" | "itemUnsold"
   >("leaderboard");
   const fetchStats = async () => {
     try {
@@ -180,6 +195,37 @@ export default function SellerDashboard() {
         if (!data.success)
           throw new Error(data.error || "Failed to load sales history");
         setSales(data.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Fetch error:", err); // Debug error
+      } finally {
+        setIsLoadingSales(false);
+      }
+    };
+
+    if (user) fetchSales();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchSales = async () => {
+      setIsLoadingSales(true);
+      try {
+        console.log("User object:", user); // Debug user object
+        if (!user?.email) throw new Error("User email is missing");
+        const response = await fetch(
+          `/api/seller/unsold-items?email=${encodeURIComponent(user.email)}`
+        );
+        console.log("Fetch response status:", response.status); // Debug status
+        if (!response.ok)
+          throw new Error(
+            `Failed to fetch sales history: ${response.statusText}`
+          );
+        const data = await response.json();
+        console.log("Fetch response data:", data); // Debug full response
+        if (!data.success)
+          throw new Error(data.error || "Failed to load sales history");
+        setUnsoldSale(data.data || []);
+        setUnsoldCount((data.data || []).length);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
         console.error("Fetch error:", err); // Debug error
@@ -372,7 +418,12 @@ export default function SellerDashboard() {
           </Card>
 
           {/* Auctions Won */}
-          <Card>
+          <Card
+            onClick={() => setSelectedSection("itemUnsold")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "itemUnsold" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Archive className="h-5 w-5 text-red-500 animate-bounce" />
@@ -383,7 +434,7 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">
-                  {0}
+                  {unsoldCount}
                 </div>
                 <div className="text-2xl  font-bold"></div>
                 <p className="text-xs text-gray-500">Relist Now</p>
@@ -521,7 +572,7 @@ export default function SellerDashboard() {
                           </td>
                           <td className="px-4 py-2">${auction.starting_bid}</td>
                           <td className="px-4 py-2">${auction.current_bid}</td>
-                          <td className="px-4 py-2 text-green-700">
+                          <td className="px-4 py-2 font-semibold text-green-700">
                             ${auction.gain?.toFixed(2) || "0.00"}
                           </td>
                           <td className="px-4 py-2 text-blue-600 underline cursor-pointer">
@@ -575,7 +626,7 @@ export default function SellerDashboard() {
                             </Link>
                           </td>
                         <td className="px-4 py-2">{sale.starting_bid}</td>
-                        <td className="px-4 py-2">${sale.salePrice}</td>
+                        <td className="px-4 py-2 font-semibold text-green-700">${sale.salePrice}</td>
                         <td className="px-4 py-2">
                           {/* <div className="text-sm">{sale.buyername}</div> */}
                           {/* <div className="p-2 text-gray-600"> */}
@@ -589,6 +640,69 @@ export default function SellerDashboard() {
                               )
                             : "N/A"}
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedSection === "itemUnsold" && (
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
+              Unsold Items
+            </h2>
+            {unsoldSales.length === 0 ? (
+              <p className="text-sm text-gray-500">No sold items yet.</p>
+            ) : (
+               <div className="overflow-x-auto rounded-md mt-6">
+                  <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                    <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                      <th className="px-4 py-2 text-left">Type </th>
+                      <th className="px-4 py-2 text-left">Subtype</th>
+                      <th className="px-4 py-2 text-left">Closed On</th>
+                      <th className="px-4 py-2 text-left">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unsoldSales.map((unsoldSale, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="p-2">
+                            <Link
+                              href={`/auctions/${unsoldSale.id}`}
+                              className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                            >
+                              <img
+                                src={unsoldSale.productimages}
+                                alt={unsoldSale.productname}
+                                className="w-6 h-6 rounded-full object-cover"
+                              />
+                              {unsoldSale.productname}
+                            </Link>
+                          </td>
+                        <td className="px-4 py-2">{unsoldSale.auction_category}</td>
+                        <td className="px-4 py-2">{unsoldSale.starting_bid}</td>
+                        <td className="px-4 py-2 ">{unsoldSale.auction_type}</td>
+                        <td className="px-4 py-2">{unsoldSale.auction_subtype}</td>
+                        <td className="px-4 py-2">
+                          {unsoldSale.saleDate
+                            ? DateTime.fromISO(unsoldSale.saleDate).toLocaleString(
+                              DateTime.DATETIME_MED
+                            )
+                            : "N/A"}
+                        </td>
+                       <Link className="text-blue-400"  href={`/`}>
+                            <td className="px-4 py-2">Re-list</td>
+                            </Link>
                       </tr>
                     ))}
                   </tbody>

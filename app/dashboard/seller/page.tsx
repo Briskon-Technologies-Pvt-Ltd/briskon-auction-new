@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
+import { DateTime } from "luxon";
 import {
   Card,
   CardContent,
@@ -35,7 +35,15 @@ interface Winner {
   closedat: string;
 }
 
-
+// types.ts (optional)
+interface Sale {
+  id: string;
+  productname: string;
+  productimages: string;
+  salePrice: number;
+  buyer: string;
+  saleDate: string | null;
+}
 
 interface Stats {
   activeListings: number;
@@ -64,8 +72,7 @@ interface RecentAuction {
 
 export default function SellerDashboard() {
   const { user, isLoading } = useAuth();
-const [winners, setWinners] = useState<Winner[]>([]);
-
+  const [winners, setWinners] = useState<Winner[]>([]);
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -75,8 +82,9 @@ const [winners, setWinners] = useState<Winner[]>([]);
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
-
-
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [isLoadingSales, setIsLoadingSales] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<
     "leaderboard" | "activeBids" | "winners" | "liveAuction"
   >("leaderboard");
@@ -101,65 +109,84 @@ const [winners, setWinners] = useState<Winner[]>([]);
     }
   };
 
- const fetchSellerLiveCount = async (email: string) => {
-  try {
-    const response = await fetch(`/api/seller/live-auctions?email=${encodeURIComponent(email)}`);
-    const json = await response.json();
-    if (json.success) {
-      setLiveCount(json.count);
-    } else {
-      console.error("❌ Server error while fetching live count:", json.error);
+  const fetchSellerLiveCount = async (email: string) => {
+    try {
+      const response = await fetch(
+        `/api/seller/live-auctions?email=${encodeURIComponent(email)}`
+      );
+      const json = await response.json();
+      if (json.success) {
+        setLiveCount(json.count);
+      } else {
+        console.error("❌ Server error while fetching live count:", json.error);
+      }
+    } catch (err) {
+      console.error("❌ Network error while fetching live count:", err);
     }
-  } catch (err) {
-    console.error("❌ Network error while fetching live count:", err);
-  }
-};
-const fetchSellerUpcomingCount = async (email: string) => {
-  try {
-    const response = await fetch(`/api/seller/upcoming-auctions?email=${encodeURIComponent(email)}`);
-    const json = await response.json();
-    if (json.success) {
-      setUpcomingCount(json.count);
-    } else {
-      console.error("❌ Server error while fetching upcoming count:", json.error);
+  };
+  const fetchSellerUpcomingCount = async (email: string) => {
+    try {
+      const response = await fetch(
+        `/api/seller/upcoming-auctions?email=${encodeURIComponent(email)}`
+      );
+      const json = await response.json();
+      if (json.success) {
+        setUpcomingCount(json.count);
+      } else {
+        console.error(
+          "❌ Server error while fetching upcoming count:",
+          json.error
+        );
+      }
+    } catch (err) {
+      console.error("❌ Network error while fetching upcoming count:", err);
     }
-  } catch (err) {
-    console.error("❌ Network error while fetching upcoming count:", err);
-  }
-};
+  };
 
-useEffect(() => {
-  if (!isLoading && user?.email) {
-    fetchStats(); // your other API
-    fetchSellerLiveCount(user.email);
-    fetchSellerUpcomingCount(user.email);
-  }
-}, [user?.email, isLoading]);
+  useEffect(() => {
+    if (!isLoading && user?.email) {
+      fetchStats(); // your other API
+      fetchSellerLiveCount(user.email);
+      fetchSellerUpcomingCount(user.email);
+    }
+  }, [user?.email, isLoading]);
 
   // }, [user?.email, isLoading]);
 
-useEffect(() => {
-  const fetchWinners = async () => {
-    // const res = await fetch(`/api/seller/winners?email=${userEmail}`);
-    const res = await fetch(
-      `/api/seller/winners?email=${user?.email}`
-    );
-    const json = await res.json();
-    if (json.success) {
-      setWinners(json.data);  // <== Confirm this line is being hit
-    } else {
-      console.error("Failed to fetch winners", json.error);
-    }
-  };
-  if (selectedSection === "winners") {
-    fetchWinners();
-  }
-}, [selectedSection,user?.email]);
+  useEffect(() => {
+    const fetchSales = async () => {
+      setIsLoadingSales(true);
+      try {
+        console.log("User object:", user); // Debug user object
+        if (!user?.email) throw new Error("User email is missing");
+        const response = await fetch(
+          `/api/seller/sales-history?email=${encodeURIComponent(user.email)}`
+        );
+        console.log("Fetch response status:", response.status); // Debug status
+        if (!response.ok)
+          throw new Error(
+            `Failed to fetch sales history: ${response.statusText}`
+          );
+        const data = await response.json();
+        console.log("Fetch response data:", data); // Debug full response
+        if (!data.success)
+          throw new Error(data.error || "Failed to load sales history");
+        setSales(data.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Fetch error:", err); // Debug error
+      } finally {
+        setIsLoadingSales(false);
+      }
+    };
 
-  if (isLoading) {
+    if (user) fetchSales();
+  }, [user]);
+
+  if (isLoading || isLoadingSales) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading user data...</p>
+        Loading...
       </div>
     );
   }
@@ -179,6 +206,14 @@ useEffect(() => {
       </div>
     );
   }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        {error}
+      </div>
+    );
+  }
+
   // {user.fname || user.lname || "Seller"}
   // <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
   // <div className="container mx-auto px-4">
@@ -231,62 +266,59 @@ useEffect(() => {
             </CardHeader>
           </Card>
           {/* Lost Auctions */}
-        
-            <Card
-              className={`cursor-pointer transition-shadow hover:shadow-lg ${
-                selectedSection === "liveAuction"
-                  ? "ring-2 text-orange-400"
-                  : ""
-              }`}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
-                  <CardTitle className="text-sm font-medium">
-                    Live Auctions
-                  </CardTitle>
-                </div>
-                <div className="mt-1">
-                  <div className="text-2xl font-bold">{liveCount}</div>
-                  <p className="text-xs text-gray-500">Ongoing now</p>
-                </div>
-              </CardHeader>
-            </Card>
-      
+
+          <Card
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "liveAuction" ? "ring-2 text-orange-400" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Live Auctions
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{liveCount}</div>
+                <p className="text-xs text-gray-500">Ongoing now</p>
+              </div>
+            </CardHeader>
+          </Card>
+
           {/* Live Auctions */}
-          
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 animate-bounce" />
-                  <CardTitle className="text-sm font-medium">
-                    Upcoming Auctions
-                  </CardTitle>
-                </div>
-                <div className="mt-1">
-                  <div className="text-2xl font-bold">{upcomingCount}</div>
-                  <p className="text-xs text-gray-500">All Time</p>
-                </div>
-              </CardHeader>
-            </Card>
-         
+
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Upcoming Auctions
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{upcomingCount}</div>
+                <p className="text-xs text-gray-500">All Time</p>
+              </div>
+            </CardHeader>
+          </Card>
+
           {/* Upcoming Auction*/}
-          
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 animate-bounce" />
-                  <CardTitle className="text-sm font-medium">
-                    Approval Pending
-                  </CardTitle>
-                </div>
-                <div className="mt-1">
-                  <div className="text-2xl font-bold">{7}</div>
-                  <p className="text-xs text-gray-500">View details</p>
-                </div>
-              </CardHeader>
-            </Card>
-     
+
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Approval Pending
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{7}</div>
+                <p className="text-xs text-gray-500">View details</p>
+              </div>
+            </CardHeader>
+          </Card>
 
           {/* My Profile */}
 
@@ -486,46 +518,68 @@ useEffect(() => {
           </div>
         )}
         {selectedSection === "winners" && (
-  <div className="mt-6">
-    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-      <PackageCheck className="w-5 h-5 text-green-600" />
-      Sold Items (Winners)
-    </h2>
-    {winners.length === 0 ? (
-      <p className="text-sm text-gray-500">No sold items yet.</p>
-    ) : (
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
-            <tr>
-              <th className="p-3">Product</th>
-              <th className="p-3">Final Bid</th>
-              <th className="p-3">Winner</th>
-              <th className="p-3">Sold On</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {winners.map((a) => (
-  <tr key={a.id} className="border-b hover:bg-gray-50 transition-colors">
-    <td className="p-3 font-medium text-gray-800">{a.productname}</td>
-    <td className="p-3">₹{a.soldprice}</td>
-    <td className="p-3">
-      <div className="text-sm">{a.buyername}</div>
-      <div className="text-xs text-gray-500">{a.buyeremail}</div>
-    </td>
-    <td className="p-3">
-      {a.closedat ? new Date(a.closedat).toLocaleDateString() : "-"}
-    </td>
-  </tr>
-))}
-
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
-)}
-
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PackageCheck className="w-5 h-5 text-green-600" />
+              Sold Items (Winners)
+            </h2>
+            {sales.length === 0 ? (
+              <p className="text-sm text-gray-500">No sold items yet.</p>
+            ) : (
+               <div className="overflow-x-auto rounded-md mt-6">
+                  <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                    <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Product</th>
+                      <th className="px-4 py-2 text-left">Final Bid</th>
+                      <th className="px-4 py-2 text-left">Winner</th>
+                      <th className="px-4 py-2 text-left">Sold On</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sales.map((sale, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        {/* <td className="px-4 py-2">
+                          {sale.productname}
+                        </td> */}
+                        <td className="p-2">
+                            <Link
+                              href={`/auctions/${sale.id}`}
+                              className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                            >
+                              <img
+                                src={sale.productimages}
+                                alt={sale.productname}
+                                className="w-6 h-6 rounded-full object-cover"
+                              />
+                              {sale.productname}
+                            </Link>
+                          </td>
+                        <td className="px-4 py-2">{sale.salePrice}</td>
+                        <td className="px-4 py-2">
+                          {/* <div className="text-sm">{sale.buyername}</div> */}
+                          <div className="text-xs text-gray-500">
+                            {sale.buyer}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          {sale.saleDate
+                            ? DateTime.fromISO(sale.saleDate).toLocaleString(
+                                DateTime.DATETIME_MED
+                              )
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

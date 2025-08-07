@@ -11,6 +11,7 @@ interface Sale {
   productname: string;
   salePrice: number;
   buyer: string;
+  productimages:string;
   saleDate: string | null;
 }
 
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
         id,
         productname,
         currentbid,
+        productimages,
         createdby
       `)
       .eq("createdby", userEmail)
@@ -96,11 +98,14 @@ export async function GET(request: Request) {
             ? `${profileData.fname || ""} ${profileData.lname || ""}`.trim() || lastBid.user_id
             : lastBid.user_id;
         }
-
+       const productimages = Array.isArray(auction.productimages) && auction.productimages.length > 0
+  ? auction.productimages[0]
+  : "/placeholder.svg"; // fallback image
         const sale = {
           id: auction.id,
           productname: auction.productname || "Untitled",
           salePrice: auction.currentbid || 0,
+          productimages,
           buyer,
           saleDate,
         };

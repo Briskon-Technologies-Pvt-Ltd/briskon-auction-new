@@ -25,6 +25,18 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 
+interface Winner {
+  id: string;
+  productname: string;
+  productimages: string;
+  soldprice: number;
+  buyername: string;
+  buyeremail: string;
+  closedat: string;
+}
+
+
+
 interface Stats {
   activeListings: number;
   totalSales: number;
@@ -52,6 +64,9 @@ interface RecentAuction {
 
 export default function SellerDashboard() {
   const { user, isLoading } = useAuth();
+const [winners, setWinners] = useState<Winner[]>([]);
+
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [errorStats, setErrorStats] = useState<string | null>(null);
@@ -60,6 +75,7 @@ export default function SellerDashboard() {
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
+
 
   const [selectedSection, setSelectedSection] = useState<
     "leaderboard" | "activeBids" | "winners" | "liveAuction"
@@ -71,8 +87,6 @@ export default function SellerDashboard() {
         `/api/seller/stats?email=${encodeURIComponent(user?.email || "")}`
       );
       const data = await response.json();
-
-      console.log("📊 Stats API response:", data); // ✅ Add this
 
       if (!data.success) {
         throw new Error(data.error || "Failed to load stats");
@@ -87,54 +101,61 @@ export default function SellerDashboard() {
     }
   };
 
-  // }, [user?.email, isLoading]);
-  useEffect(() => {
-    if (!isLoading && user?.email) {
-      fetchStats();
+ const fetchSellerLiveCount = async (email: string) => {
+  try {
+    const response = await fetch(`/api/seller/live-auctions?email=${encodeURIComponent(email)}`);
+    const json = await response.json();
+    if (json.success) {
+      setLiveCount(json.count);
+    } else {
+      console.error("❌ Server error while fetching live count:", json.error);
     }
-  }, [user?.email, isLoading]);
-  useEffect(() => {
-    const fetchAuctions = async () => {
-      try {
-        const res = await fetch("/api/auctions");
-        const json = await res.json();
-        if (!json.success) return;
+  } catch (err) {
+    console.error("❌ Network error while fetching live count:", err);
+  }
+};
+const fetchSellerUpcomingCount = async (email: string) => {
+  try {
+    const response = await fetch(`/api/seller/upcoming-auctions?email=${encodeURIComponent(email)}`);
+    const json = await response.json();
+    if (json.success) {
+      setUpcomingCount(json.count);
+    } else {
+      console.error("❌ Server error while fetching upcoming count:", json.error);
+    }
+  } catch (err) {
+    console.error("❌ Network error while fetching upcoming count:", err);
+  }
+};
 
-        const now = new Date();
+useEffect(() => {
+  if (!isLoading && user?.email) {
+    fetchStats(); // your other API
+    fetchSellerLiveCount(user.email);
+    fetchSellerUpcomingCount(user.email);
+  }
+}, [user?.email, isLoading]);
 
-        let live = 0;
-        let upcoming = 0;
+  // }, [user?.email, isLoading]);
 
-        (json.data || []).forEach((a: any) => {
-          const start = a.scheduledstart ? new Date(a.scheduledstart) : null;
-          const durationInSeconds = a.auctionduration
-            ? ((d: any) =>
-                (d.days || 0) * 86400 +
-                (d.hours || 0) * 3600 +
-                (d.minutes || 0) * 60)(a.auctionduration)
-            : 0;
-          const end = start
-            ? new Date(start.getTime() + durationInSeconds * 1000)
-            : null;
+useEffect(() => {
+  const fetchWinners = async () => {
+    // const res = await fetch(`/api/seller/winners?email=${userEmail}`);
+    const res = await fetch(
+      `/api/seller/winners?email=${user?.email}`
+    );
+    const json = await res.json();
+    if (json.success) {
+      setWinners(json.data);  // <== Confirm this line is being hit
+    } else {
+      console.error("Failed to fetch winners", json.error);
+    }
+  };
+  if (selectedSection === "winners") {
+    fetchWinners();
+  }
+}, [selectedSection,user?.email]);
 
-          if (start && end) {
-            if (now < start) {
-              upcoming += 1;
-            } else if (now >= start && now < end) {
-              live += 1;
-            }
-          }
-        });
-
-        setLiveCount(live);
-        setUpcomingCount(upcoming);
-      } catch (err) {
-        console.error("Error fetching auctions:", err);
-      }
-    };
-
-    fetchAuctions();
-  }, []);
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -204,13 +225,13 @@ export default function SellerDashboard() {
                 </CardTitle>
               </div>
               <div className="mt-1">
-                <div className="text-2xl  font-bold">Total: {7}</div>
+                <div className="text-2xl  font-bold">{7}</div>
                 <p className="text-xs text-gray-500">Create New</p>
               </div>
             </CardHeader>
           </Card>
           {/* Lost Auctions */}
-          <Link href="/auctions">
+        
             <Card
               className={`cursor-pointer transition-shadow hover:shadow-lg ${
                 selectedSection === "liveAuction"
@@ -231,9 +252,9 @@ export default function SellerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+      
           {/* Live Auctions */}
-          <Link href="/auctions?tab=upcoming">
+          
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -248,9 +269,9 @@ export default function SellerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+         
           {/* Upcoming Auction*/}
-          <Link href="/auctions?tab=upcoming">
+          
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -265,7 +286,7 @@ export default function SellerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+     
 
           {/* My Profile */}
 
@@ -286,23 +307,26 @@ export default function SellerDashboard() {
             </Card>
           </Link>
           <Card
-  onClick={() => setSelectedSection("winners")}
-  className={`cursor-pointer transition-shadow hover:shadow-lg ${
-    selectedSection === "winners" ? "ring-2 ring-blue-500" : ""
-  }`}
->
-  <CardHeader className="pb-2">
-    <div className="flex items-center gap-2">
-      <PackageCheck className="h-5 w-5 text-blue-500 animate-bounce" />
-      <CardTitle className="text-sm font-medium">Items Sold</CardTitle>
-    </div>
-    <div className="mt-1">
-      <div className="text-2xl font-bold">${stats?.totalSales || 0}</div>
-      <p className="text-xs text-gray-500">View Winners</p>
-    </div>
-  </CardHeader>
-</Card>
-
+            onClick={() => setSelectedSection("winners")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "winners" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <PackageCheck className="h-5 w-5 text-blue-500 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Items Sold
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">
+                  ${stats?.totalSales || 0}
+                </div>
+                <p className="text-xs text-gray-500">View Winners</p>
+              </div>
+            </CardHeader>
+          </Card>
 
           {/* Auctions Won */}
           <Card>
@@ -391,9 +415,9 @@ export default function SellerDashboard() {
         {selectedSection === "leaderboard" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <div className="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-white mb-4">
-  <Trophy className="w-5 h-5 text-yellow-500 animate-bounce"/>
-  <span>Leader Board</span>
-</div>
+              <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />
+              <span>Leader Board</span>
+            </div>
 
             {/* Replace with your actual leaderboard data */}
             {selectedSection === "leaderboard" &&
@@ -461,47 +485,47 @@ export default function SellerDashboard() {
               ))}
           </div>
         )}
-        {/* {selectedSection === "winners" && (
-  <div className="bg-white dark:bg-gray-900 p-4 rounded shadow mt-6">
-    {!soldAuctions ? (
-      <p className="text-gray-500 italic">Loading winning products...</p>
-    ) : soldAuctions.length === 0 ? (
-      <p className="text-gray-500 italic">No winning products available.</p>
+        {selectedSection === "winners" && (
+  <div className="mt-6">
+    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+      <PackageCheck className="w-5 h-5 text-green-600" />
+      Sold Items (Winners)
+    </h2>
+    {winners.length === 0 ? (
+      <p className="text-sm text-gray-500">No sold items yet.</p>
     ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {soldAuctions.map((auction) => (
-          <div
-            key={auction.id}
-            className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm"
-          >
-            <img
-              src={auction.productimages}
-              alt={auction.productname}
-              className="w-full h-32 object-cover rounded mb-2"
-            />
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {auction.productname}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Final Bid: ${auction.current_bid}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Winner: {auction.winnername || "N/A"}
-            </p>
-            <Link
-              href={`/auctions/${auction.id}`}
-              className="text-blue-600 text-sm mt-2 inline-block hover:underline"
-            >
-              View Summary
-            </Link>
-          </div>
-        ))}
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+            <tr>
+              <th className="p-3">Product</th>
+              <th className="p-3">Final Bid</th>
+              <th className="p-3">Winner</th>
+              <th className="p-3">Sold On</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {winners.map((a) => (
+  <tr key={a.id} className="border-b hover:bg-gray-50 transition-colors">
+    <td className="p-3 font-medium text-gray-800">{a.productname}</td>
+    <td className="p-3">₹{a.soldprice}</td>
+    <td className="p-3">
+      <div className="text-sm">{a.buyername}</div>
+      <div className="text-xs text-gray-500">{a.buyeremail}</div>
+    </td>
+    <td className="p-3">
+      {a.closedat ? new Date(a.closedat).toLocaleDateString() : "-"}
+    </td>
+  </tr>
+))}
+
+          </tbody>
+        </table>
       </div>
     )}
   </div>
-)} */}
+)}
 
-        
       </div>
     </div>
   );

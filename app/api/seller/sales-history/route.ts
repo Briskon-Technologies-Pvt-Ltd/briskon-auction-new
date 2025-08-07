@@ -11,6 +11,7 @@ interface Sale {
   productname: string;
   salePrice: number;
   buyer: string;
+  starting_bid: string;
   productimages:string;
   saleDate: string | null;
 }
@@ -45,10 +46,12 @@ export async function GET(request: Request) {
         productname,
         currentbid,
         productimages,
+        startprice,
         createdby
       `)
       .eq("createdby", userEmail)
       .eq("ended", true)
+      .gt("bidder_count", 0)
       .not("currentbid", "is", null);
 
     if (auctionError) {
@@ -105,6 +108,7 @@ export async function GET(request: Request) {
           id: auction.id,
           productname: auction.productname || "Untitled",
           salePrice: auction.currentbid || 0,
+          starting_bid: auction.startprice || 0,
           productimages,
           buyer,
           saleDate,

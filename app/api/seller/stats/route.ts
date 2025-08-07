@@ -51,6 +51,7 @@ export async function GET(request: Request) {
       .from("auctions")
       .select("id", { count: "exact" })
       .eq("createdby", userEmail)
+      .gt("bidder_count", 0)
       .eq("ended", false);
 
     if (activeListingsError) {
@@ -83,30 +84,6 @@ export async function GET(request: Request) {
 
     const totalBids = totalBidsData.reduce((sum, auction) => sum + (auction.bidcount || 0), 0);
 
-    // Step 5: Top 5 Auctions by currentbid
-    // Step 5: All auctions by this seller that have at least one bid
-    const { data: auctionsWithBids, error: auctionsWithBidsError } = await supabase
-      .from("bids")
-      .select(`
-        auction_id,
-        auctions (
-          id,
-          productname,
-          currentbid,
-          createdby,
-          categoryid,
-          auctiontype,
-          auctionsubtype,
-          startprice,
-          bidder_count,
-          productimages
-        )
-      `)
-      .eq("auctions.createdby", userEmail);
-
-    if (auctionsWithBidsError) {
-      return NextResponse.json({ error: "Failed to fetch auctions with bids" }, { status: 500 });
-    }
     const {data: { user },} = await supabase.auth.getUser();
 
 const { data: soldAuctions, error } = await supabase
@@ -118,20 +95,29 @@ const totalSoldAmount = soldAuctions?.reduce(
   (sum, auction) => sum + (auction.currentbid || 0),
   0
 );
+// Step 5: Top 5 Active Auctions with Bids (sorted by currentbid)
+const { data: topAuctionsData, error: topAuctionsError } = await supabase
+  .from("auctions")
+  .select(
+    "id, productname, productimages, categoryid, auctiontype, auctionsubtype, startprice, currentbid, bidder_count"
+  )
+  .eq("createdby", userEmail)
+  .eq("ended", false) // Only active listings
+  .gt("bidder_count", 0) // Only auctions with bidders
+  .order("currentbid", { ascending: false });
 
+if (topAuctionsError) {
+  return NextResponse.json({ error: "Failed to fetch top auctions" }, { status: 500 });
+}
 
-    // Deduplicate auctions (in case multiple bids exist for same auction)
-    const uniqueAuctionsMap = new Map();
-    auctionsWithBids.forEach((entry: any) => {
-      const auction = entry.auctions;
-      if (auction && !uniqueAuctionsMap.has(auction.id)) {
-        uniqueAuctionsMap.set(auction.id, auction);
-      }
-    });
-
-    const topAuctions = Array.from(uniqueAuctionsMap.values()).map((auction: any) => ({
+const topAuctions = (topAuctionsData || []).map((auction: any) => {
+        const productimages = Array.isArray(auction.productimages) && auction.productimages.length > 0
+  ? auction.productimages[0]
+  : "/placeholder.svg"; // fallback image
+return {
   id: auction.id,
   productname: auction.productname,
+  productimages,
   category: auction.categoryid,
   type: auction.auctiontype,
   format: auction.auctionsubtype,
@@ -139,11 +125,8 @@ const totalSoldAmount = soldAuctions?.reduce(
   current_bid: auction.currentbid,
   gain: auction.currentbid - auction.startprice,
   bidders: auction.bidder_count,
-  productimages: auction.productimages,
-}));
-
-
-
+} 
+});
     const stats: Stats = {
       activeListings,
       totalSales,

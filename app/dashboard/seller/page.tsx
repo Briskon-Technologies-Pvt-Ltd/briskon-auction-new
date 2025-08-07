@@ -21,6 +21,13 @@ import {
   Calendar,
   XCircle,
   PackageCheck,
+  Archive,
+  BarChart,
+  BarChart3,
+  MessageCircle,
+  CheckCircle,
+  Hourglass,
+  Ban,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +50,7 @@ interface Sale {
   salePrice: number;
   buyer: string;
   saleDate: string | null;
+  starting_bid:number;
 }
 
 interface Stats {
@@ -238,7 +246,7 @@ export default function SellerDashboard() {
               <div className="flex items-center gap-2">
                 <Gavel className="h-5 w-5 text-blue-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
-                  Leader board
+                  Leader Board
                 </CardTitle>
               </div>
               <div className="mt-1">
@@ -281,7 +289,7 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{liveCount}</div>
-                <p className="text-xs text-gray-500">Ongoing now</p>
+                <p className="text-xs text-gray-500">Ongoing Now</p>
               </div>
             </CardHeader>
           </Card>
@@ -308,14 +316,15 @@ export default function SellerDashboard() {
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 animate-bounce" />
+                <Hourglass className="h-4 w-4 text-yellow-500 animate-pulse" />
+
                 <CardTitle className="text-sm font-medium">
                   Approval Pending
                 </CardTitle>
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{7}</div>
-                <p className="text-xs text-gray-500">View details</p>
+                <p className="text-xs text-gray-500">View Details</p>
               </div>
             </CardHeader>
           </Card>
@@ -326,14 +335,16 @@ export default function SellerDashboard() {
             <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-blue-600 animate-bounce" />
+                  <Ban className="h-5 w-5 text-red-500 animate-bounce" />
+
                   <CardTitle className="text-sm font-medium">
                     Admin Rejected
                   </CardTitle>
                 </div>
                 <div className="mt-1">
+                  <div className="text-2xl font-bold">{0}</div>
                   <div className="text-xs font-bold invisible">1</div>
-                  <p className="text-xs text-gray-500">View details</p>
+                  <p className="text-xs text-gray-500">View Details</p>
                 </div>
               </CardHeader>
             </Card>
@@ -364,12 +375,16 @@ export default function SellerDashboard() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-green-500 animate-bounce" />
+                <Archive className="h-5 w-5 text-red-500 animate-bounce" />
+
                 <CardTitle className="text-sm font-medium">
                   Items Unsold
                 </CardTitle>
               </div>
               <div className="mt-1">
+                <div className="text-2xl font-bold">
+                  {0}
+                </div>
                 <div className="text-2xl  font-bold"></div>
                 <p className="text-xs text-gray-500">Relist Now</p>
               </div>
@@ -379,7 +394,8 @@ export default function SellerDashboard() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-400 animate-bounce" />
+                <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
+
                 <CardTitle className="text-sm font-medium">
                   Success Rate
                 </CardTitle>
@@ -391,11 +407,12 @@ export default function SellerDashboard() {
             </CardHeader>
           </Card>
           {/* Live Auctions */}
-          <Link href="/auctions">
+       
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
+                  <BarChart3 className="h-5 w-5 text-blue-500 animate-bounce" />
+
                   <CardTitle className="text-sm font-medium">
                     Avg. Bids per Auction
                   </CardTitle>
@@ -406,13 +423,14 @@ export default function SellerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+    
           {/* Upcoming Auction*/}
           <Link href="/auctions?tab=upcoming">
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 animate-bounce" />
+                  <MessageCircle className="h-4 w-4 text-blue-500 animate-bounce" />
+
                   <CardTitle className="text-sm font-medium">Q&A</CardTitle>
                 </div>
                 <div className="mt-1">
@@ -520,7 +538,7 @@ export default function SellerDashboard() {
         {selectedSection === "winners" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <PackageCheck className="w-5 h-5 text-green-600" />
+              <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
               Sold Items (Winners)
             </h2>
             {sales.length === 0 ? (
@@ -530,8 +548,9 @@ export default function SellerDashboard() {
                   <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
                     <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                     <tr>
-                      <th className="px-4 py-2 text-left">Product</th>
-                      <th className="px-4 py-2 text-left">Final Bid</th>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                      <th className="px-4 py-2 text-left">Winning Bid </th>
                       <th className="px-4 py-2 text-left">Winner</th>
                       <th className="px-4 py-2 text-left">Sold On</th>
                     </tr>
@@ -542,9 +561,6 @@ export default function SellerDashboard() {
                         key={idx}
                         className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                       >
-                        {/* <td className="px-4 py-2">
-                          {sale.productname}
-                        </td> */}
                         <td className="p-2">
                             <Link
                               href={`/auctions/${sale.id}`}
@@ -558,12 +574,13 @@ export default function SellerDashboard() {
                               {sale.productname}
                             </Link>
                           </td>
-                        <td className="px-4 py-2">{sale.salePrice}</td>
+                        <td className="px-4 py-2">{sale.starting_bid}</td>
+                        <td className="px-4 py-2">${sale.salePrice}</td>
                         <td className="px-4 py-2">
                           {/* <div className="text-sm">{sale.buyername}</div> */}
-                          <div className="text-xs text-gray-500">
+                          {/* <div className="p-2 text-gray-600"> */}
                             {sale.buyer}
-                          </div>
+                          {/* </div> */}
                         </td>
                         <td className="px-4 py-2">
                           {sale.saleDate

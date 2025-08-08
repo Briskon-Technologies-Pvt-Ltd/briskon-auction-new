@@ -339,7 +339,7 @@ export default function SellerDashboard() {
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
           {/* Active Bids */}
           <Card
             onClick={() => setSelectedSection("leaderboard")}
@@ -494,7 +494,7 @@ export default function SellerDashboard() {
                     ${stats ? stats.totalSales : 0}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500">View Details</p>
+                <p className="text-xs text-gray-500 mt-4">View Details</p>
               </div>
             </CardHeader>
           </Card>
@@ -517,12 +517,12 @@ export default function SellerDashboard() {
               <div className="mt-1">
                 <div className="text-2xl font-bold">{unsoldCount}</div>
                 <div className="text-2xl  font-bold"></div>
-                <p className="text-xs text-gray-500">Relist Now</p>
+                <p className="text-xs text-gray-500 mt-4">Relist Now</p>
               </div>
             </CardHeader>
           </Card>
           {/* Lost Auctions */}
-          <Card>
+          {/* <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
@@ -536,10 +536,10 @@ export default function SellerDashboard() {
                 <p className="text-xs text-gray-500">View Details</p>
               </div>
             </CardHeader>
-          </Card>
+          </Card> */}
           {/* Live Auctions */}
 
-          <Card>
+          {/* <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-500 animate-bounce" />
@@ -553,10 +553,10 @@ export default function SellerDashboard() {
                 <p className="text-xs text-gray-500">View Details</p>
               </div>
             </CardHeader>
-          </Card>
+          </Card> */}
 
           {/* Upcoming Auction*/}
-          <Link href="/auctions?tab=upcoming">
+         
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -566,11 +566,11 @@ export default function SellerDashboard() {
                 </div>
                 <div className="mt-1">
                   <div className="text-2xl font-bold">{5}</div>
-                  <p className="text-xs text-gray-500">Respond Now</p>
+                  <p className="text-xs text-gray-500 mt-4">Respond Now</p>
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+ 
 
           {/* My Profile */}
 
@@ -584,7 +584,9 @@ export default function SellerDashboard() {
                   </CardTitle>
                 </div>
                 <div className="mt-1">
-                  <div className="text-xs font-bold invisible">1</div>
+                  <div className="h-12">
+                  <div className="text-2xl font-bold invisible">1</div>
+                  </div>
                   <p className="text-xs text-gray-500">
                     Edit Profile & Change Password
                   </p>

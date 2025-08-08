@@ -120,6 +120,17 @@ interface AuctionItem {
   format: string | number;
   created_at: string;
 }
+interface approvalPendingItem {
+  id: string;
+  productname: string;
+  productimages: string;
+  salePrice: number;
+  starting_bid: number;
+  category: string;
+  type: string | number;
+  format: string | number;
+  created_at: string;
+}
 
 interface RecentAuction {
   id: string;
@@ -142,6 +153,7 @@ export default function SellerDashboard() {
   const [unsoldCount, setUnsoldCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
   const [liveAuctions, setLiveAuctions] = useState<LiveAuction[]>([]);
+  const [approvalPendings, setApprovalPendings] = useState<approvalPendingItem[]>([]);
   const [upcomingAuctions, setUpcomingAuctions] = useState<
     upcomingAuctionItem[]
   >([]);
@@ -159,6 +171,7 @@ export default function SellerDashboard() {
     | "upcomingAuctions"
     | "itemUnsold"
     | "manageAuction"
+    | "approvalPending"
   >("leaderboard");
   const fetchStats = async () => {
     try {
@@ -305,6 +318,20 @@ export default function SellerDashboard() {
     if (user) fetchAuctions();
   }, [user]);
 
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      if (!user?.email) throw new Error("User email is missing");
+      const response = await fetch(
+        `/api/seller/approval-Pending?email=${encodeURIComponent(user.email)}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setApprovalPendings(data.data || []);
+      }
+    };
+    if (user) fetchAuctions();
+  }, [user]);
+
   if (isLoading || isLoadingSales) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -438,7 +465,14 @@ export default function SellerDashboard() {
 
           {/* Upcoming Auction*/}
 
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+           <Card
+            onClick={() => setSelectedSection("approvalPending")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "approvalPending"
+                ? "ring-2 ring-blue-500"
+                : ""
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Hourglass className="h-4 w-4 text-yellow-500 animate-bounce" />
@@ -448,7 +482,7 @@ export default function SellerDashboard() {
                 </CardTitle>
               </div>
               <div className="mt-1">
-                <div className="text-2xl font-bold">{7}</div>
+                <div className="text-2xl font-bold">{approvalPendings.length}</div>
                 <p className="text-xs text-gray-500 mt-4">View Details</p>
               </div>
             </CardHeader>
@@ -456,7 +490,7 @@ export default function SellerDashboard() {
 
           {/* My Profile */}
 
-          <Link href="/settings/profile">
+         
             <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -473,7 +507,7 @@ export default function SellerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+    
           <Card
             onClick={() => setSelectedSection("winners")}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
@@ -996,6 +1030,61 @@ export default function SellerDashboard() {
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedSection === "approvalPending" && (
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Calendar className="h-4 w-4 animate-bounce" />
+                Upcoming Auctions
+              </h2>
+            </div>
+            {approvalPendings.length === 0 ? (
+              <p className="text-sm text-gray-500">Upcoming Auction</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Type </th>
+                      <th className="px-4 py-2 text-left">Format</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                     
+                      {/* <th className="px-4 py-2 text-left">Action</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approvalPendings.map((approval, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${approval.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={approval.productimages}
+                              alt={approval.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {approval.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">{approval.category}</td>
+                        <td className="px-4 py-2 ">{approval.type}</td>
+                        <td className="px-4 py-2">{approval.format}</td>
+                        <td className="px-4 py-2">${approval.starting_bid}</td>
                       </tr>
                     ))}
                   </tbody>

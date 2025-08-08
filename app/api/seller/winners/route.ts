@@ -66,7 +66,6 @@ export async function GET(req: Request) {
     buyeremail: auction.profiles?.email ?? "N/A",
     closedat: auction.scheduledstart,
   }));
-  console.log("========================Returning winners:", winners);
 
 
   return NextResponse.json({ success: true, data: winners });

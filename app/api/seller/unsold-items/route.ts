@@ -119,7 +119,7 @@ if (unsoldError) {
           buyer,
           saleDate,
         };
-        console.log("Sale object for auction", auction.id, ":", UnsoldSales);
+        // console.log("Sale object for auction", auction.id, ":", UnsoldSales);
         return UnsoldSales;
       })
     );

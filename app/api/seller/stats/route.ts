@@ -109,7 +109,7 @@ const { data: topAuctionsData, error: topAuctionsError } = await supabase
 if (topAuctionsError) {
   return NextResponse.json({ error: "Failed to fetch top auctions" }, { status: 500 });
 }
-
+const activeListingsCount = topAuctionsData?.length || 0;
 const topAuctions = (topAuctionsData || []).map((auction: any) => {
         const productimages = Array.isArray(auction.productimages) && auction.productimages.length > 0
   ? auction.productimages[0]
@@ -128,7 +128,7 @@ return {
 } 
 });
     const stats: Stats = {
-      activeListings,
+      activeListings:activeListingsCount,
       totalSales,
       totalBids,
       topAuctions,

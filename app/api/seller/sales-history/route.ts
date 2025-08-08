@@ -46,6 +46,10 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
     currentbid,
     productimages,
     startprice,
+    auctiontype, 
+    auctionsubtype,
+    categoryid,
+
     createdby
   `, { count: 'exact' }) // <--- get count
   .eq("createdby", userEmail)
@@ -109,11 +113,14 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
           productname: auction.productname || "Untitled",
           salePrice: auction.currentbid || 0,
           starting_bid: auction.startprice || 0,
+          category: auction.categoryid || 0,
+          type: auction.auctiontype || 0,
+          format: auction.auctionsubtype || 0,
           productimages,
           buyer,
           saleDate,
         };
-        console.log("Sale object for auction", auction.id, ":", sale);
+       
         return sale;
       })
     );

@@ -49,21 +49,24 @@ interface Sale {
   productimages: string;
   salePrice: number;
   buyer: string;
+  category: string;
+  type: string;
+  format: string;
+  starting_bid: number;
   saleDate: string | null;
-  starting_bid:number;
 }
 
 interface UnsoldSale {
   id: string;
   productname: string;
-  auction_type:string;
-  auction_subtype:string;
+  auction_type: string;
+  auction_subtype: string;
   productimages: string;
   salePrice: number;
   buyer: string;
-  auction_category:string;
+  auction_category: string;
   saleDate: string | null;
-  starting_bid:number;
+  starting_bid: number;
 }
 
 interface Stats {
@@ -82,6 +85,17 @@ interface Stats {
     gain: number;
     bidders: number;
   }[];
+}
+interface AuctionItem {
+  id: string;
+  productname: string;
+  productimages: string;
+  salePrice: number;
+  starting_bid: number;
+  category: string;
+  type: string | number;
+  format: string | number;
+  created_at: string;
 }
 
 interface RecentAuction {
@@ -104,12 +118,19 @@ export default function SellerDashboard() {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [unsoldCount, setUnsoldCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
+  const [auctions, setAuctions] = useState<AuctionItem[]>([]);
+  const [auctionCount, setAuctionCount] = useState(0);
   const [sales, setSales] = useState<Sale[]>([]);
   const [unsoldSales, setUnsoldSale] = useState<UnsoldSale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<
-    "leaderboard" | "activeBids" | "winners" | "liveAuction" | "itemUnsold"
+    | "leaderboard"
+    | "activeBids"
+    | "winners"
+    | "liveAuction"
+    | "itemUnsold"
+    | "manageAuction"
   >("leaderboard");
   const fetchStats = async () => {
     try {
@@ -123,9 +144,9 @@ export default function SellerDashboard() {
         throw new Error(data.error || "Failed to load stats");
       }
 
-      setStats(data.data); // ✅ Sets stats if API succeeded
+      setStats(data.data);
     } catch (err) {
-      console.error("❌ Stats fetch error:", err); // ✅ Add this
+      console.error("Stats fetch error:", err);
       setErrorStats(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoadingStats(false);
@@ -210,7 +231,6 @@ export default function SellerDashboard() {
     const fetchSales = async () => {
       setIsLoadingSales(true);
       try {
-        console.log("User object:", user); // Debug user object
         if (!user?.email) throw new Error("User email is missing");
         const response = await fetch(
           `/api/seller/unsold-items?email=${encodeURIComponent(user.email)}`
@@ -221,20 +241,34 @@ export default function SellerDashboard() {
             `Failed to fetch sales history: ${response.statusText}`
           );
         const data = await response.json();
-        console.log("Fetch response data:", data); // Debug full response
         if (!data.success)
           throw new Error(data.error || "Failed to load sales history");
         setUnsoldSale(data.data || []);
         setUnsoldCount((data.data || []).length);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Fetch error:", err); // Debug error
       } finally {
         setIsLoadingSales(false);
       }
     };
 
     if (user) fetchSales();
+  }, [user]);
+
+  // Manage-auctions
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      if (!user?.email) throw new Error("User email is missing");
+      const response = await fetch(
+        `/api/seller/manage-auction?email=${encodeURIComponent(user.email)}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setAuctions(data.data || []);
+        setAuctionCount(data.count);
+      }
+    };
+    if (user) fetchAuctions();
   }, [user]);
 
   if (isLoading || isLoadingSales) {
@@ -268,15 +302,6 @@ export default function SellerDashboard() {
     );
   }
 
-  // {user.fname || user.lname || "Seller"}
-  // <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
-  // <div className="container mx-auto px-4">
-  //   {/* Summary Cards */}
-  //   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-  //     {/* Active Bids */}
-  //     <Card
-  //       onClick={() => setSelectedSection("activeBids")}
-  //       className={`cursor-pointer transition-shadow hover:shadow-lg ${
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
       <div className="container mx-auto px-4">
@@ -305,7 +330,12 @@ export default function SellerDashboard() {
           </Card>
 
           {/* Auctions Won */}
-          <Card>
+          <Card
+            onClick={() => setSelectedSection("manageAuction")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "manageAuction" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-green-500 animate-bounce" />
@@ -314,7 +344,7 @@ export default function SellerDashboard() {
                 </CardTitle>
               </div>
               <div className="mt-1">
-                <div className="text-2xl  font-bold">{7}</div>
+                <div className="text-2xl  font-bold">{auctionCount}</div>
                 <p className="text-xs text-gray-500">Create New</p>
               </div>
             </CardHeader>
@@ -410,7 +440,8 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">
-                  ${stats?.totalSales || 0}
+                  {/* {stats?.activeListings || 0} */}
+                  {sales.length}
                 </div>
                 <p className="text-xs text-gray-500">View Winners</p>
               </div>
@@ -433,9 +464,7 @@ export default function SellerDashboard() {
                 </CardTitle>
               </div>
               <div className="mt-1">
-                <div className="text-2xl font-bold">
-                  {unsoldCount}
-                </div>
+                <div className="text-2xl font-bold">{unsoldCount}</div>
                 <div className="text-2xl  font-bold"></div>
                 <p className="text-xs text-gray-500">Relist Now</p>
               </div>
@@ -458,23 +487,23 @@ export default function SellerDashboard() {
             </CardHeader>
           </Card>
           {/* Live Auctions */}
-       
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-blue-500 animate-bounce" />
 
-                  <CardTitle className="text-sm font-medium">
-                    Avg. Bids per Auction
-                  </CardTitle>
-                </div>
-                <div className="mt-1">
-                  <div className="text-2xl font-bold">{4}</div>
-                  <p className="text-xs text-gray-500">View Details</p>
-                </div>
-              </CardHeader>
-            </Card>
-    
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-500 animate-bounce" />
+
+                <CardTitle className="text-sm font-medium">
+                  Avg. Bids per Auction
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{4}</div>
+                <p className="text-xs text-gray-500">View Details</p>
+              </div>
+            </CardHeader>
+          </Card>
+
           {/* Upcoming Auction*/}
           <Link href="/auctions?tab=upcoming">
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
@@ -595,11 +624,14 @@ export default function SellerDashboard() {
             {sales.length === 0 ? (
               <p className="text-sm text-gray-500">No sold items yet.</p>
             ) : (
-               <div className="overflow-x-auto rounded-md mt-6">
-                  <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
-                    <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                     <tr>
                       <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Type</th>
+                      <th className="px-4 py-2 text-left">Format</th>
                       <th className="px-4 py-2 text-left">Starting Bid</th>
                       <th className="px-4 py-2 text-left">Winning Bid </th>
                       <th className="px-4 py-2 text-left">Winner</th>
@@ -613,24 +645,29 @@ export default function SellerDashboard() {
                         className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                       >
                         <td className="p-2">
-                            <Link
-                              href={`/auctions/${sale.id}`}
-                              className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
-                            >
-                              <img
-                                src={sale.productimages}
-                                alt={sale.productname}
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                              {sale.productname}
-                            </Link>
-                          </td>
+                          <Link
+                            href={`/auctions/${sale.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={sale.productimages}
+                              alt={sale.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {sale.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">{sale.category}</td>
+                        <td className="px-4 py-2">{sale.type}</td>
+                        <td className="px-4 py-2">{sale.format}</td>
                         <td className="px-4 py-2">{sale.starting_bid}</td>
-                        <td className="px-4 py-2 font-semibold text-green-700">${sale.salePrice}</td>
+                        <td className="px-4 py-2 font-semibold text-green-700">
+                          ${sale.salePrice}
+                        </td>
                         <td className="px-4 py-2">
                           {/* <div className="text-sm">{sale.buyername}</div> */}
                           {/* <div className="p-2 text-gray-600"> */}
-                            {sale.buyer}
+                          {sale.buyer}
                           {/* </div> */}
                         </td>
                         <td className="px-4 py-2">
@@ -657,15 +694,15 @@ export default function SellerDashboard() {
             {unsoldSales.length === 0 ? (
               <p className="text-sm text-gray-500">No sold items yet.</p>
             ) : (
-               <div className="overflow-x-auto rounded-md mt-6">
-                  <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
-                    <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
                     <tr>
                       <th className="px-4 py-2 text-left">Auction Name</th>
                       <th className="px-4 py-2 text-left">Category</th>
-                      <th className="px-4 py-2 text-left">Starting Bid</th>
                       <th className="px-4 py-2 text-left">Type </th>
-                      <th className="px-4 py-2 text-left">Subtype</th>
+                      <th className="px-4 py-2 text-left">Format</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
                       <th className="px-4 py-2 text-left">Closed On</th>
                       <th className="px-4 py-2 text-left">Action</th>
                     </tr>
@@ -677,32 +714,108 @@ export default function SellerDashboard() {
                         className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                       >
                         <td className="p-2">
-                            <Link
-                              href={`/auctions/${unsoldSale.id}`}
-                              className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
-                            >
-                              <img
-                                src={unsoldSale.productimages}
-                                alt={unsoldSale.productname}
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                              {unsoldSale.productname}
-                            </Link>
-                          </td>
-                        <td className="px-4 py-2">{unsoldSale.auction_category}</td>
+                          <Link
+                            href={`/auctions/${unsoldSale.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={unsoldSale.productimages}
+                              alt={unsoldSale.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {unsoldSale.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">
+                          {unsoldSale.auction_category}
+                        </td>
+                        <td className="px-4 py-2 ">
+                          {unsoldSale.auction_type}
+                        </td>
+                        <td className="px-4 py-2">
+                          {unsoldSale.auction_subtype}
+                        </td>
                         <td className="px-4 py-2">{unsoldSale.starting_bid}</td>
-                        <td className="px-4 py-2 ">{unsoldSale.auction_type}</td>
-                        <td className="px-4 py-2">{unsoldSale.auction_subtype}</td>
                         <td className="px-4 py-2">
                           {unsoldSale.saleDate
-                            ? DateTime.fromISO(unsoldSale.saleDate).toLocaleString(
-                              DateTime.DATETIME_MED
-                            )
+                            ? DateTime.fromISO(
+                                unsoldSale.saleDate
+                              ).toLocaleString(DateTime.DATETIME_MED)
                             : "N/A"}
                         </td>
-                       <Link className="text-blue-400"  href={`/`}>
-                            <td className="px-4 py-2">Re-list</td>
-                            </Link>
+                        <Link className="text-blue-400" href={`/cc`}>
+                          <td className="px-4 py-2">Re-list</td>
+                        </Link>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedSection === "manageAuction" && (
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
+                My Auctions
+              </h2>
+              <button className="bg-green-400 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200">
+                Create New
+              </button>
+            </div>
+            {auctions.length === 0 ? (
+              <p className="text-sm text-gray-500">No sold items yet.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Type </th>
+                      <th className="px-4 py-2 text-left">Format</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                      <th className="px-4 py-2 text-left">Created At</th>
+                      {/* <th className="px-4 py-2 text-left">Action</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auctions.map((auction, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={auction.productimages}
+                              alt={auction.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {auction.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">{auction.category}</td>
+                        <td className="px-4 py-2 ">{auction.type}</td>
+                        <td className="px-4 py-2">{auction.format}</td>
+                        <td className="px-4 py-2">${auction.starting_bid}</td>
+                        <td className="px-4 py-2">
+                          {new Date(auction.created_at).toLocaleDateString(
+                            "en-GB",
+                            {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          )}
+                        </td>
+
+                        {/* <td className="px-4 py-2">Re-list</td> */}
                       </tr>
                     ))}
                   </tbody>

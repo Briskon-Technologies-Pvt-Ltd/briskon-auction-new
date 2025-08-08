@@ -28,9 +28,11 @@ import {
   CheckCircle,
   Hourglass,
   Ban,
+  LucideVault,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
+import LiveTimer from "@/app/livetimer/page";
 
 interface Winner {
   id: string;
@@ -86,6 +88,27 @@ interface Stats {
     bidders: number;
   }[];
 }
+interface LiveAuction {
+  id: string;
+  productname: string;
+  currentbid: number | null;
+  productimages: string;
+  startprice: number;
+  auctiontype: string;
+  auctionsubtype: string;
+  categoryid: number;
+}
+interface upcomingAuctionItem {
+  id: string;
+  productname: string;
+  currentbid: number | null;
+  productimages: string;
+  startprice: number;
+  auctiontype: string;
+  auctionsubtype: string;
+  categoryid: string;
+  scheduledstart: string;
+}
 interface AuctionItem {
   id: string;
   productname: string;
@@ -118,6 +141,10 @@ export default function SellerDashboard() {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [unsoldCount, setUnsoldCount] = useState(0);
   const [liveCount, setLiveCount] = useState(0);
+  const [liveAuctions, setLiveAuctions] = useState<LiveAuction[]>([]);
+  const [upcomingAuctions, setUpcomingAuctions] = useState<
+    upcomingAuctionItem[]
+  >([]);
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [auctionCount, setAuctionCount] = useState(0);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -129,6 +156,7 @@ export default function SellerDashboard() {
     | "activeBids"
     | "winners"
     | "liveAuction"
+    | "upcomingAuctions"
     | "itemUnsold"
     | "manageAuction"
   >("leaderboard");
@@ -153,44 +181,50 @@ export default function SellerDashboard() {
     }
   };
 
-  const fetchSellerLiveCount = async (email: string) => {
+  const fetchSellerLiveAuctions = async (email: string) => {
     try {
       const response = await fetch(
         `/api/seller/live-auctions?email=${encodeURIComponent(email)}`
       );
-      const json = await response.json();
-      if (json.success) {
-        setLiveCount(json.count);
-      } else {
-        console.error("❌ Server error while fetching live count:", json.error);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to load live auctions");
       }
+
+      // Use data directly without interface
+      setLiveCount(data.count);
+      setLiveAuctions(data.data);
+      setError(null);
     } catch (err) {
-      console.error("❌ Network error while fetching live count:", err);
+      console.error("Error fetching live auctions:", err);
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
+
   const fetchSellerUpcomingCount = async (email: string) => {
     try {
       const response = await fetch(
         `/api/seller/upcoming-auctions?email=${encodeURIComponent(email)}`
       );
-      const json = await response.json();
-      if (json.success) {
-        setUpcomingCount(json.count);
-      } else {
-        console.error(
-          "❌ Server error while fetching upcoming count:",
-          json.error
-        );
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to load live auctions");
       }
+
+      setUpcomingCount(data.count);
+      setUpcomingAuctions(data.data);
+      setError(null);
     } catch (err) {
-      console.error("❌ Network error while fetching upcoming count:", err);
+      console.error(" Network error while fetching upcoming count:", err);
     }
   };
 
   useEffect(() => {
     if (!isLoading && user?.email) {
       fetchStats(); // your other API
-      fetchSellerLiveCount(user.email);
+      fetchSellerLiveAuctions(user.email);
       fetchSellerUpcomingCount(user.email);
     }
   }, [user?.email, isLoading]);
@@ -315,7 +349,7 @@ export default function SellerDashboard() {
           >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Gavel className="h-5 w-5 text-blue-500 animate-bounce" />
+                <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
                   Leader Board
                 </CardTitle>
@@ -324,36 +358,44 @@ export default function SellerDashboard() {
                 <div className="text-2xl  font-bold">
                   {stats?.activeListings || 0}
                 </div>
-                <p className="text-xs text-gray-500">Track Live Bids</p>
+                <p className="text-xs text-gray-500 mt-4">Track Live Bids</p>
               </div>
             </CardHeader>
           </Card>
-
           {/* Auctions Won */}
           <Card
             onClick={() => setSelectedSection("manageAuction")}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
               selectedSection === "manageAuction" ? "ring-2 ring-blue-500" : ""
-            }`}
+            } relative`} // make relative for positioning
           >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-green-500 animate-bounce" />
+                <Gavel className="h-5 w-5 text-green-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
                   Manage Auctions
                 </CardTitle>
               </div>
-              <div className="mt-1">
-                <div className="text-2xl  font-bold">{auctionCount}</div>
-                <p className="text-xs text-gray-500">Create New</p>
+              <div className="mt-1 flex items-center gap-3">
+                <div className="text-2xl font-bold">{auctionCount}</div>
+                <p className="text-xs text-gray-500 whitespace-nowrap">
+                  Live+Upcoming+Closed
+                </p>
               </div>
             </CardHeader>
+
+            {/* Bottom right "Create New" */}
+            <div className="absolute bottom-2 left-4 text-xs text-gray-500">
+              Create New
+            </div>
           </Card>
+
           {/* Lost Auctions */}
 
           <Card
+            onClick={() => setSelectedSection("liveAuction")}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "liveAuction" ? "ring-2 text-orange-400" : ""
+              selectedSection === "liveAuction" ? "ring-2 ring-blue-500" : ""
             }`}
           >
             <CardHeader className="pb-2">
@@ -365,14 +407,21 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{liveCount}</div>
-                <p className="text-xs text-gray-500">Ongoing Now</p>
+                <p className="text-xs text-gray-500 mt-4">Ongoing Now</p>
               </div>
             </CardHeader>
           </Card>
 
           {/* Live Auctions */}
 
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Card
+            onClick={() => setSelectedSection("upcomingAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "upcomingAuctions"
+                ? "ring-2 ring-blue-500"
+                : ""
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 animate-bounce" />
@@ -382,7 +431,7 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{upcomingCount}</div>
-                <p className="text-xs text-gray-500">All Time</p>
+                <p className="text-xs text-gray-500 mt-4">All Time</p>
               </div>
             </CardHeader>
           </Card>
@@ -392,7 +441,7 @@ export default function SellerDashboard() {
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Hourglass className="h-4 w-4 text-yellow-500 animate-pulse" />
+                <Hourglass className="h-4 w-4 text-yellow-500 animate-bounce" />
 
                 <CardTitle className="text-sm font-medium">
                   Approval Pending
@@ -400,7 +449,7 @@ export default function SellerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{7}</div>
-                <p className="text-xs text-gray-500">View Details</p>
+                <p className="text-xs text-gray-500 mt-4">View Details</p>
               </div>
             </CardHeader>
           </Card>
@@ -439,11 +488,13 @@ export default function SellerDashboard() {
                 </CardTitle>
               </div>
               <div className="mt-1">
-                <div className="text-2xl font-bold">
-                  {/* {stats?.activeListings || 0} */}
-                  {sales.length}
+                <div className="text-2xl font-bold flex items-center gap-4">
+                  <span>{sales.length}</span>
+                  <span className="text-base font-normal text-gray-600">
+                    ${stats ? stats.totalSales : 0}
+                  </span>
                 </div>
-                <p className="text-xs text-gray-500">View Winners</p>
+                <p className="text-xs text-gray-500">View Details</p>
               </div>
             </CardHeader>
           </Card>
@@ -618,7 +669,7 @@ export default function SellerDashboard() {
         {selectedSection === "winners" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
+              <PackageCheck className="h-5 w-5 text-blue-500 animate-bounce" />
               Sold Items (Winners)
             </h2>
             {sales.length === 0 ? (
@@ -688,7 +739,7 @@ export default function SellerDashboard() {
         {selectedSection === "itemUnsold" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
+              <Archive className="h-5 w-5 text-red-500 animate-bounce" />
               Unsold Items
             </h2>
             {unsoldSales.length === 0 ? (
@@ -743,9 +794,11 @@ export default function SellerDashboard() {
                               ).toLocaleString(DateTime.DATETIME_MED)
                             : "N/A"}
                         </td>
-                        <Link className="text-blue-400" href={`/cc`}>
-                          <td className="px-4 py-2">Re-list</td>
-                        </Link>
+                        <td className="px-4 py-2">
+                          <Link href={`/cc`} className="text-blue-400">
+                            Re-list
+                          </Link>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -758,7 +811,7 @@ export default function SellerDashboard() {
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <PackageCheck className="w-5 h-5 text-green-600 animate-pulse" />
+                <Gavel className="h-5 w-5 text-green-500 animate-bounce" />
                 My Auctions
               </h2>
               <button className="bg-green-400 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200">
@@ -816,6 +869,131 @@ export default function SellerDashboard() {
                         </td>
 
                         {/* <td className="px-4 py-2">Re-list</td> */}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedSection === "liveAuction" && (
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
+                Live Auctions
+              </h2>
+            </div>
+            {liveAuctions.length === 0 ? (
+              <p className="text-sm text-gray-500">No sold items yet.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Type </th>
+                      <th className="px-4 py-2 text-left">Format</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                      <th className="px-4 py-2 text-left">Curent Bid</th>
+                      {/* <th className="px-4 py-2 text-left">Action</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveAuctions.map((liveAuction, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${liveAuction.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={liveAuction.productimages}
+                              alt={liveAuction.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {liveAuction.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">{liveAuction.categoryid}</td>
+                        <td className="px-4 py-2 ">
+                          {liveAuction.auctiontype}
+                        </td>
+                        <td className="px-4 py-2">
+                          {liveAuction.auctionsubtype}
+                        </td>
+                        <td className="px-4 py-2">${liveAuction.startprice}</td>
+                        <td className="px-4 py-2">${liveAuction.currentbid}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedSection === "upcomingAuctions" && (
+          <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Calendar className="h-4 w-4 animate-bounce" />
+                Upcoming Auctions
+              </h2>
+            </div>
+            {upcomingAuctions.length === 0 ? (
+              <p className="text-sm text-gray-500">Upcoming Auction</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md mt-6">
+                <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Type </th>
+                      <th className="px-4 py-2 text-left">Format</th>
+                      <th className="px-4 py-2 text-left">Starting Bid</th>
+                      <th className="px-4 py-2 text-left">Starts In:</th>
+                      {/* <th className="px-4 py-2 text-left">Action</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upcomingAuctions.map((upcoming, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${upcoming.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={upcoming.productimages}
+                              alt={upcoming.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {upcoming.productname}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2">{upcoming.categoryid}</td>
+                        <td className="px-4 py-2 ">{upcoming.auctiontype}</td>
+                        <td className="px-4 py-2">{upcoming.auctionsubtype}</td>
+                        <td className="px-4 py-2">${upcoming.startprice}</td>
+                        <td className="px-4 py-2">
+                          {upcoming.scheduledstart ? (
+                            <LiveTimer
+                              time={upcoming.scheduledstart}
+                              className="text-green-600"
+                            />
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

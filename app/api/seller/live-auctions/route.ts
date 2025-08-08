@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+interface LiveAuction {
+  id: string;
+  productname: string;
+  currentbid: number | null;
+  productimages: string;
+  startprice: number;
+  auctiontype: string;
+  auctionsubtype: string;
+  categoryid: number;
+}
 
 
 export async function GET(req: Request) {
@@ -28,17 +38,40 @@ export async function GET(req: Request) {
 
 const now = new Date().toISOString();
 
-const { data ,count, error: countError } = await supabase
+const { data: auctionsData, count, error: countError } = await supabase
   .from("auctions")
-  .select("*", { count: "exact" })
-  .eq("createdby", userEmail) // use seller ID
-  .lte("scheduledstart", now)  // has started
-  .eq("ended", false);         // not yet ended
+  .select(
+    `id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid`,
+    { count: "exact" }
+  )
+  .eq("createdby", userEmail)
+  .lte("scheduledstart", now)
+  .eq("ended", false);        // not yet ended
+
+const liveAuctions: LiveAuction[] = (auctionsData || []).map((auction) => {
+  // Check if productimages is truthy and has a 'length' property > 0 (likely an array)
+  const productimages =
+    auction.productimages && auction.productimages.length > 0
+      ? auction.productimages[0]
+      : "/placeholder.svg";
+
+  return {
+    id: auction.id,
+    productname: auction.productname || "Untitled",
+    currentbid: auction.currentbid,
+    productimages, // single image string here
+    startprice: auction.startprice,
+    auctiontype: auction.auctiontype,
+    auctionsubtype: auction.auctionsubtype,
+    categoryid: auction.categoryid,
+  };
+});
+
+
 
 if (countError) {
   return NextResponse.json({ success: false, error: countError.message });
 }
 
-return NextResponse.json({ success: true, count });
-
+  return NextResponse.json({ success: true, count, data: liveAuctions });
 }

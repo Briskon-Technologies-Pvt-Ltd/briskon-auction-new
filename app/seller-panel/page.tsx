@@ -39,7 +39,7 @@ if (isLoading) return <div>Loading...</div>;
   const displayName = user.fname || user.lname || user.email?.split("@")[0] || "Seller";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-10">
       {/* Header */}
       {/* <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

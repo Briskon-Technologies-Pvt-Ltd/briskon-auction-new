@@ -38,6 +38,7 @@ export default function CreateAuction() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* <div>back to seller </div> */}
       {/* Header */}
       {/* <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-lg"> */}
         {/* <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"> */}
@@ -89,6 +90,7 @@ export default function CreateAuction() {
           </div>
         {/* </div> */}
       {/* </header> */}
+
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">

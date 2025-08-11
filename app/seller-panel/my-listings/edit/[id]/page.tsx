@@ -224,9 +224,9 @@ export default function EditAuctionPage() {
   if (!auction) return <div className="text-center py-20 text-lg text-gray-600 dark:text-gray-300">Auction not found</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-10">
       {/* Header */}
-      <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-xl">
+      {/* <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-6">
@@ -260,7 +260,7 @@ export default function EditAuctionPage() {
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">

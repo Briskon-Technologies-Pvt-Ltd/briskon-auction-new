@@ -167,13 +167,13 @@ export default function MyListings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="pt-20 px-4 sm:px-6 lg:px-8 bg-white">
       {/* Header */}
-      <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-lg">
+      {/* <header className="bg-gradient-to-r from-corporate-700 via-corporate-600 to-corporate-500 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-20"> */}
             {/* Logo + Branding */}
-            <div className="flex items-center space-x-6">
+            {/* <div className="flex items-center space-x-6">
               <div className="flex-shrink-0">
                 <img
                   src="/briskon-auction-horizontal-logo-white.png"
@@ -187,10 +187,10 @@ export default function MyListings() {
               <div className="text-white font-semibold text-xl tracking-tight">
                 Auction Wizard
               </div>
-            </div>
+            </div> */}
 
             {/* User Info + Logout + Back */}
-            <div className="flex items-center space-x-6">
+            {/* <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3">
                 <span className="text-sm font-medium text-white">
                   Welcome, {displayName}
@@ -218,7 +218,7 @@ export default function MyListings() {
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">

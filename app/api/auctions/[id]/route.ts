@@ -158,7 +158,7 @@ return NextResponse.json(
   },
   { status: 200 }
 );
-    console.log("Processed auction data:", processedAuction);
+    // console.log("Processed auction data:", processedAuction);
 
     const nowIST = DateTime.now().setZone("Asia/Kolkata");
     const startIST = processedAuction.scheduledstart

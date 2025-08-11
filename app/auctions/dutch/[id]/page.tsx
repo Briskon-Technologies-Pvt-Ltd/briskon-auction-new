@@ -152,7 +152,7 @@ export default function DutchAuctionDetailPage() {
         if (json.data.auctionsubtype !== "dutch") throw new Error("This is not a Dutch auction");
         const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
         const updatedAuction = { ...json.data, participants, ended: json.data.ended || false };
-        console.log("Processed Auction Data:", updatedAuction);
+        // console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
         const initialPrice = savedPrice
           ? parseFloat(savedPrice)

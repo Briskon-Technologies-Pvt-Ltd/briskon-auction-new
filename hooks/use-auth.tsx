@@ -34,8 +34,17 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
+// Keep everything you already have above...
+// (useAuth, useAuthState, etc.)
+
+
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const auth = useAuthState();  // I assume this is a custom hook you already have
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

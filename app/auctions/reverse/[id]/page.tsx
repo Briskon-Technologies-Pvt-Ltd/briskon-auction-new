@@ -415,7 +415,7 @@ export default function ReverseAuctionDetailPage() {
         }
         setUploadedDocuments(requiredDocs.map((doc) => ({ name: doc.name, files: null })));
 
-        console.log("Processed Auction Data:", updatedAuction);
+        // console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
 
         const bidRes = await fetch(`/api/bids/${auctionId}`);

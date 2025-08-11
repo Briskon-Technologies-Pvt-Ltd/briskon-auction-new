@@ -965,7 +965,7 @@ const getCurrencySymbol = (currency: Currency) => {
 
 // Updated render section with translations
 return (
-  <div className={`min-h-screen bg-background p-4 md:p-8 transition-colors duration-300 ${inter.className}`}>
+  <div className={`min-h-screen bg-gray-100 p-4 md:p-8 transition-colors duration-300 ${inter.className}`}>
     <div className="max-w-4xl mx-auto card">
       {/* Header with Theme Toggle */}
       <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">

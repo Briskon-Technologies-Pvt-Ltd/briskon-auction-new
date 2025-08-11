@@ -37,7 +37,7 @@ import ProductClassification from "@/components/product-classification";
 import BidIncrementConfig from "@/components/bid-increment-config";
 // import { generateText } from "ai";
 // import { openai } from "ai-sdk/openai";
-import { PRODUCT_CATEGORIES } from "@/data/product-categories";
+import { PRODUCT_CATEGORIES } from "@/Data/product-categories";
 // import { useAuth } from "@/components/auth/auth-provider";
 import { useAuth } from "@/hooks/use-auth";
 

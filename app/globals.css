@@ -72,8 +72,9 @@ html {
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    /* --card: 0 0% 3.9%; */
     --card-foreground: 0 0% 98%;
+    --card: 222 47% 11%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
@@ -216,6 +217,21 @@ html {
   }
 }
 
+/* Card and container styles */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 
+    overflow-hidden transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300;
+  }
+
+  .container-smooth {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
 /* Form Input Styling */
 .bg-yellow-400,
 .bg-yellow-300,

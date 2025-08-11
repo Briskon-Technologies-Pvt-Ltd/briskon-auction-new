@@ -62,14 +62,14 @@ if (unsoldError) {
   return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 });
 }
 
-    console.log("unsold data :", unsoldData);
+    // console.log("unsold data :", unsoldData);
     if (!unsoldData || unsoldData.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
     const sales: UnsoldSale[] = await Promise.all(
       unsoldData.map(async (auction) => {
-        console.log("Processing auction:", auction.id, "with currentbid:", auction.currentbid);
+        // console.log("Processing auction:", auction.id, "with currentbid:", auction.currentbid);
         const { data: bidData, error: bidError } = await supabase
           .from("bids")
           .select("created_at, user_id, amount")
@@ -82,7 +82,7 @@ if (unsoldError) {
           console.log("Bid error for auction", auction.id, ":", bidError);
         }
 
-        console.log("Bid data for auction", auction.id, ":", bidData);
+        // console.log("Bid data for auction", auction.id, ":", bidData);
         const lastBid = bidData?.[0];
         const saleDate = lastBid?.created_at
           ? DateTime.fromISO(lastBid.created_at, { zone: "utc" })

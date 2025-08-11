@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateTime } from "luxon";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -140,6 +141,7 @@ interface RecentAuction {
 }
 
 export default function SellerDashboard() {
+      const router = useRouter();
   const { user, isLoading } = useAuth();
   const [winners, setWinners] = useState<Winner[]>([]);
 
@@ -362,7 +364,9 @@ export default function SellerDashboard() {
       </div>
     );
   }
-
+const handleClick = () => {
+    router.push("/seller-panel");
+  };
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
       <div className="container mx-auto px-4">
@@ -850,9 +854,12 @@ export default function SellerDashboard() {
                 <Gavel className="h-5 w-5 text-green-500 animate-bounce" />
                 My Auctions
               </h2>
-              <button className="bg-green-400 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200">
-                Create New
-              </button>
+                  <button
+      onClick={handleClick}
+      className="bg-green-400 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200"
+    >
+      Create New
+    </button>
             </div>
             {auctions.length === 0 ? (
               <p className="text-sm text-gray-500">No sold items yet.</p>

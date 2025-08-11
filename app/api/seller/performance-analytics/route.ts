@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 });
     }
 
-    console.log("Auction data:", auctionData);
+    // console.log("Auction data:", auctionData);
     if (!auctionData || auctionData.length === 0) {
       return NextResponse.json({ success: true, data: { totalSales: 0, averagePrice: 0, salesByDate: [] } });
     }

@@ -157,7 +157,7 @@ export default function AuctionDetailPage() {
         if (!json.success) throw new Error(json.error || "Failed to fetch auction");
         const participants = Array.isArray(json.data.participants) ? json.data.participants : [];
         const updatedAuction: Auction = { ...json.data, id: auctionId, participants, ended: json.data.ended || false }; // Include ended from API
-        console.log("Processed Auction Data:", updatedAuction);
+        // console.log("Processed Auction Data:", updatedAuction);
         setAuction(updatedAuction);
 
         const bidRes = await fetch(`/api/bids/${auctionId}`);

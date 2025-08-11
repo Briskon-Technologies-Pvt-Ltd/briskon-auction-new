@@ -63,14 +63,14 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
       return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 });
     }
 
-    console.log("Auction data:", auctionData);
+    // console.log("Auction data:", auctionData);
     if (!auctionData || auctionData.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
     const sales: Sale[] = await Promise.all(
       auctionData.map(async (auction) => {
-        console.log("Processing auction:", auction.id, "with currentbid:", auction.currentbid);
+        // console.log("Processing auction:", auction.id, "with currentbid:", auction.currentbid);
         const { data: bidData, error: bidError } = await supabase
           .from("bids")
           .select("created_at, user_id, amount")
@@ -83,7 +83,7 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
           console.log("Bid error for auction", auction.id, ":", bidError);
         }
 
-        console.log("Bid data for auction", auction.id, ":", bidData);
+        // console.log("Bid data for auction", auction.id, ":", bidData);
         const lastBid = bidData?.[0];
         const saleDate = lastBid?.created_at
           ? DateTime.fromISO(lastBid.created_at, { zone: "utc" })

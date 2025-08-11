@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Search, Plus, X, ChevronDown } from "lucide-react"
 import type { ProductCategory, ProductAttribute } from "@/types/auction-types"
-import { PRODUCT_CATEGORIES, getSubcategories, searchCategories } from "@/data/product-categories"
+import { PRODUCT_CATEGORIES, getSubcategories, searchCategories } from "@/Data/product-categories"
 import { getAttributesForCategory, createCustomAttribute } from "@/Data/product-attributes"
 
 interface ProductClassificationProps {

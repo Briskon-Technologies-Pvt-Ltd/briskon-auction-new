@@ -130,27 +130,26 @@ export default function FileUploader({
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-<div className="space-y-1 text-center">
+        {/* changes// */}
+<div
+  className="space-y-1 text-center cursor-pointer"
+  onClick={() => fileInputRef.current?.click()}
+>
   <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-  <div className="text-sm text-gray-600 dark:text-gray-400">
-    <label
-      htmlFor={`file-upload-${type}`}
-      className="cursor-pointer font-medium text-corporate-600 dark:text-corporate-400 hover:text-corporate-500 dark:hover:text-corporate-300 transition-colors"
-    >
-      Upload {type === "media" ? "media" : type === "image" ? "images" : type === "video" ? "videos" : "documents"} or drag and drop
-      <input
-        id={`file-upload-${type}`}
-        name={`file-upload-${type}`}
-        type="file"
-        className="sr-only"
-        accept={accept}
-        multiple
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        disabled={uploadState.isUploading}
-      />
-    </label>
+  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium text-corporate-600 dark:text-corporate-400 hover:text-corporate-500 dark:hover:text-corporate-300 transition-colors">
+    Upload {type === "media" ? "media" : type === "image" ? "images" : type === "video" ? "videos" : "documents"} or drag and drop
   </div>
+  <input
+    id={`file-upload-${type}`}
+    name={`file-upload-${type}`}
+    type="file"
+    className="sr-only"
+    accept={accept}
+    multiple
+    ref={fileInputRef}
+    onChange={handleFileChange}
+    disabled={uploadState.isUploading}
+  />
   <p className="text-xs text-gray-500 dark:text-gray-400">
     {type === "image"
       ? "PNG, JPG, GIF up to 10MB"
@@ -161,6 +160,8 @@ export default function FileUploader({
       : "PDF, DOCX, XLSX, CSV, etc. up to 10MB"}
   </p>
 </div>
+
+
 
       </div>
 

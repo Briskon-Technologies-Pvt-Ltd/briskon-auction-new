@@ -31,6 +31,10 @@ import {
   Ban,
   LucideVault,
   Plus,
+  Eye,
+  Trash,
+  Trash2,
+  Edit,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
@@ -100,6 +104,7 @@ interface LiveAuction {
   auctiontype: string;
   auctionsubtype: string;
   categoryid: number;
+  bidder_count:number;
 }
 interface upcomingAuctionItem {
   id: string;
@@ -374,6 +379,42 @@ export default function SellerDashboard() {
   const handleClick = () => {
     router.push("/seller-panel/create-listing");
   };
+function smoothScrollBy(distance: number, duration = 800) {
+  const start = window.scrollY;
+  const startTime = performance.now();
+
+  function easeInOutQuad(t: number) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  }
+
+  function scroll() {
+    const now = performance.now();
+    let time = (now - startTime) / duration;
+    time = Math.min(1, time);
+
+    if (time < 0.05) {
+      // Jump instantly 10% of distance in first 5% of duration
+      window.scrollTo(0, start + distance * 0.1);
+    } else {
+      // Smoothly animate the remaining 90%
+      const adjTime = (time - 0.05) / 0.95;
+      const easedTime = easeInOutQuad(adjTime);
+      window.scrollTo(0, start + distance * (0.1 + easedTime * 0.9));
+    }
+
+    if (time < 1) {
+      requestAnimationFrame(scroll);
+    }
+  }
+
+  requestAnimationFrame(scroll);
+}
+  // const filteredAuctions = auctions.filter((auction) => {
+  //   const approvedMatch = filterApproved === "all" || (filterApproved === "approved" ? auction.approved : !auction.approved);
+  //   const editableMatch = filterEditable === "all" || (filterEditable === "editable" ? auction.editable : !auction.editable);
+  //   return approvedMatch && editableMatch;
+  // }
+
 
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
@@ -403,25 +444,26 @@ export default function SellerDashboard() {
           </Card>
           {/* Auctions Won */}
           <Card
-            onClick={() => setSelectedSection("manageAuction")}
+            onClick={() => {
+              setSelectedSection("manageAuction");
+              setManageAuctionTab("live"); // ensure it always opens listings
+            }}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
               selectedSection === "manageAuction" ? "ring-2 ring-blue-500" : ""
-            } relative`} // make relative for positioning
+            } relative`}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Gavel className="h-5 w-5 text-green-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
-                  My Listing
+                  My Listings
                 </CardTitle>
               </div>
               <div className="mt-1 flex items-center gap-3">
                 <div className="text-2xl font-bold">{auctionCount}</div>
-                
               </div>
             </CardHeader>
 
-            {/* Bottom right "Create New" */}
             <div className="absolute bottom-2 left-4 text-xs text-gray-500">
               Create New
             </div>
@@ -816,85 +858,79 @@ export default function SellerDashboard() {
         {selectedSection === "manageAuction" && (
           <div>
             <div className="flex justify-end pb-2 pr-5">
-    {manageAuctionTab !== "create" ? (
-      <button
-        onClick={() => setManageAuctionTab("create")}
-        className="flex items-center gap-1 bg-gradient-to-r from-green-500 via-green-600 to-green-700 
-               hover:from-green-600 hover:via-green-700 hover:to-green-800 
-               text-white font-semibold px-4 py-2 rounded-lg shadow-md 
-               hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105 
-               transition-all duration-300 ease-in-out"
-      >
-        <Plus size={15} strokeWidth={3} />
-        Create New Auction
-      </button>
-    ) : (
-      <button
-        onClick={() => setManageAuctionTab("live")}
-        className="flex items-center gap-1 bg-gradient-to-r from-gray-500 via-gray-600 to-gray-700 
-               hover:from-gray-600 hover:via-gray-700 hover:to-gray-800 
-               text-white font-semibold px-4 py-2 rounded-lg shadow-md 
-               hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105 
-               transition-all duration-300 ease-in-out "
-      >
-        ← Back to My Listing
-      </button>
-    )}
-  </div>
+              {manageAuctionTab !== "create" && (
+                <button
+  onClick={() => {
+    setManageAuctionTab("create");
+    // Scroll the window down by 200px smoothly
+    smoothScrollBy(200, 400);
+  }}
+  className="flex items-center gap-1 bg-gradient-to-r from-green-500 via-green-600 to-green-700 
+    hover:from-green-600 hover:via-green-700 hover:to-green-800 
+    text-white font-semibold px-4 py-2 rounded-lg shadow-md 
+    hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105 
+    transition-all duration-300 ease-in-out"
+>
+  <Plus size={15} strokeWidth={3} />
+  Create New Auction
+</button>
 
-  {manageAuctionTab !== "create" && (
-    <div className="flex flex-wrap gap-2 mb-4">
-      <button
-        onClick={() => setManageAuctionTab("live")}
-        className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+              )}
+            </div>
+
+            {manageAuctionTab !== "create" && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => setManageAuctionTab("live")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
           ${
             manageAuctionTab === "live"
               ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
               : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
           }`}
-      >
-        Live Auctions ({liveCount})
-      </button>
+                >
+                  Live Auctions ({liveCount})
+                </button>
 
-      <button
-        onClick={() => setManageAuctionTab("upcoming")}
-        className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+                <button
+                  onClick={() => setManageAuctionTab("upcoming")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
           ${
             manageAuctionTab === "upcoming"
               ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
               : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
           }`}
-      >
-        Upcoming Auctions ({upcomingCount})
-      </button>
+                >
+                  Upcoming Auctions ({upcomingCount})
+                </button>
 
-      <button
-        onClick={() => setManageAuctionTab("pending")}
-        className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+                <button
+                  onClick={() => setManageAuctionTab("pending")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
           ${
             manageAuctionTab === "pending"
               ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
               : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
           }`}
-      >
-        Pending Approval ({approvalPendings.length})
-      </button>
+                >
+                  Pending Approval ({approvalPendings.length})
+                </button>
 
-      <button
-        onClick={() => setManageAuctionTab("rejected")}
-        className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+                <button
+                  onClick={() => setManageAuctionTab("rejected")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
           ${
             manageAuctionTab === "rejected"
               ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
               : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
           }`}
-      >
-        Admin Rejected ({0})
-      </button>
-    </div>
-  )}
+                >
+                  Admin Rejected ({0})
+                </button>
+              </div>
+            )}
 
-  {manageAuctionTab === "create" ? <CreateAuction /> : null}
+            {manageAuctionTab === "create" ? <CreateAuction /> : null}
             {manageAuctionTab === "live" && (
               <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
                 <div className="flex items-center justify-between mb-4">
@@ -916,6 +952,7 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
                           <th className="px-4 py-2 text-left">Curent Bid</th>
+                          <th className="px-4 py-2 text-left">Bidders</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
                       </thead>
@@ -955,6 +992,11 @@ export default function SellerDashboard() {
                             <td className="px-4 py-2">
                               ${liveAuction.currentbid}
                             </td>
+                            
+<td className="px-4 py-2 flex items-center gap-1">
+  <Eye className="w-4 h-4 text-gray-500" />
+  {liveAuction.bidder_count}
+</td>
                           </tr>
                         ))}
                       </tbody>
@@ -983,7 +1025,8 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
-                          <th className="px-4 py-2 text-left">Starts In:</th>
+                          <th className="px-4 py-2 text-left">Starts In</th>
+                          <th className="px-4 py-2 text-left">Action</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
                       </thead>
@@ -1028,6 +1071,27 @@ export default function SellerDashboard() {
                                 <span className="text-gray-400">—</span>
                               )}
                             </td>
+                            <td className="p-2 flex space-x-1">
+                          
+                          <Button
+  variant="outline"
+  size="icon"
+  // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
+  className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
+  // disabled={!auction.editable}
+>
+  <Edit className="w-3 h-3" />
+</Button>
+
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            // onClick={() => handleDelete(auction.id)}
+                            className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1056,6 +1120,7 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
+                          <th className="px-4 py-2 text-left">Action</th>
 
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
@@ -1087,6 +1152,27 @@ export default function SellerDashboard() {
                             <td className="px-4 py-2">
                               ${approval.starting_bid}
                             </td>
+                            <td className="p-2 flex space-x-1">
+                          
+                          <Button
+  variant="outline"
+  size="icon"
+  // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
+  className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
+  // disabled={!auction.editable}
+>
+  <Edit className="w-3 h-3" />
+</Button>
+
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            // onClick={() => handleDelete(auction.id)}
+                            className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </td>
                           </tr>
                         ))}
                       </tbody>

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log("Fetching sales for email:", userEmail);
+    // console.log("Fetching sales for email:", userEmail);
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id")

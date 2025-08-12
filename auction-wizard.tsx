@@ -964,24 +964,24 @@ const getCurrencySymbol = (currency: Currency) => {
 };
 
 // Updated render section with translations
-return (
-  <div className={`min-h-screen bg-gray-100 p-4 md:p-8 transition-colors duration-300 ${inter.className}`}>
-    <div className="max-w-4xl mx-auto card">
-      {/* Header with Theme Toggle */}
-      <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
-        <div className="flex items-center space-x-2">
-          <div className="mr-2">
-            <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
+  return (
+    <div className={`min-h-screen p-4 md:p-16 transition-colors duration-300 ${inter.className}`}>
+      <div className="card">
+        {/* Header with Theme Toggle */}
+        <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
+          <div className="flex items-center space-x-2">
+            <div className="mr-2">
+              <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Progress Indicator - Update step labels */}
-      <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          {[1, 2, 3, 4, 5, formData.auctionType === "reverse" ? 7 : 6].map((step) => (
-            <div key={step} className="flex flex-col items-center">
+        {/* Progress Indicator - Update step labels */}
+        <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            {[1, 2, 3, 4, 5, formData.auctionType === "reverse" ? 7 : 6].map((step) => (
+              <div key={step} className="flex flex-col items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all-smooth
                   ${
@@ -1063,12 +1063,12 @@ return (
           {/* Step 1: Auction Type */}
 {currentStep === 1 && (
   <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("selectAuctionType")}</h2>
+    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("selectAuctionType")}<span className= "text-base text-destructive-500"> *</span></h2>
 
     <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         {t("auctionDirection")} <span className="text-destructive-500">*</span>
-      </label>
+      </label> */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
@@ -1081,8 +1081,8 @@ return (
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium dark:text-gray-100">{t("forwardAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("forwardAuctionDesc")}</p>
+              <h3 className="font-medium text-md dark:text-gray-100">{t("forwardAuction")}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("forwardAuctionDesc")}</p>
             </div>
             <div
               className={`w-5 h-5 rounded-full border transition-all-smooth ${
@@ -1107,7 +1107,7 @@ return (
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium dark:text-gray-100">{t("reverseAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("reverseAuctionDesc")}<br /><span className="text-xs text-gray-400">Includes an additional step for target price and required documents.</span></p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("reverseAuctionDesc")}<br /><span className="text-xs text-gray-400">Includes an additional step for target price and required documents.</span></p>
             </div>
             <div
               className={`w-5 h-5 rounded-full border transition-all-smooth ${
@@ -1125,10 +1125,12 @@ return (
     </div>
 
     <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("auctionSubType")} <span className="text-destructive-500">*</span>
+      <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
+        {"Auction Format"} <span className="text-destructive-500">*</span>
       </label>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 max-w-[50%]">
+
+              
         {formData.auctionType === "forward" ? (
           <>
             <div
@@ -1143,7 +1145,7 @@ return (
               onClick={() => setFormData({ ...formData, auctionSubType: "english" })}
             >
               <h3 className="font-medium dark:text-gray-100">{t("englishAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("englishAuctionDesc")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("englishAuctionDesc")}</p>
             </div>
 
             <div
@@ -1158,10 +1160,10 @@ return (
               onClick={() => setFormData({ ...formData, auctionSubType: "silent" })}
             >
               <h3 className="font-medium dark:text-gray-100">{t("silentAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("silentAuctionDesc")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("silentAuctionDesc")}</p>
             </div>
 
-            <div
+            {/* <div
               className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
                 ${
                   formData.auctionSubType === "dutch"
@@ -1173,8 +1175,8 @@ return (
               onClick={() => setFormData({ ...formData, auctionSubType: "dutch" })}
             >
               <h3 className="font-medium dark:text-gray-100">{t("dutchAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("dutchAuctionDesc")}</p>
-            </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("dutchAuctionDesc")}</p>
+            </div> */}
 
             <div
               className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
@@ -1188,9 +1190,9 @@ return (
               onClick={() => setFormData({ ...formData, auctionSubType: "sealed" })}
             >
               <h3 className="font-medium dark:text-gray-100">{t("sealedBidAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("sealedBidAuctionDesc")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("sealedBidAuctionDesc")}</p>
             </div>
-            <div
+            {/* <div
               className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
                 ${
                   formData.auctionSubType === "yankee"
@@ -1203,7 +1205,7 @@ return (
             >
               <h3 className="font-medium dark:text-gray-100">{t("yankeeAuction")}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{t("yankeeAuctionDesc")}</p>
-            </div>
+            </div> */}
             
           </>
         ) : (
@@ -1220,7 +1222,7 @@ return (
               onClick={() => setFormData({ ...formData, auctionSubType: "sealed-bid" })}
             >
               <h3 className="font-medium dark:text-gray-100">{t("sealedBidReverse")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("sealedBidReverseDesc")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("sealedBidReverseDesc")}</p>
             </div>
 
             <div

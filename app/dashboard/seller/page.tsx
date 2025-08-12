@@ -412,14 +412,12 @@ export default function SellerDashboard() {
               <div className="flex items-center gap-2">
                 <Gavel className="h-5 w-5 text-green-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
-                  Manage Auctions
+                  My Listing
                 </CardTitle>
               </div>
               <div className="mt-1 flex items-center gap-3">
                 <div className="text-2xl font-bold">{auctionCount}</div>
-                <p className="text-xs text-gray-500 whitespace-nowrap">
-                  Live+Upcoming+Closed
-                </p>
+                
               </div>
             </CardHeader>
 
@@ -817,7 +815,7 @@ export default function SellerDashboard() {
         )}
         {selectedSection === "manageAuction" && (
           <div>
-            <div className="flex justify-end">
+            <div className="flex justify-end pb-2 pr-5">
     {manageAuctionTab !== "create" ? (
       <button
         onClick={() => setManageAuctionTab("create")}
@@ -837,9 +835,9 @@ export default function SellerDashboard() {
                hover:from-gray-600 hover:via-gray-700 hover:to-gray-800 
                text-white font-semibold px-4 py-2 rounded-lg shadow-md 
                hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105 
-               transition-all duration-300 ease-in-out"
+               transition-all duration-300 ease-in-out "
       >
-        ← Back to Manage Auctions
+        ← Back to My Listing
       </button>
     )}
   </div>

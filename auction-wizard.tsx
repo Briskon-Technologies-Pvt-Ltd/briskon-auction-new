@@ -145,12 +145,13 @@ interface AuctionWizardContentProps {
 }
 
 function AuctionWizardContent({ language, onLanguageChange }: AuctionWizardContentProps) {
+  
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [previousStep, setPreviousStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [showTemplateSelector, setShowTemplateSelector] = useState(true);
-
+ const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<AuctionFormData>({
     ...defaultFormData,
     language: language,
@@ -219,6 +220,12 @@ function AuctionWizardContent({ language, onLanguageChange }: AuctionWizardConte
   const scheduledDateRef = useRef<HTMLInputElement>(null);
   const scheduledTimeRef = useRef<HTMLInputElement>(null);
 
+    // This handler triggers the hidden input click
+  const handleDivClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
   // File upload hooks
 const {
   uploadState: fileUploadState,
@@ -1120,164 +1127,210 @@ const getCurrencySymbol = (currency: Currency) => {
             </div>
           </div>
         </div>
+          {/* <label
+        className="block text-md font-medium text-gray-700 dark:text-gray-300 md:col-start-2 md:row-start-2"
+      >
+        Auction Format <span className="text-destructive-500">*</span>
+      </label> */}
       </div>
       {hasError("auctionType") && <ErrorMessage message={getErrorMessage("auctionType")} />}
     </div>
 
-    <div className="space-y-4">
-      <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
-        {"Auction Format"} <span className="text-destructive-500">*</span>
-      </label>
-      <div className="grid grid-cols-1 gap-4 max-w-[50%]">
+   <div className="space-y-4">
+{formData.auctionType !== "reverse" && (
+  <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
+    Auction Format <span className="text-destructive-500">*</span>
+  </label>
+)}
 
-              
-        {formData.auctionType === "forward" ? (
-          <>
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "english"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "english" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("englishAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("englishAuctionDesc")}</p>
-            </div>
+  <div className="grid grid-cols-1 gap-4 max-w-[50%]">
+    {formData.auctionType === "forward" && (
+      <>
 
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "silent"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "silent" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("silentAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("silentAuctionDesc")}</p>
-            </div>
 
-            {/* <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "dutch"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "dutch" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("dutchAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("dutchAuctionDesc")}</p>
-            </div> */}
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${
+              formData.auctionSubType === "english"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "english" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("englishAuction")}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("englishAuctionDesc")}
+          </p>
+        </div>
 
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "sealed"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "sealed" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("sealedBidAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("sealedBidAuctionDesc")}</p>
-            </div>
-            {/* <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "yankee"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "yankee" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("yankeeAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("yankeeAuctionDesc")}</p>
-            </div> */}
-            
-          </>
-        ) : (
-          <>
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "sealed-bid"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "sealed-bid" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("sealedBidReverse")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("sealedBidReverseDesc")}</p>
-            </div>
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${
+              formData.auctionSubType === "silent"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "silent" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("silentAuction")}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("silentAuctionDesc")}
+          </p>
+        </div>
 
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "reverse-clock"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "reverse-clock" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("reverseClockAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("reverseClockAuctionDesc")}</p>
-            </div>
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${
+              formData.auctionSubType === "sealed"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "sealed" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("sealedBidAuction")}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("sealedBidAuctionDesc")}
+          </p>
+        </div>
+      </>
+    )}
+</div>
+{/* {formData.auctionType !== "forward" && (
+  <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
+    Auction Format <span className="text-destructive-500">*</span>
+  </label>
+)} */}
+  {/* <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
+{"Auction Format"} <span className="text-destructive-500">*</span>
+</label> */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  
+    {formData.auctionType === "reverse" && (
+      <>
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
+            ${
+              formData.auctionSubType === "sealed-bid"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "sealed-bid" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("sealedBidReverse")}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("sealedBidReverseDesc")}
+          </p>
+        </div>
 
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "standard"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "standard" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("standardReverseAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {t("standardReverseAuctionDesc")}
-              </p>
-            </div>
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
+            ${
+              formData.auctionSubType === "reverse-clock"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "reverse-clock" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("reverseClockAuction")}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t("reverseClockAuctionDesc")}
+          </p>
+        </div>
 
-            <div
-              className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                ${
-                  formData.auctionSubType === "japanese"
-                    ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                    : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-                } ${
-                  hasError("auctionSubType") ? "border-destructive-500 dark:border-destructive-400" : ""
-                }`}
-              onClick={() => setFormData({ ...formData, auctionSubType: "japanese" })}
-            >
-              <h3 className="font-medium dark:text-gray-100">{t("japaneseReverseAuction")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {t("japaneseReverseAuctionDesc")}
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-      {hasError("auctionSubType") && <ErrorMessage message={getErrorMessage("auctionSubType")} />}
-    </div>
+        <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
+            ${
+              formData.auctionSubType === "standard"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "standard" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("standardReverseAuction")}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t("standardReverseAuctionDesc")}
+          </p>
+        </div>
+
+        {/* <div
+          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${
+              formData.auctionSubType === "japanese"
+                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+            } ${
+              hasError("auctionSubType")
+                ? "border-destructive-500 dark:border-destructive-400"
+                : ""
+            }`}
+          onClick={() =>
+            setFormData({ ...formData, auctionSubType: "japanese" })
+          }
+        >
+          <h3 className="font-medium dark:text-gray-100">
+            {t("japaneseReverseAuction")}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t("japaneseReverseAuctionDesc")}
+          </p>
+        </div> */}
+      </>
+    )}
+</div>
+
+  {hasError("auctionSubType") && (
+    <ErrorMessage message={getErrorMessage("auctionSubType")} />
+  )}
+</div>
+
   </div>
 )}
             {/* Step 2: Product/Lot Details (moved from step 3) */}
@@ -2647,7 +2700,8 @@ const getCurrencySymbol = (currency: Currency) => {
     </div>
 
     {/* Image Uploader (Using Step 2 Logic) */}
-<div>
+    //////////////////////////////////////
+<div onClick={handleDivClick} className="cursor-pointer">
   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
     {t("productImages")} {/* Update translation if needed to reflect media */}
   </label>

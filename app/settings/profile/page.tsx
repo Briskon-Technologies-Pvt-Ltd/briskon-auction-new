@@ -405,7 +405,7 @@ export default function ProfileSettingsPage() {
                 </Label>
                 <Input
                   id="fname"
-                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Enter First Name"
                   value={fname}
                   onChange={(e) => setFname(e.target.value)}
@@ -417,7 +417,7 @@ export default function ProfileSettingsPage() {
                 </Label>
                 <Input
                   id="lname"
-                  className="  bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className="  bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Enter Last Name"
                   value={lname}
                   onChange={(e) => setLname(e.target.value)}
@@ -436,7 +436,7 @@ export default function ProfileSettingsPage() {
                 </Label>
                 <Input
                   id="addressline1"
-                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Eg: Florida"
                   value={address1}
                   onChange={(e) => setAddress1(e.target.value)}
@@ -452,7 +452,7 @@ export default function ProfileSettingsPage() {
                 </Label>
                 <Input
                   id="addressline2"
-                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Optional"
                   value={address2}
                   onChange={(e) => setAddress2(e.target.value)}
@@ -468,7 +468,7 @@ export default function ProfileSettingsPage() {
                 <select
                   id="country"
                   name="country"
-                  className="w-full bg-white  border-gray-300 text-gray-500 transition-all focus:border-blue-500 focus:bg-white shadow-md rounded-lg p-2"
+                  className="w-full bg-white  border-gray-300 text-gray-500 transition-all focus:border-blue-500 focus:bg-white shadow-sm rounded-lg p-2"
                   value={formData.country}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -500,7 +500,7 @@ export default function ProfileSettingsPage() {
                 </label>
                 <select
                   id="state"
-                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-md  rounded-lg p-2"
+                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-sm  rounded-lg p-2"
                   value={selectedState}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -534,7 +534,7 @@ export default function ProfileSettingsPage() {
                 </label>
                 <select
                   id="city"
-                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-md  rounded-lg p-2"
+                  className="w-full border border-gray-300 focus:border-blue-500 focus:bg-white transition-all shadow-sm  rounded-lg p-2"
                   value={selectedCity}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -571,7 +571,7 @@ export default function ProfileSettingsPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  className="bg-white border border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                  className="bg-white border border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                   placeholder="Phone number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -593,7 +593,7 @@ export default function ProfileSettingsPage() {
           <Button
             size="sm"
             variant="secondary"
-            className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-md px-5 py-2"
+            className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-sm px-5 py-2"
             onClick={handleSaveChanges}
           >
             Update Profile
@@ -623,7 +623,7 @@ export default function ProfileSettingsPage() {
                 id="old-password"
                 type={showOldPassword ? "text" : "password"}
                 placeholder="Current password"
-                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
@@ -651,7 +651,7 @@ export default function ProfileSettingsPage() {
                 id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 placeholder="New password"
-                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -676,7 +676,7 @@ export default function ProfileSettingsPage() {
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
-                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-md focus:border-blue-500 focus:bg-white transition-all rounded-lg"
+                className=" bg-white border-gray-300 text-gray-500 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white transition-all rounded-lg"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -693,7 +693,7 @@ export default function ProfileSettingsPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-md px-5 py-2"
+                className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800 font-medium transition-colors duration-200 rounded-md shadow-sm px-5 py-2"
                 onClick={handleUpdatePassword}
               >
                 Change Password

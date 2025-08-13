@@ -40,6 +40,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import LiveTimer from "@/app/livetimer/page";
 import CreateAuction from "@/app/seller-panel/create-listing/page";
+import SellerBidLeaderboard from "@/app/seller-bid-leader-board/page";
 
 interface Winner {
   id: string;
@@ -93,6 +94,8 @@ interface Stats {
     current_bid: number;
     gain: number;
     bidders: number;
+    auctionduration?: { days?: number; hours?: number; minutes?: number };
+    scheduledstart: string;
   }[];
 }
 interface LiveAuction {
@@ -104,7 +107,9 @@ interface LiveAuction {
   auctiontype: string;
   auctionsubtype: string;
   categoryid: number;
-  bidder_count:number;
+  bidder_count: number;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+  scheduledstart: string;
 }
 interface upcomingAuctionItem {
   id: string;
@@ -116,6 +121,7 @@ interface upcomingAuctionItem {
   auctionsubtype: string;
   categoryid: string;
   scheduledstart: string;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
 }
 interface AuctionItem {
   id: string;
@@ -154,7 +160,9 @@ export default function SellerDashboard() {
   const [manageAuctionTab, setManageAuctionTab] = useState<
     "live" | "upcoming" | "pending" | "rejected" | "create"
   >("live");
-
+  const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(
+    null
+  );
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [errorStats, setErrorStats] = useState<string | null>(null);
@@ -172,6 +180,8 @@ export default function SellerDashboard() {
     upcomingAuctionItem[]
   >([]);
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
+  const [showSellerLeaderboard, setShowSellerLeaderboard] = useState(false);
+
   const [auctionCount, setAuctionCount] = useState(0);
   const [sales, setSales] = useState<Sale[]>([]);
   const [unsoldSales, setUnsoldSale] = useState<UnsoldSale[]>([]);
@@ -187,6 +197,28 @@ export default function SellerDashboard() {
     | "manageAuction"
     | "approvalPending"
   >("leaderboard");
+  // start and end time logic
+  function formatDateTime(date: Date): string {
+    const options: Intl.DateTimeFormatOptions = {
+      day: "numeric",
+      month: "long",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    };
+    return date.toLocaleString("en-US", options).replace(" at ", " "); // remove "at"
+  }
+
+  function getEndDate(
+    start: Date,
+    duration: { days?: number; hours?: number; minutes?: number }
+  ) {
+    const end = new Date(start);
+    if (duration.days) end.setDate(end.getDate() + duration.days);
+    if (duration.hours) end.setHours(end.getHours() + duration.hours);
+    if (duration.minutes) end.setMinutes(end.getMinutes() + duration.minutes);
+    return end;
+  }
   const fetchStats = async () => {
     try {
       setLoadingStats(true);
@@ -376,46 +408,73 @@ export default function SellerDashboard() {
       </div>
     );
   }
-  const handleClick = () => {
-    router.push("/seller-panel/create-listing");
-  };
-function smoothScrollBy(distance: number, duration = 800) {
-  const start = window.scrollY;
-  const startTime = performance.now();
+  function smoothScrollBy(distance: number, duration = 800) {
+    const start = window.scrollY;
+    const startTime = performance.now();
 
-  function easeInOutQuad(t: number) {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-  }
-
-  function scroll() {
-    const now = performance.now();
-    let time = (now - startTime) / duration;
-    time = Math.min(1, time);
-
-    if (time < 0.05) {
-      // Jump instantly 10% of distance in first 5% of duration
-      window.scrollTo(0, start + distance * 0.1);
-    } else {
-      // Smoothly animate the remaining 90%
-      const adjTime = (time - 0.05) / 0.95;
-      const easedTime = easeInOutQuad(adjTime);
-      window.scrollTo(0, start + distance * (0.1 + easedTime * 0.9));
+    function easeInOutQuad(t: number) {
+      return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     }
 
-    if (time < 1) {
-      requestAnimationFrame(scroll);
-    }
-  }
+    function scroll() {
+      const now = performance.now();
+      let time = (now - startTime) / duration;
+      time = Math.min(1, time);
 
-  requestAnimationFrame(scroll);
-}
+      if (time < 0.05) {
+        // Jump instantly 10% of distance in first 5% of duration
+        window.scrollTo(0, start + distance * 0.1);
+      } else {
+        // Smoothly animate the remaining 90%
+        const adjTime = (time - 0.05) / 0.95;
+        const easedTime = easeInOutQuad(adjTime);
+        window.scrollTo(0, start + distance * (0.1 + easedTime * 0.9));
+      }
+
+      if (time < 1) {
+        requestAnimationFrame(scroll);
+      }
+    }
+
+    requestAnimationFrame(scroll);
+  }
   // const filteredAuctions = auctions.filter((auction) => {
   //   const approvedMatch = filterApproved === "all" || (filterApproved === "approved" ? auction.approved : !auction.approved);
   //   const editableMatch = filterEditable === "all" || (filterEditable === "editable" ? auction.editable : !auction.editable);
   //   return approvedMatch && editableMatch;
   // }
+  const handleNavigate = (path: string) => {
+    console.log("Navigating to:", path);
+    router.push(path);
+  };
 
-
+  //   const handleDelete = async (id: string) => {
+  //   if (confirm("Are you sure you want to delete this listing?")) {
+  //     try {
+  //       const res = await fetch(`/api/listings/${id}`, {
+  //         method: "DELETE",
+  //         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  //       });
+  //       const data = await res.json();
+  //       if (data.success) {
+  //         setAuctions(auctions.filter((auction) => auction.id !== id));
+  //         setStats((prev) => ({
+  //           ...prev,
+  //           totalAuctions: prev.totalAuctions - 1,
+  //           approvedAuctions: prev.approvedAuctions - (auctions.find(a => a.id === id)?.approved ? 1 : 0),
+  //           pendingAuctions: prev.pendingAuctions - (!auctions.find(a => a.id === id)?.approved ? 1 : 0),
+  //           editableAuctions: prev.editableAuctions - (auctions.find(a => a.id === id)?.editable ? 1 : 0),
+  //           nonEditableAuctions: prev.nonEditableAuctions - (!auctions.find(a => a.id === id)?.editable ? 1 : 0),
+  //         }));
+  //         window.location.reload(); // Reload the page after deletion
+  //       } else {
+  //         console.error("Delete error:", data.error);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to delete auction:", error);
+  //     }
+  //   }
+  // };
   return (
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
       <div className="container mx-auto px-4">
@@ -668,6 +727,7 @@ function smoothScrollBy(distance: number, duration = 800) {
                         <th className="px-4 py-2 text-left">Starting Bid</th>
                         <th className="px-4 py-2 text-left">Current Bid</th>
                         <th className="px-4 py-2 text-left">Gain</th>
+                        <th className="px-4 py-2 text-left">Ends In</th>
                         <th className="px-4 py-2 text-left">Total Bidders</th>
                       </tr>
                     </thead>
@@ -703,7 +763,22 @@ function smoothScrollBy(distance: number, duration = 800) {
                           <td className="px-4 py-2 font-semibold text-green-700">
                             ${auction.gain?.toFixed(2) || "0.00"}
                           </td>
-                          <td className="px-4 py-2 text-blue-600 underline cursor-pointer">
+                          <td className="px-4 py-2">
+                            {
+                              <LiveTimer
+                                startTime={auction.scheduledstart}
+                                duration={auction.auctionduration}
+                              />
+                            }
+                          </td>
+                          <td
+                            className="px-4 py-2 text-blue-600 hover:underline cursor-pointer font-semibold flex items-center gap-1"
+                            onClick={() => {
+                              setSelectedAuctionId(auction.id);
+                              setShowSellerLeaderboard(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 text-blue-500" />
                             {auction.bidders}
                           </td>
                         </tr>
@@ -714,6 +789,21 @@ function smoothScrollBy(distance: number, duration = 800) {
               ))}
           </div>
         )}
+        {/* Table here */}
+        {showSellerLeaderboard && selectedAuctionId && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 max-w-lg w-full relative">
+              <button
+                onClick={() => setShowSellerLeaderboard(false)}
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+              <SellerBidLeaderboard auctionId={selectedAuctionId} />
+            </div>
+          </div>
+        )}
+
         {selectedSection === "winners" && (
           <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -860,21 +950,20 @@ function smoothScrollBy(distance: number, duration = 800) {
             <div className="flex justify-end pb-2 pr-5">
               {manageAuctionTab !== "create" && (
                 <button
-  onClick={() => {
-    setManageAuctionTab("create");
-    // Scroll the window down by 200px smoothly
-    smoothScrollBy(200, 400);
-  }}
-  className="flex items-center gap-1 bg-gradient-to-r from-green-500 via-green-600 to-green-700 
+                  onClick={() => {
+                    setManageAuctionTab("create");
+                    // Scroll the window down by 200px smoothly
+                    smoothScrollBy(200, 400);
+                  }}
+                  className="flex items-center gap-1 bg-gradient-to-r from-green-500 via-green-600 to-green-700 
     hover:from-green-600 hover:via-green-700 hover:to-green-800 
     text-white font-semibold px-4 py-2 rounded-lg shadow-md 
     hover:shadow-lg transform hover:-translate-y-0.5 hover:scale-105 
     transition-all duration-300 ease-in-out"
->
-  <Plus size={15} strokeWidth={3} />
-  Create New Auction
-</button>
-
+                >
+                  <Plus size={15} strokeWidth={3} />
+                  Create New Auction
+                </button>
               )}
             </div>
 
@@ -952,6 +1041,7 @@ function smoothScrollBy(distance: number, duration = 800) {
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
                           <th className="px-4 py-2 text-left">Curent Bid</th>
+                          <th className="px-4 py-2 text-left">Ends In</th>
                           <th className="px-4 py-2 text-left">Bidders</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
@@ -989,14 +1079,29 @@ function smoothScrollBy(distance: number, duration = 800) {
                             <td className="px-4 py-2">
                               ${liveAuction.startprice}
                             </td>
-                            <td className="px-4 py-2">
+
+                            <td className="px-4 py-2 font-bold text-green-600">
                               ${liveAuction.currentbid}
                             </td>
-                            
-<td className="px-4 py-2 flex items-center gap-1">
-  <Eye className="w-4 h-4 text-gray-500" />
-  {liveAuction.bidder_count}
-</td>
+                            <td className="px-4 py-2">
+                              {
+                                <LiveTimer
+                                  startTime={liveAuction.scheduledstart}
+                                  duration={liveAuction.auctionduration}
+                                />
+                              }
+                            </td>
+
+                            <td
+                              className="px-4 py-2 flex items-center gap-1 font-bold text-blue-600 cursor-pointer hover:underline"
+                              onClick={() => {
+                                setSelectedAuctionId(liveAuction.id);
+                                setShowSellerLeaderboard(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 text-blue-500" />
+                              {liveAuction.bidder_count}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1025,8 +1130,9 @@ function smoothScrollBy(distance: number, duration = 800) {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
-                          <th className="px-4 py-2 text-left">Starts In</th>
-                          <th className="px-4 py-2 text-left">Action</th>
+                          <th className="px-4 py-2 text-left">Start date</th>
+                          <th className="px-4 py-2 text-left">End Date</th>
+                          <th className="px-4 py-2 text-left">Actions</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
                       </thead>
@@ -1062,36 +1168,40 @@ function smoothScrollBy(distance: number, duration = 800) {
                               ${upcoming.startprice}
                             </td>
                             <td className="px-4 py-2">
-                              {upcoming.scheduledstart ? (
-                                <LiveTimer
-                                  time={upcoming.scheduledstart}
-                                  className="text-green-600"
-                                />
-                              ) : (
-                                <span className="text-gray-400">—</span>
+                              {formatDateTime(
+                                new Date(upcoming.scheduledstart)
                               )}
                             </td>
-                            <td className="p-2 flex space-x-1">
-                          
-                          <Button
-  variant="outline"
-  size="icon"
-  // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
-  className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
-  // disabled={!auction.editable}
->
-  <Edit className="w-3 h-3" />
-</Button>
 
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            // onClick={() => handleDelete(auction.id)}
-                            className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                getEndDate(
+                                  new Date(upcoming.scheduledstart),
+                                  upcoming.auctionduration
+                                )
+                              )}
+                            </td>
+
+                            <td className="p-2 flex space-x-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${upcoming.id}`)}
+                                className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
+                                // disabled={!auction.editable}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                // onClick={() => handleDelete(auction.id)}
+                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1153,26 +1263,25 @@ function smoothScrollBy(distance: number, duration = 800) {
                               ${approval.starting_bid}
                             </td>
                             <td className="p-2 flex space-x-1">
-                          
-                          <Button
-  variant="outline"
-  size="icon"
-  // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
-  className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
-  // disabled={!auction.editable}
->
-  <Edit className="w-3 h-3" />
-</Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
+                                className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
+                                // disabled={!auction.editable}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
 
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            // onClick={() => handleDelete(auction.id)}
-                            className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </td>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                // onClick={() => handleDelete(auction.id)}
+                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

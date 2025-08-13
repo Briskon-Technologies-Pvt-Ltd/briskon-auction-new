@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { scheduler } from "timers/promises";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -20,6 +21,8 @@ interface Stats {
     current_bid: string;
     gain: number;
     bidders: number;
+    auctionduration?: { days?: number; hours?: number; minutes?: number }; 
+    scheduledstart:string;
   }[];
 }
 
@@ -99,7 +102,7 @@ const totalSoldAmount = soldAuctions?.reduce(
 const { data: topAuctionsData, error: topAuctionsError } = await supabase
   .from("auctions")
   .select(
-    "id, productname, productimages, categoryid, auctiontype, auctionsubtype, startprice, currentbid, bidder_count"
+    "id, productname, productimages, categoryid, auctiontype, auctionsubtype, startprice, currentbid, bidder_count, auctionduration, scheduledstart"
   )
   .eq("createdby", userEmail)
   .eq("ended", false) // Only active listings
@@ -125,6 +128,8 @@ return {
   current_bid: auction.currentbid,
   gain: auction.currentbid - auction.startprice,
   bidders: auction.bidder_count,
+  auctionduration:auction.auctionduration,
+  scheduledstart:auction.scheduledstart,
 } 
 });
     const stats: Stats = {

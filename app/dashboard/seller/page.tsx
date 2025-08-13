@@ -1003,17 +1003,7 @@ export default function SellerDashboard() {
                   Upcoming Auctions ({upcomingCount})
                 </button>
 
-                <button
-                  onClick={() => setManageAuctionTab("closed")}
-                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
-          ${
-            manageAuctionTab === "closed"
-              ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
-              : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
-          }`}
-                >
-                  Closed Auctions ({closedAuctions.length})
-                </button>
+                
 
                 <button
                   onClick={() => setManageAuctionTab("pending")}
@@ -1037,6 +1027,17 @@ export default function SellerDashboard() {
           }`}
                 >
                   Admin Rejected ({approvalRejected.length})
+                </button>
+                <button
+                  onClick={() => setManageAuctionTab("closed")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+          ${
+            manageAuctionTab === "closed"
+              ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
+              : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
+          }`}
+                >
+                  Closed Auctions ({closedAuctions.length})
                 </button>
               </div>
             )}
@@ -1152,7 +1153,7 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
-                          <th className="px-4 py-2 text-left">Start date</th>
+                          <th className="px-4 py-2 text-left">Start Date</th>
                           <th className="px-4 py-2 text-left">End Date</th>
                           <th className="px-4 py-2 text-left">Actions</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}

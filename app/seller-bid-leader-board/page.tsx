@@ -1,3 +1,5 @@
+"use client";
+
 import { Award } from "lucide-react";
 import { useEffect, useState } from "react";
 

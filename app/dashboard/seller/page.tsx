@@ -35,6 +35,7 @@ import {
   Trash,
   Trash2,
   Edit,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
@@ -64,6 +65,7 @@ interface Sale {
   format: string;
   starting_bid: number;
   saleDate: string | null;
+  bidder_count: number;
 }
 
 interface UnsoldSale {
@@ -77,6 +79,8 @@ interface UnsoldSale {
   auction_category: string;
   saleDate: string | null;
   starting_bid: number;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+  scheduledstart: string;
 }
 
 interface Stats {
@@ -123,6 +127,18 @@ interface upcomingAuctionItem {
   scheduledstart: string;
   auctionduration?: { days?: number; hours?: number; minutes?: number };
 }
+interface closedAuctionItem {
+  id: string;
+  productname: string;
+  currentbid: number | null;
+  productimages: string;
+  startprice: number;
+  auctiontype: string;
+  auctionsubtype: string;
+  categoryid: string;
+  scheduledstart: string;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+}
 interface AuctionItem {
   id: string;
   productname: string;
@@ -144,6 +160,21 @@ interface approvalPendingItem {
   type: string | number;
   format: string | number;
   created_at: string;
+  scheduledstart: string;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
+}
+interface approvalRejectedItem {
+  id: string;
+  productname: string;
+  productimages: string;
+  salePrice: number;
+  starting_bid: number;
+  category: string;
+  type: string | number;
+  format: string | number;
+  created_at: string;
+  scheduledstart: string;
+  auctionduration?: { days?: number; hours?: number; minutes?: number };
 }
 
 interface RecentAuction {
@@ -158,7 +189,7 @@ export default function SellerDashboard() {
   const { user, isLoading } = useAuth();
   const [winners, setWinners] = useState<Winner[]>([]);
   const [manageAuctionTab, setManageAuctionTab] = useState<
-    "live" | "upcoming" | "pending" | "rejected" | "create"
+    "live" | "upcoming" | "pending" |"closed"| "rejected" | "create"
   >("live");
   const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(
     null
@@ -176,8 +207,14 @@ export default function SellerDashboard() {
   const [approvalPendings, setApprovalPendings] = useState<
     approvalPendingItem[]
   >([]);
+  const [approvalRejected, setApprovalRejected] = useState<
+    approvalRejectedItem[]
+  >([]);
   const [upcomingAuctions, setUpcomingAuctions] = useState<
     upcomingAuctionItem[]
+  >([]);
+  const [closedAuctions, setClosedAuctions] = useState<
+    closedAuctionItem[]
   >([]);
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [showSellerLeaderboard, setShowSellerLeaderboard] = useState(false);
@@ -206,7 +243,7 @@ export default function SellerDashboard() {
       minute: "2-digit",
       hour12: true,
     };
-    return date.toLocaleString("en-US", options).replace(" at ", " "); // remove "at"
+    return date.toLocaleString("en-US", options).replace(" at ", ", "); // remove "at"
   }
 
   function getEndDate(
@@ -378,6 +415,34 @@ export default function SellerDashboard() {
     if (user) fetchAuctions();
   }, [user]);
 
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      if (!user?.email) throw new Error("User email is missing");
+      const response = await fetch(
+        `/api/seller/approval-rejected?email=${encodeURIComponent(user.email)}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setApprovalRejected(data.data || []);
+      }
+    };
+    if (user) fetchAuctions();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      if (!user?.email) throw new Error("User email is missing");
+      const response = await fetch(
+        `/api/seller/closed-auctions?email=${encodeURIComponent(user.email)}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setClosedAuctions(data.data || []);
+      }
+    };
+    if (user) fetchAuctions();
+  }, [user]);
+
   // if (isLoading || isLoadingSales) {
   //   return (
   //     <div className="min-h-screen flex items-center justify-center">
@@ -527,76 +592,6 @@ export default function SellerDashboard() {
               Create New
             </div>
           </Card>
-
-          {/* Lost Auctions */}
-          {/* <Card
-            onClick={() => setSelectedSection("liveAuction")}
-            className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "liveAuction" ? "ring-2 ring-blue-500" : ""
-            }`}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Gavel className="h-5 w-5 text-orange-500 animate-bounce" />
-                <CardTitle className="text-sm font-medium">
-                  Live Auctions
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl font-bold">{liveCount}</div>
-                <p className="text-xs text-gray-500 mt-4">Ongoing Now</p>
-              </div>
-            </CardHeader>
-          </Card> */}
-
-          {/* Live Auctions */}
-
-          {/* <Card
-            onClick={() => setSelectedSection("upcomingAuctions")}
-            className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "upcomingAuctions"
-                ? "ring-2 ring-blue-500"
-                : ""
-            }`}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 animate-bounce" />
-                <CardTitle className="text-sm font-medium">
-                  Upcoming Auctions
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl font-bold">{upcomingCount}</div>
-                <p className="text-xs text-gray-500 mt-4">All Time</p>
-              </div>
-            </CardHeader>
-          </Card> */}
-          {/* Upcoming Auction*/}
-          {/* <Card
-            onClick={() => setSelectedSection("approvalPending")}
-            className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "approvalPending"
-                ? "ring-2 ring-blue-500"
-                : ""
-            }`}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Hourglass className="h-4 w-4 text-yellow-500 animate-bounce" />
-
-                <CardTitle className="text-sm font-medium">
-                  Approval Pending
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl font-bold">
-                  {approvalPendings.length}
-                </div>
-                <p className="text-xs text-gray-500 mt-4">View Details</p>
-              </div>
-            </CardHeader>
-          </Card> */}
           {/* My Profile */}
           {/* <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
@@ -825,6 +820,7 @@ export default function SellerDashboard() {
                       <th className="px-4 py-2 text-left">Winning Bid </th>
                       <th className="px-4 py-2 text-left">Winner</th>
                       <th className="px-4 py-2 text-left">Sold On</th>
+                      <th className="px-4 py-2 text-left">Bidders</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -865,6 +861,16 @@ export default function SellerDashboard() {
                                 DateTime.DATETIME_MED
                               )
                             : "N/A"}
+                        </td>
+                        <td
+                          className="px-4 py-2 text-blue-600 hover:underline cursor-pointer font-semibold flex items-center gap-1"
+                          onClick={() => {
+                            setSelectedAuctionId(sale.id);
+                            setShowSellerLeaderboard(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 text-blue-500" />
+                          {sale.bidder_count}
                         </td>
                       </tr>
                     ))}
@@ -926,14 +932,18 @@ export default function SellerDashboard() {
                         </td>
                         <td className="px-4 py-2">{unsoldSale.starting_bid}</td>
                         <td className="px-4 py-2">
-                          {unsoldSale.saleDate
-                            ? DateTime.fromISO(
-                                unsoldSale.saleDate
-                              ).toLocaleString(DateTime.DATETIME_MED)
-                            : "N/A"}
+                          {formatDateTime(
+                            getEndDate(
+                              new Date(unsoldSale.scheduledstart),
+                              unsoldSale.auctionduration ?? {}
+                            )
+                          )}
                         </td>
                         <td className="px-4 py-2">
-                          <Link href={`/cc`} className="text-blue-400">
+                          <Link
+                            href={`/seller-panel/my-listings/edit/${unsoldSale.id}`}
+                            className="   text-blue-500 hover:text-blue-500 p-1 w-16 h-6 flex items-center justify-center"
+                          >
                             Re-list
                           </Link>
                         </td>
@@ -994,6 +1004,18 @@ export default function SellerDashboard() {
                 </button>
 
                 <button
+                  onClick={() => setManageAuctionTab("closed")}
+                  className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
+          ${
+            manageAuctionTab === "closed"
+              ? "bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-md"
+              : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
+          }`}
+                >
+                  Closed Auctions ({closedAuctions.length})
+                </button>
+
+                <button
                   onClick={() => setManageAuctionTab("pending")}
                   className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
           ${
@@ -1014,7 +1036,7 @@ export default function SellerDashboard() {
               : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300"
           }`}
                 >
-                  Admin Rejected ({0})
+                  Admin Rejected ({approvalRejected.length})
                 </button>
               </div>
             )}
@@ -1177,7 +1199,7 @@ export default function SellerDashboard() {
                               {formatDateTime(
                                 getEndDate(
                                   new Date(upcoming.scheduledstart),
-                                  upcoming.auctionduration
+                                  upcoming.auctionduration ?? {}
                                 )
                               )}
                             </td>
@@ -1186,7 +1208,11 @@ export default function SellerDashboard() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${upcoming.id}`)}
+                                onClick={() =>
+                                  handleNavigate(
+                                    `/seller-panel/my-listings/edit/${upcoming.id}`
+                                  )
+                                }
                                 className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
                                 // disabled={!auction.editable}
                               >
@@ -1210,15 +1236,15 @@ export default function SellerDashboard() {
                 )}
               </div>
             )}
-            {manageAuctionTab === "pending" && (
+            {manageAuctionTab === "closed" && (
               <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Hourglass className="h-4 w-4 text-yellow-500 animate-bounce" />
-                    Approval Pending
+                    <Lock className="h-4 w-4 text-red-500  animate-bounce" />
+                    Closed Auctions
                   </h2>
                 </div>
-                {approvalPendings.length === 0 ? (
+                {closedAuctions.length === 0 ? (
                   <p className="text-sm text-gray-500">Upcoming Auction</p>
                 ) : (
                   <div className="overflow-x-auto rounded-md mt-6">
@@ -1230,7 +1256,113 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
-                          <th className="px-4 py-2 text-left">Action</th>
+                          <th className="px-4 py-2 text-left">Start date</th>
+                          <th className="px-4 py-2 text-left">End Date</th>
+                          {/* <th className="px-4 py-2 text-left">Actions</th> */}
+                          {/* <th className="px-4 py-2 text-left">Action</th> */}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {closedAuctions.map((upcoming, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            }
+                          >
+                            <td className="p-2">
+                              <Link
+                                href={`/auctions/${upcoming.id}`}
+                                className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                              >
+                                <img
+                                  src={upcoming.productimages}
+                                  alt={upcoming.productname}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                                {upcoming.productname}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-2">{upcoming.categoryid}</td>
+                            <td className="px-4 py-2 ">
+                              {upcoming.auctiontype}
+                            </td>
+                            <td className="px-4 py-2">
+                              {upcoming.auctionsubtype}
+                            </td>
+                            <td className="px-4 py-2">
+                              ${upcoming.startprice}
+                            </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                new Date(upcoming.scheduledstart)
+                              )}
+                            </td>
+
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                getEndDate(
+                                  new Date(upcoming.scheduledstart),
+                                  upcoming.auctionduration ?? {}
+                                )
+                              )}
+                            </td>
+
+                            {/* <td className="p-2 flex space-x-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  handleNavigate(
+                                    `/seller-panel/my-listings/edit/${upcoming.id}`
+                                  )
+                                }
+                                className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
+                                // disabled={!auction.editable}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                // onClick={() => handleDelete(auction.id)}
+                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td> */}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            {manageAuctionTab === "pending" && (
+              <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Hourglass className="h-4 w-4 text-yellow-500 animate-bounce" />
+                    Approval Pending
+                  </h2>
+                </div>
+                {approvalPendings.length === 0 ? (
+                  <p className="text-sm text-gray-500">Approval Pending</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-md mt-6">
+                    <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                      <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Auction Name</th>
+                          <th className="px-4 py-2 text-left">Category</th>
+                          <th className="px-4 py-2 text-left">Type </th>
+                          <th className="px-4 py-2 text-left">Format</th>
+                          <th className="px-4 py-2 text-left">Starting Bid</th>
+                          <th className="px-4 py-2 text-left">Start Date</th>
+                          <th className="px-4 py-2 text-left">End Date</th>
+                          <th className="px-4 py-2 text-left">Actions</th>
 
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
@@ -1262,11 +1394,28 @@ export default function SellerDashboard() {
                             <td className="px-4 py-2">
                               ${approval.starting_bid}
                             </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                new Date(approval.scheduledstart)
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                getEndDate(
+                                  new Date(approval.scheduledstart),
+                                  approval.auctionduration ?? {}
+                                )
+                              )}
+                            </td>
                             <td className="p-2 flex space-x-1">
                               <Button
                                 variant="outline"
                                 size="icon"
-                                // onClick={() => handleNavigate(`/seller-panel/my-listings/edit/${auction.id}`)}
+                                onClick={() =>
+                                  handleNavigate(
+                                    `/seller-panel/my-listings/edit/${approval.id}`
+                                  )
+                                }
                                 className="text-green-600 hover:text-green-700 p-1 w-6 h-6 flex items-center justify-center"
                                 // disabled={!auction.editable}
                               >
@@ -1282,6 +1431,90 @@ export default function SellerDashboard() {
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            {manageAuctionTab === "rejected" && (
+              <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <XCircle  className="h-4 w-4 text-red-500 animate-bounce" />
+
+                    Rejected
+                  </h2>
+                </div>
+                {approvalRejected.length === 0 ? (
+                  <p className="text-sm text-gray-500">Upcoming </p>
+                ) : (
+                  <div className="overflow-x-auto rounded-md mt-6">
+                    <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                      <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Auction Name</th>
+                          <th className="px-4 py-2 text-left">Category</th>
+                          <th className="px-4 py-2 text-left">Type </th>
+                          <th className="px-4 py-2 text-left">Format</th>
+                          <th className="px-4 py-2 text-left">Starting Bid</th>
+                          <th className="px-4 py-2 text-left">Start Date</th>
+                          <th className="px-4 py-2 text-left">End Date</th>
+                          <th className="px-4 py-2 text-left">Actions</th>
+
+                          {/* <th className="px-4 py-closed text-left">Action</th> */}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {approvalRejected.map((closed, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            }
+                          >
+                            <td className="p-2">
+                              <Link
+                                href={`/auctions/${closed.id}`}
+                                className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                              >
+                                <img
+                                  src={closed.productimages}
+                                  alt={closed.productname}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                                {closed.productname}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-2">{closed.category}</td>
+                            <td className="px-4 py-2 ">{closed.type}</td>
+                            <td className="px-4 py-2">{closed.format}</td>
+                            <td className="px-4 py-2">
+                              ${closed.starting_bid}
+                            </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                new Date(closed.scheduledstart)
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {formatDateTime(
+                                getEndDate(
+                                  new Date(closed.scheduledstart),
+                                  closed.auctionduration ?? {}
+                                )
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                          <Link
+                            href={`/seller-panel/my-listings/edit/${closed.id}`}
+                            className="   text-blue-500 hover:text-blue-500 p-1 w-16 h-6 flex items-center justify-center"
+                          >
+                            Re-list
+                          </Link>
+                        </td>
                           </tr>
                         ))}
                       </tbody>

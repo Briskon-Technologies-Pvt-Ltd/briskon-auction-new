@@ -55,7 +55,7 @@ export default function SellerBidLeaderboard({
     <div className="p-4 max-w-md bg-white rounded shadow">
       <div className="flex items-center gap-2 mb-4">
         <Award className="w-5 h-5 text-yellow-500 animate-bounce" />
-        <h2 className="text-lg font-semibold">Bid Leaderboard</h2>
+        <h2 className="text-lg font-semibold">Bid Leader Board</h2>
       </div>
 
       {loading ? (

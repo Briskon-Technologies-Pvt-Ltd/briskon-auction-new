@@ -11,6 +11,8 @@ interface LiveAuction {
   auctionsubtype: string;
   categoryid: number;
   bidder_count:number;
+  auctionduration:{ days?: number; hours?: number; minutes?: number };
+  scheduledstart: string;
 }
 
 
@@ -42,7 +44,7 @@ const now = new Date().toISOString();
 const { data: auctionsData, count, error: countError } = await supabase
   .from("auctions")
   .select(
-    `id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, bidder_count`,
+    `id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, bidder_count, auctionduration, scheduledstart`,
     { count: "exact" }
   )
   .eq("createdby", userEmail)
@@ -66,6 +68,8 @@ const liveAuctions: LiveAuction[] = (auctionsData || []).map((auction) => {
     auctionsubtype: auction.auctionsubtype,
     categoryid: auction.categoryid,
     bidder_count: auction.bidder_count,
+    auctionduration: auction.auctionduration,
+    scheduledstart: auction.scheduledstart,
   };
 });
 

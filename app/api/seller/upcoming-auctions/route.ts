@@ -10,6 +10,7 @@ interface upcomingAuction {
   auctionsubtype: string;
   categoryid: string;
   scheduledstart:string;
+  auctionduration:{ days?: number; hours?: number; minutes?: number };
 }
 
 export async function GET(req: Request) {
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
   // Fetch upcoming auctions count
   const { data: auctionsData,count, error: countError } = await supabase
     .from("auctions")
-    .select(`id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, scheduledstart`,
+    .select(`id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, scheduledstart,  auctionduration`,
        { count: "exact"})
     .eq("createdby", userEmail) // use seller ID
     .gt("scheduledstart", now)       // upscoming
@@ -67,7 +68,8 @@ export async function GET(req: Request) {
     auctiontype: auction.auctiontype,
     auctionsubtype: auction.auctionsubtype,
     categoryid: auction.categoryid,
-    scheduledstart:auction.scheduledstart
+    scheduledstart:auction.scheduledstart,
+    auctionduration:auction.auctionduration
   };
 });
 

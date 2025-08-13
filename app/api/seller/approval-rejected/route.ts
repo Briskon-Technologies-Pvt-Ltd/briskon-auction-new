@@ -4,7 +4,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-interface approvalPending {
+interface approvalRejected {
   id: string;
   productname: string;
   productimages: string;
@@ -46,13 +46,13 @@ export async function GET(request: Request) {
           currentbid,
           approved,
           scheduledstart,
-          auctionduration
+          auctionduration,
+          approval_status
           `,
           { count: "exact" }
         )
         .eq("createdby", userEmail)
-        .eq("approved", false)
-        .neq("approval_status", "rejected"); // Filter unapproved auctions only
+        .eq("approval_status", "rejected");
 
     if (auctionsError) {
       return NextResponse.json(
@@ -61,8 +61,8 @@ export async function GET(request: Request) {
       );
     }
 
-    const formattedAuctions: approvalPending[] = (auctionsData || []).map(
-      (auction: any): approvalPending => ({
+    const formattedAuctions: approvalRejected[] = (auctionsData || []).map(
+      (auction: any): approvalRejected => ({
         id: auction.id,
         productname: auction.productname || "Untitled",
         productimages:

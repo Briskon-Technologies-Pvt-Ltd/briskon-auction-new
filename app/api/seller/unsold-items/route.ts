@@ -17,6 +17,8 @@ interface UnsoldSale {
   auction_category:string;
   productimages:string;
   saleDate: string | null;
+  auctionduration?: { days?: number; hours?: number; minutes?: number }; 
+  scheduledstart:string;
 }
 
 export async function GET(request: Request) {
@@ -51,7 +53,9 @@ export async function GET(request: Request) {
     currentbid,
     auctiontype,
     categoryid,
-    auctionsubtype
+    auctionsubtype,
+    auctionduration,
+    scheduledstart
   `)
   .eq("createdby", userEmail)
   .eq("ended", true)
@@ -115,6 +119,8 @@ if (unsoldError) {
           auction_type: auction.auctiontype || null,
           auction_subtype: auction.auctionsubtype || null,
           auction_category: auction.categoryid || null,
+          auctionduration:auction.auctionduration,
+          scheduledstart:auction.scheduledstart,  
           productimages,
           buyer,
           saleDate,

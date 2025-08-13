@@ -14,6 +14,7 @@ interface Sale {
   starting_bid: string;
   productimages:string;
   saleDate: string | null;
+  bidder_count: number;
 }
 
 export async function GET(request: Request) {
@@ -49,13 +50,15 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
     auctiontype, 
     auctionsubtype,
     categoryid,
-
-    createdby
+    createdby,
+    bidder_count,
+    createdat
   `, { count: 'exact' }) // <--- get count
   .eq("createdby", userEmail)
   .eq("ended", true)
-  .gt("bidder_count", 0)
-  .not("currentbid", "is", null);
+  .gt("bidder_count", 0)  
+  .not("currentbid", "is", null)
+    .order("createdat", { ascending: false });
 
 
     if (auctionError) {
@@ -82,7 +85,7 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
         if (bidError) {
           console.log("Bid error for auction", auction.id, ":", bidError);
         }
-
+        
         // console.log("Bid data for auction", auction.id, ":", bidData);
         const lastBid = bidData?.[0];
         const saleDate = lastBid?.created_at
@@ -119,6 +122,7 @@ const { data: auctionData, count: soldCount, error: auctionError } = await supab
           productimages,
           buyer,
           saleDate,
+          bidder_count:auction.bidder_count
         };
        
         return sale;

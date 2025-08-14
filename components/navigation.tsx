@@ -30,12 +30,15 @@ import {
   LayoutDashboard,
   ArrowRight,
   LogIn,
+  Languages,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@supabase/supabase-js";
+import LanguageSelector from "./language-selector";
+import { Language } from "@/types/auction-types";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,7 +59,14 @@ function Navigation({
     avatar_url: string;
     fname: string;
   } | null>(null);
+  const [formData, setFormData] = useState<{ productName: string; language: Language }>({
+    productName: "",
+    language: Languages[0], // default Language object
+  });
 
+  const handleLanguageChange = (lang: Language) => {
+    setFormData((prev) => ({ ...prev, language: lang }));
+  };
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -455,7 +465,12 @@ function Navigation({
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                   </Button>
-
+                    <div className="mr-1">
+                    <LanguageSelector
+                      value={formData.language}
+                      onChange={handleLanguageChange}
+                    />
+                  </div>  
                   <Button
                     variant="ghost"
                     onClick={logout}
@@ -466,6 +481,7 @@ function Navigation({
                       <LogIn className="w-5 h-5 text-white" />
                     </Link>
                   </Button>
+                  
                 </div>
               </>
             ) : (

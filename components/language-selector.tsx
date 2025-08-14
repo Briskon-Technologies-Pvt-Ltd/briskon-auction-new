@@ -54,7 +54,7 @@ export default function LanguageSelector({ value, onChange }: LanguageSelectorPr
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
-        className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-corporate-500 dark:focus:ring-corporate-400 transition-colors-smooth"
+        className="flex items-center justify-between w-full px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-corporate-500 dark:focus:ring-corporate-400 transition-colors-smooth"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"

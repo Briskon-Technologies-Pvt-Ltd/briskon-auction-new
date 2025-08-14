@@ -43,10 +43,6 @@ export default function CreateAuction() {
     <AuctionBuilderWizard />
   </div>
 </div>
-
-
-
 // </div>
-      
   );
 }

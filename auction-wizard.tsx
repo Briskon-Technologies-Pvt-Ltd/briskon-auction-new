@@ -978,9 +978,9 @@ const getCurrencySymbol = (currency: Currency) => {
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
           <div className="flex items-center space-x-2">
-            {/* <div className="mr-2">
+            <div className="mr-2">
               <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
-            </div> */}
+            </div>
           </div>
         </div>
 
@@ -1138,7 +1138,7 @@ const getCurrencySymbol = (currency: Currency) => {
 
    <div className="space-y-4">
 {formData.auctionType !== "reverse" && (
-  <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
+  <label className="block text-xl font-bold text-gray-800 dark:text-gray-300">
     Select Auction Format <span className="text-destructive-500">*</span>
   </label>
 )}
@@ -1146,8 +1146,6 @@ const getCurrencySymbol = (currency: Currency) => {
   <div className="grid grid-cols-1 gap-4 max-w-[50%]">
     {formData.auctionType === "forward" && (
       <>
-
-
         <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
             ${
@@ -1230,10 +1228,10 @@ const getCurrencySymbol = (currency: Currency) => {
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     {formData.auctionType === "reverse" && (
       <>
-        <div
+      <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
             ${
-              formData.auctionSubType === "sealed-bid"
+              formData.auctionSubType === "standard"
                 ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
                 : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
             } ${
@@ -1242,17 +1240,16 @@ const getCurrencySymbol = (currency: Currency) => {
                 : ""
             }`}
           onClick={() =>
-            setFormData({ ...formData, auctionSubType: "sealed-bid" })
+            setFormData({ ...formData, auctionSubType: "standard" })
           }
         >
           <h3 className="font-medium dark:text-gray-100">
-            {t("sealedBidReverse")}
+            {t("standardReverseAuction")}
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("sealedBidReverseDesc")}
+            {t("standardReverseAuctionDesc")}
           </p>
         </div>
-
         <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
             ${
@@ -1271,15 +1268,14 @@ const getCurrencySymbol = (currency: Currency) => {
           <h3 className="font-medium dark:text-gray-100">
             {t("reverseClockAuction")}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {t("reverseClockAuctionDesc")}
           </p>
         </div>
-
         <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
             ${
-              formData.auctionSubType === "standard"
+              formData.auctionSubType === "sealed-bid"
                 ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
                 : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
             } ${
@@ -1288,16 +1284,20 @@ const getCurrencySymbol = (currency: Currency) => {
                 : ""
             }`}
           onClick={() =>
-            setFormData({ ...formData, auctionSubType: "standard" })
+            setFormData({ ...formData, auctionSubType: "sealed-bid" })
           }
         >
           <h3 className="font-medium dark:text-gray-100">
-            {t("standardReverseAuction")}
+            {"Sealed Bid Auction"}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t("standardReverseAuctionDesc")}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("sealedBidReverseDesc")}
           </p>
         </div>
+
+        
+
+        
 
         {/* <div
           className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
@@ -1335,11 +1335,10 @@ const getCurrencySymbol = (currency: Currency) => {
             {/* Step 2: Product/Lot Details (moved from step 3) */}
 {currentStep === 2 && (
   <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("productDetails")}</h2>
-
+    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("productDetails")}</h2>
     {/* API Key Setup Banner */}
-    {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />}
-
+    {/* {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />} */}
+    <div className="flex gap-6">
     <div className="w-1/2">
       <label
         htmlFor="productName"
@@ -1366,6 +1365,40 @@ const getCurrencySymbol = (currency: Currency) => {
         }
       />
       {hasError("productName") && <ErrorMessage message={getErrorMessage("productName")} />}
+    </div>
+     <div className="w-1/2 ">
+       <label
+      htmlFor="productDescription"
+      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+    >
+      {t("productDescription")}
+    </label>
+      <textarea
+        id="productDescription"
+        ref={productDescriptionRef}
+        rows={4}
+        className={`form-input ${
+          hasError("productDescription")
+            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+            : ""
+        }`}
+        placeholder={t("enterProductDescription")}
+        value={formData.productDescription}
+        onChange={(e) =>
+          setFormData({
+            ...formData,
+            productDescription: e.target.value,
+          })
+        }
+      />
+      {hasError("productDescription") && <ErrorMessage message={getErrorMessage("productDescription")} />}
+
+      {formData.productDescription && (
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          {formData.productDescription.length} characters
+        </div>
+      )}
+    </div>
     </div>
     {formData.auctionSubType === "yankee" && (
   <div>
@@ -1397,17 +1430,17 @@ const getCurrencySymbol = (currency: Currency) => {
   </div>
 )}
 
-    <div>
-      <div className="flex items-center justify-between mb-1">
+   
+      {/* <div className="flex items-center justify-between mb-1">
         <label
           htmlFor="productDescription"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           {t("productDescription")} <span className="text-destructive-500">*</span>
         </label>
-        {/* Enhanced Generate Button Section */}
+        Enhanced Generate Button Section
         <div className="flex space-x-2">
-          {/* Show regenerate button if AI description was already generated */}
+          Show regenerate button if AI description was already generated
           {hasUserSeenAiSuggestion && !showAiSuggestion && apiKey && !isGeneratingDescription && (
             <button
               type="button"
@@ -1426,7 +1459,7 @@ const getCurrencySymbol = (currency: Currency) => {
             </button>
           )}
 
-          {/* Show generate button if conditions are met and not currently generating */}
+          Show generate button if conditions are met and not currently generating
           {formData.productName &&
             formData.categoryId &&
             !formData.productDescription &&
@@ -1450,7 +1483,7 @@ const getCurrencySymbol = (currency: Currency) => {
               </button>
             )}
 
-          {/* Show loading button when generating */}
+          Show loading button when generating
           {isGeneratingDescription && (
             <button
               type="button"
@@ -1462,10 +1495,10 @@ const getCurrencySymbol = (currency: Currency) => {
             </button>
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* Enhanced AI Suggestion Modal with Loading Spinner */}
-      {showAiSuggestion && aiGeneratedDescription && (
+      {/* {showAiSuggestion && aiGeneratedDescription && (
         <div className="mb-4 p-4 border border-corporate-200 dark:border-corporate-700 rounded-lg bg-gradient-to-r from-corporate-50 to-blue-50 dark:from-corporate-900/30 dark:to-blue-900/30 animate-fade-in shadow-sm">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center">
@@ -1545,10 +1578,10 @@ const getCurrencySymbol = (currency: Currency) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Enhanced Loading State */}
-      {isGeneratingDescription && (
+      {/* {isGeneratingDescription && (
         <div className="mb-4 p-4 border border-corporate-200 dark:border-corporate-700 rounded-lg bg-gradient-to-r from-corporate-50 to-blue-50 dark:from-corporate-900/30 dark:to-blue-900/30 animate-pulse">
           <div className="flex items-center">
             <div className="flex items-center justify-center w-8 h-8 bg-corporate-100 dark:bg-corporate-800 rounded-full mr-3">
@@ -1571,34 +1604,9 @@ const getCurrencySymbol = (currency: Currency) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
-      <textarea
-        id="productDescription"
-        ref={productDescriptionRef}
-        rows={4}
-        className={`form-input ${
-          hasError("productDescription")
-            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-            : ""
-        }`}
-        placeholder={t("enterProductDescription")}
-        value={formData.productDescription}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            productDescription: e.target.value,
-          })
-        }
-      />
-      {hasError("productDescription") && <ErrorMessage message={getErrorMessage("productDescription")} />}
-
-      {formData.productDescription && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {formData.productDescription.length} characters
-        </div>
-      )}
-    </div>
+      
 
     {/* Product Classification */}
     <ProductClassification
@@ -1617,40 +1625,45 @@ const getCurrencySymbol = (currency: Currency) => {
       onModelChange={(model) => setFormData((prev) => ({ ...prev, model }))}
     />
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        {t("productImages")}
-      </label>
-      <FileUploader
-        accept="image/*,video/mp4,video/webm,video/quicktime"
-        type="media"
-        uploadedFiles={formData.productImages}
-        onFilesUploaded={handleImagesUploaded}
-        onFileRemoved={handleImageRemoved}
-      />
-    </div>
+    <div className="flex gap-6">
+  {/* Product Images */}
+  <div className="w-1/2">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      {t("productImages")}
+    </label>
+    <FileUploader
+      accept="image/*,video/mp4,video/webm,video/quicktime"
+      type="media"
+      uploadedFiles={formData.productImages}
+      onFilesUploaded={handleImagesUploaded}
+      onFileRemoved={handleImageRemoved}
+    />
+  </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        {t("productDocuments")}
-      </label>
-      <FileUploader
-        accept="application/*,text/*"
-        maxFiles={10}
-        maxSize={10 * 1024 * 1024} // 10MB
-        uploadedFiles={formData.productDocuments}
-        onFilesUploaded={handleDocumentsUploaded}
-        onFileRemoved={handleDocumentRemoved}
-        type="document"
-      />
-    </div>
+  {/* Product Documents */}
+  <div className="w-1/2">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      {t("productDocuments")}
+    </label>
+    <FileUploader
+      accept="application/*,text/*"
+      maxFiles={10}
+      maxSize={10 * 1024 * 1024} // 10MB
+      uploadedFiles={formData.productDocuments}
+      onFilesUploaded={handleDocumentsUploaded}
+      onFileRemoved={handleDocumentRemoved}
+      type="document"
+    />
+  </div>
+</div>
+
   </div>
 )}
 
-            {/* Step 3: Bidding Parameters */}
+  {/* Step 3: Bidding Parameters */}
 {currentStep === 3 && (
   <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("biddingParameters")}</h2>
+    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("biddingParameters")}</h2>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
@@ -2152,7 +2165,7 @@ const getCurrencySymbol = (currency: Currency) => {
             {/* Step 4: Participation Rules */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("participationRules")}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("participationRules")}</h2>
 
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -2430,7 +2443,7 @@ const getCurrencySymbol = (currency: Currency) => {
             {/* Step 5: Terms & Conditions */}
             {currentStep === 5 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("termsAndConditions")}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("termsAndConditions")}</h2>
 
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400">{t("defineTermsAndConditions")}</p>
@@ -2475,7 +2488,7 @@ const getCurrencySymbol = (currency: Currency) => {
             {/* Step 6: Summary */}
             {currentStep === 6 && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionSummary")}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("auctionSummary")}</h2>
 
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400">{t("reviewAuctionDetails")}</p>

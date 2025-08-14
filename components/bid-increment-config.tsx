@@ -106,7 +106,7 @@ export default function BidIncrementConfig({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">Bid Increment Strategy</h3>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Bid Increment Strategy</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(["fixed", "percentage", "range-based"] as BidIncrementType[]).map((type) => (

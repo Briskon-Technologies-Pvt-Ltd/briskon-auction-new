@@ -325,7 +325,7 @@ export default function ProductClassification({
 
       {/* Category Selection */}
       <div>
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">Product Classification</h3>
+        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Product Classification</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Main Category */}
@@ -414,7 +414,7 @@ export default function ProductClassification({
       {attributes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">Product Attributes</h3>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Product Attributes</h3>
             <button type="button" onClick={() => setShowCustomAttributeForm(true)} className="btn-secondary btn-sm">
               <Plus className="h-4 w-4 mr-1" />
               Add Custom Attribute

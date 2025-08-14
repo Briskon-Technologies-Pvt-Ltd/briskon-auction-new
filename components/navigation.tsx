@@ -500,6 +500,12 @@ function Navigation({
                 >
                   <Link href="/register">Sign Up</Link>
                 </Button>
+                 <div className="mr-1">
+                    <LanguageSelector
+                      value={formData.language}
+                      onChange={handleLanguageChange}
+                    />
+                  </div> 
               </>
             )}
             {/* Mobile menu */}

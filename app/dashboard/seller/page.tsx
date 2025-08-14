@@ -189,7 +189,7 @@ export default function SellerDashboard() {
   const { user, isLoading } = useAuth();
   const [winners, setWinners] = useState<Winner[]>([]);
   const [manageAuctionTab, setManageAuctionTab] = useState<
-    "live" | "upcoming" | "pending" |"closed"| "rejected" | "create"
+    "live" | "upcoming" | "pending" | "closed" | "rejected" | "create"
   >("live");
   const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(
     null
@@ -213,9 +213,7 @@ export default function SellerDashboard() {
   const [upcomingAuctions, setUpcomingAuctions] = useState<
     upcomingAuctionItem[]
   >([]);
-  const [closedAuctions, setClosedAuctions] = useState<
-    closedAuctionItem[]
-  >([]);
+  const [closedAuctions, setClosedAuctions] = useState<closedAuctionItem[]>([]);
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [showSellerLeaderboard, setShowSellerLeaderboard] = useState(false);
 
@@ -1002,9 +1000,6 @@ export default function SellerDashboard() {
                 >
                   Upcoming Auctions ({upcomingCount})
                 </button>
-
-                
-
                 <button
                   onClick={() => setManageAuctionTab("pending")}
                   className={`px-2 py-2 rounded-md font-normal text-sm shadow-sm 
@@ -1153,8 +1148,7 @@ export default function SellerDashboard() {
                           <th className="px-4 py-2 text-left">Type </th>
                           <th className="px-4 py-2 text-left">Format</th>
                           <th className="px-4 py-2 text-left">Starting Bid</th>
-                          <th className="px-4 py-2 text-left">Start Date</th>
-                          <th className="px-4 py-2 text-left">End Date</th>
+                          <th className="px-4 py-2 text-left">Starts In</th>
                           <th className="px-4 py-2 text-left">Actions</th>
                           {/* <th className="px-4 py-2 text-left">Action</th> */}
                         </tr>
@@ -1190,21 +1184,13 @@ export default function SellerDashboard() {
                             <td className="px-4 py-2">
                               ${upcoming.startprice}
                             </td>
-                            <td className="px-4 py-2">
-                              {formatDateTime(
-                                new Date(upcoming.scheduledstart)
-                              )}
+                            <td>
+                              <LiveTimer
+                              className="text-green-500 font-bold"
+                                startTime={upcoming.scheduledstart}
+                                duration={upcoming.auctionduration}
+                              />
                             </td>
-
-                            <td className="px-4 py-2">
-                              {formatDateTime(
-                                getEndDate(
-                                  new Date(upcoming.scheduledstart),
-                                  upcoming.auctionduration ?? {}
-                                )
-                              )}
-                            </td>
-
                             <td className="p-2 flex space-x-1">
                               <Button
                                 variant="outline"
@@ -1246,7 +1232,7 @@ export default function SellerDashboard() {
                   </h2>
                 </div>
                 {closedAuctions.length === 0 ? (
-                  <p className="text-sm text-gray-500">Upcoming Auction</p>
+                  <p className="text-sm text-gray-500">Closed Auction</p>
                 ) : (
                   <div className="overflow-x-auto rounded-md mt-6">
                     <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
@@ -1444,13 +1430,12 @@ export default function SellerDashboard() {
               <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <XCircle  className="h-4 w-4 text-red-500 animate-bounce" />
-
+                    <XCircle className="h-4 w-4 text-red-500 animate-bounce" />
                     Rejected
                   </h2>
                 </div>
                 {approvalRejected.length === 0 ? (
-                  <p className="text-sm text-gray-500">Upcoming </p>
+                  <p className="text-sm text-gray-500">Rejected </p>
                 ) : (
                   <div className="overflow-x-auto rounded-md mt-6">
                     <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
@@ -1496,9 +1481,7 @@ export default function SellerDashboard() {
                               ${closed.starting_bid}
                             </td>
                             <td className="px-4 py-2">
-                              {formatDateTime(
-                                new Date(closed.scheduledstart)
-                              )}
+                              {formatDateTime(new Date(closed.scheduledstart))}
                             </td>
                             <td className="px-4 py-2">
                               {formatDateTime(
@@ -1509,13 +1492,13 @@ export default function SellerDashboard() {
                               )}
                             </td>
                             <td className="px-4 py-2">
-                          <Link
-                            href={`/seller-panel/my-listings/edit/${closed.id}`}
-                            className="   text-blue-500 hover:text-blue-500 p-1 w-16 h-6 flex items-center justify-center"
-                          >
-                            Re-list
-                          </Link>
-                        </td>
+                              <Link
+                                href={`/seller-panel/my-listings/edit/${closed.id}`}
+                                className="   text-blue-500 hover:text-blue-500 p-1 w-16 h-6 flex items-center justify-center"
+                              >
+                                Re-list
+                              </Link>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

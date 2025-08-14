@@ -43,8 +43,9 @@ export async function GET(req: Request) {
     .from("auctions")
     .select(`id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, scheduledstart,  auctionduration`,
        { count: "exact"})
-    .eq("createdby", userEmail) // use seller ID       // upscoming
-    .eq("ended", true);        
+    .eq("createdby", userEmail) // use seller ID 
+    .eq("ended", true)
+    .order("productname", { ascending: true });    
          // not ended
    if (countError) {
       return NextResponse.json(

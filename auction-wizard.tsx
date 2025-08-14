@@ -418,8 +418,8 @@ const handleNext = () => {
 
   if (formData.auctionType === "reverse") {
     if (currentStep === 1) {
-      setCurrentStep(7);
-    } else if (currentStep === 7) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
       setCurrentStep(3);
     } else if (currentStep === 3) {
       setCurrentStep(4);
@@ -978,9 +978,9 @@ const getCurrencySymbol = (currency: Currency) => {
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
           <div className="flex items-center space-x-2">
-            <div className="mr-2">
+            {/* <div className="mr-2">
               <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -1139,7 +1139,7 @@ const getCurrencySymbol = (currency: Currency) => {
    <div className="space-y-4">
 {formData.auctionType !== "reverse" && (
   <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
-    Auction Format <span className="text-destructive-500">*</span>
+    Select Auction Format <span className="text-destructive-500">*</span>
   </label>
 )}
 
@@ -1228,7 +1228,6 @@ const getCurrencySymbol = (currency: Currency) => {
 {"Auction Format"} <span className="text-destructive-500">*</span>
 </label> */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  
     {formData.auctionType === "reverse" && (
       <>
         <div
@@ -1341,7 +1340,7 @@ const getCurrencySymbol = (currency: Currency) => {
     {/* API Key Setup Banner */}
     {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />}
 
-    <div>
+    <div className="w-1/2">
       <label
         htmlFor="productName"
         className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -2700,7 +2699,6 @@ const getCurrencySymbol = (currency: Currency) => {
     </div>
 
     {/* Image Uploader (Using Step 2 Logic) */}
-    //////////////////////////////////////
 <div onClick={handleDivClick} className="cursor-pointer">
   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
     {t("productImages")} {/* Update translation if needed to reflect media */}

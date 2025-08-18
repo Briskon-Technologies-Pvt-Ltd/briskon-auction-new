@@ -43,7 +43,7 @@ export type BidIncrementRule = {
   id: string
   minBidAmount: number
   maxBidAmount?: number
-  incrementValue: number
+  incrementValue: number 
   incrementType: BidIncrementType
 }
 
@@ -130,8 +130,8 @@ export interface AuctionFormData {
   model?: string
 
   // Step 3: Bidding Parameters
-  startPrice: number
-  minimumIncrement: number
+startPrice: number | undefined
+minimumIncrement: number | undefined
   auctionDuration: AuctionDuration
   currency: Currency
   launchType: LaunchType

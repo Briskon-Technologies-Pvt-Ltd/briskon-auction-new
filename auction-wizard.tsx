@@ -177,9 +177,12 @@ function AuctionWizardContent({ language, onLanguageChange }: AuctionWizardConte
     setFormData((prev) => ({ ...prev, language }));
   }, [language]);
 
-  useEffect(() => {
-  setFormData((prev) => ({ ...prev, startPrice: 1, minimumIncrement: 1 }));
-}, []); // Runs once on mount
+//   useEffect(() => {
+//   setFormData((prev) => ({ ...prev, startPrice: 1, minimumIncrement: 1 }));
+// }, []); // Runs once on mount
+useEffect(() => {
+  setFormData((prev) => ({ ...prev, startPrice: undefined , minimumIncrement: undefined }));
+}, []);
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
@@ -417,9 +420,9 @@ const handleNext = () => {
   }
 
   if (formData.auctionType === "reverse") {
-    if (currentStep === 1) {
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
+ if (currentStep === 1) {
+      setCurrentStep(7);
+    } else if (currentStep === 7) {
       setCurrentStep(3);
     } else if (currentStep === 3) {
       setCurrentStep(4);
@@ -546,6 +549,7 @@ const handlePrevious = () => {
     }
 
     if (!allValid) {
+      console.log("Validation Errors:", allErrors); 
       setValidationErrors(allErrors);
       setShowValidationErrors(true);
       alert("Please fix all validation errors before launching the auction.");
@@ -601,7 +605,7 @@ const handleGoToDashboard = () => {
   setIsLaunched(false);
   setCurrentStep(1);
   // Navigate to /seller-panel
-  router.push("/seller-panel");
+  router.push("/dashboard/seller");
 };
 
   // Handler for uploaded images
@@ -1217,14 +1221,6 @@ const getCurrencySymbol = (currency: Currency) => {
       </>
     )}
 </div>
-{/* {formData.auctionType !== "forward" && (
-  <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
-    Auction Format <span className="text-destructive-500">*</span>
-  </label>
-)} */}
-  {/* <label className="block text-md font-medium text-gray-700 dark:text-gray-300">
-{"Auction Format"} <span className="text-destructive-500">*</span>
-</label> */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     {formData.auctionType === "reverse" && (
       <>
@@ -1716,13 +1712,13 @@ const getCurrencySymbol = (currency: Currency) => {
   <div className="space-y-6">
     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("biddingParameters")}</h2>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-72">
       <div>
         <label
           htmlFor="startPrice"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
-          {t("startPrice")}
+          {"Starting Bid Price"}
           <span className="text-destructive-500">*</span>
         </label>
         <div className="relative rounded-md shadow-sm">
@@ -1731,7 +1727,7 @@ const getCurrencySymbol = (currency: Currency) => {
               {getCurrencySymbol(formData.currency)}
             </span>
           </div>
-          <input
+          {/* <input
             type="number"
             id="startPrice"
             ref={startPriceRef}
@@ -1748,7 +1744,27 @@ const getCurrencySymbol = (currency: Currency) => {
                 startPrice: Number.parseFloat(e.target.value) || 0,
               }))
             }
-          />
+          /> */}
+        <input
+  type="number"
+  id="startPrice"
+  ref={startPriceRef}
+  className={`form-input pl-7 pr-12 ${
+    hasError("startPrice")
+      ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+      : ""
+  }`}
+  placeholder="0.00"
+  value={formData.startPrice ?? ""} // initially empty
+  onChange={(e) =>
+    setFormData((prev) => ({
+      ...prev,
+      // if input is empty, keep it undefined; otherwise parse number
+      startPrice: e.target.value === "" ? undefined : Number(e.target.value),
+    }))
+  }
+/>
+
           <div className="absolute inset-y-0 right-0 flex items-center">
             <select
               id="currency"
@@ -1776,43 +1792,49 @@ const getCurrencySymbol = (currency: Currency) => {
         {hasError("startPrice") && <ErrorMessage message={getErrorMessage("startPrice")} />}
       </div>
 
-      {formData.auctionSubType !== "yankee" && (
-        <div>
-          <label
-            htmlFor="minimumIncrement"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            {t("minimumBidIncrement")}
-            <span className="text-destructive-500">*</span>
-          </label>
-          <div className="relative rounded-md shadow-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
-                {getCurrencySymbol(formData.currency)}
-              </span>
-            </div>
-            <input
-              type="number"
-              id="minimumIncrement"
-              ref={minimumIncrementRef}
-              className={`form-input pl-7 pr-12 ${
-                hasError("minimumIncrement")
-                  ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-                  : ""
-              }`}
-              placeholder="0.00"
-              value={formData.minimumIncrement}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  minimumIncrement: Number.parseFloat(e.target.value) || 0,
-                }))
-              }
-            />
-          </div>
-          {hasError("minimumIncrement") && <ErrorMessage message={getErrorMessage("minimumIncrement")} />}
-        </div>
-      )}
+  {formData.auctionSubType !== "yankee" && (
+  <div>
+    <label
+      htmlFor="minimumIncrement"
+      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+    >
+      {formData.auctionType === "reverse" ? "Minimum Bid Decrement" : "Minimum Bid Increment"}
+      <span className="text-destructive-500">*</span>
+    </label>
+    <div className="relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+          {getCurrencySymbol(formData.currency)}
+        </span>
+      </div>
+      <input
+        type="number"
+        id="minimumIncrement"
+        ref={minimumIncrementRef}
+        className={`form-input pl-7 pr-12 ${
+          hasError("minimumIncrement")
+            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+            : ""
+        }`}
+        placeholder="0.00"
+        min={0} // ensure zero is allowed
+        value={formData.minimumIncrement ?? ""} // initially empty
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            minimumIncrement:
+              e.target.value === "" ? undefined : Number(e.target.value),
+          }))
+        }
+      />
+    </div>
+    {hasError("minimumIncrement") && (
+      <ErrorMessage message={getErrorMessage("minimumIncrement")} />
+    )}
+  </div>
+)}
+
+
     </div>
 
     {formData.auctionSubType !== "yankee" && (
@@ -1996,7 +2018,7 @@ const getCurrencySymbol = (currency: Currency) => {
         {t("auctionDuration")} <span className="text-destructive-500">*</span>
       </label>
       <div
-        className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${
+        className={`flex items-center gap-4 ${
           hasError("auctionDuration")
             ? "border border-destructive-500 dark:border-destructive-400 p-3 rounded-md"
             : ""
@@ -2006,70 +2028,76 @@ const getCurrencySymbol = (currency: Currency) => {
           <label htmlFor="days" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
             {t("days")}
           </label>
-          <input
-            type="number"
-            id="days"
-            ref={daysRef}
-            min="0"
-            max="30"
-            className="form-input"
-            value={formData.auctionDuration.days}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                auctionDuration: {
-                  ...prev.auctionDuration,
-                  days: Number.parseInt(e.target.value) || 0,
-                },
-              }))
-            }
-          />
+             <input
+        type="number"
+        id="days"
+        ref={daysRef}
+        min={0}
+        max={365} // limit to 365 days
+        className="form-input"
+        value={formData.auctionDuration.days}
+        onChange={(e) => {
+          let value = Number.parseInt(e.target.value) || 0;
+          if (value > 365) value = 365;
+          setFormData((prev) => ({
+            ...prev,
+            auctionDuration: {
+              ...prev.auctionDuration,
+              days: value,
+            },
+          }));
+        }}
+      />
         </div>
 
-        <div>
+        <div >
           <label htmlFor="hours" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
             {t("hours")}
           </label>
-          <input
-            type="number"
-            id="hours"
-            min="0"
-            max="23"
-            className="form-input"
-            value={formData.auctionDuration.hours}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                auctionDuration: {
-                  ...prev.auctionDuration,
-                  hours: Number.parseInt(e.target.value) || 0,
-                },
-              }))
-            }
-          />
+           <input
+        type="number"
+        id="hours"
+        min={0}
+        max={23} // limit to 23 hours
+        className="form-input"
+        value={formData.auctionDuration.hours}
+        onChange={(e) => {
+          let value = Number.parseInt(e.target.value) || 0;
+          if (value > 23) value = 23;
+          setFormData((prev) => ({
+            ...prev,
+            auctionDuration: {
+              ...prev.auctionDuration,
+              hours: value,
+            },
+          }));
+        }}
+      />
         </div>
 
-        <div>
+        <div >
           <label htmlFor="minutes" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
             {t("minutes")}
           </label>
           <input
-            type="number"
-            id="minutes"
-            min="0"
-            max="59"
-            className="form-input"
-            value={formData.auctionDuration.minutes}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                auctionDuration: {
-                  ...prev.auctionDuration,
-                  minutes: Number.parseInt(e.target.value) || 0,
-                },
-              }))
-            }
-          />
+        type="number"
+        id="minutes"
+        min={0}
+        max={59} // limit to 59 minutes
+        className="form-input"
+        value={formData.auctionDuration.minutes}
+        onChange={(e) => {
+          let value = Number.parseInt(e.target.value) || 0;
+          if (value > 59) value = 59;
+          setFormData((prev) => ({
+            ...prev,
+            auctionDuration: {
+              ...prev.auctionDuration,
+              minutes: value,
+            },
+          }));
+        }}
+      />
         </div>
       </div>
       {hasError("auctionDuration") && <ErrorMessage message={getErrorMessage("auctionDuration")} />}
@@ -2223,7 +2251,7 @@ const getCurrencySymbol = (currency: Currency) => {
                     {t("whoCanParticipate")} <span className="text-destructive-500">*</span>
                   </label>
                   <div
-                    className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${
+                    className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
                       hasError("participationType")
                         ? "border border-destructive-500 dark:border-destructive-400 p-3 rounded-md"
                         : ""
@@ -2240,8 +2268,8 @@ const getCurrencySymbol = (currency: Currency) => {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-medium dark:text-gray-100">{t("public")}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{t("anyoneCanParticipate")}</p>
+                          <h3 className="font-medium dark:text-gray-100">{"Verified Users"}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{"Only registered & verified users can participate"}</p>
                         </div>
                         <div
                           className={`w-5 h-5 rounded-full border transition-all-smooth ${
@@ -2255,7 +2283,7 @@ const getCurrencySymbol = (currency: Currency) => {
                       </div>
                     </div>
 
-                    <div
+                    {/* <div
                       className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
                         ${
                           formData.participationType === "verified"
@@ -2279,7 +2307,7 @@ const getCurrencySymbol = (currency: Currency) => {
                           {formData.participationType === "verified" && <CheckCircle className="w-5 h-5 text-white" />}
                         </div>
                       </div>
-                    </div>
+                    </div> */}
 
                     <div
                       className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
@@ -2699,7 +2727,7 @@ const getCurrencySymbol = (currency: Currency) => {
     {/* Target Price with Currency Selector */}
     <div>
       <label htmlFor="targetPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("Target Price")} <span className="text-destructive-500">*</span>
+        {"Target Price"} <span className="text-destructive-500">*</span>
       </label>
       <div className="flex space-x-2">
         <select

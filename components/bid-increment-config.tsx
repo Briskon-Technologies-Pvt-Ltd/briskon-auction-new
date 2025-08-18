@@ -85,16 +85,16 @@ export default function BidIncrementConfig({
     onRulesChange(updatedRules);
   };
 
-  const getIncrementTypeDescription = (type: BidIncrementType) => {
-    switch (type) {
-      case "fixed":
-        return "Bidders must increase bids by a fixed amount";
-      case "percentage":
-        return "Bidders must increase bids by a percentage of current bid";
-      case "range-based":
-        return "Different increment rules apply based on bid amount ranges";
-    }
-  };
+  // const getIncrementTypeDescription = (type: BidIncrementType) => {
+  //   switch (type) {
+  //     case "fixed":
+  //       return "Bidders must increase bids by a fixed amount";
+  //     case "percentage":
+  //       return "Bidders must increase bids by a percentage of current bid";
+  //     case "range-based":
+  //       return "Different increment rules apply based on bid amount ranges";
+  //   }
+  // };
 
   const formatIncrementValue = (value: number, type: BidIncrementType) => {
     if (type === "percentage") {
@@ -105,7 +105,7 @@ export default function BidIncrementConfig({
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* <div>
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Bid Increment Strategy</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -136,10 +136,10 @@ export default function BidIncrementConfig({
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Configuration based on selected type */}
-      {bidIncrementType === "fixed" && (
+      {/* {bidIncrementType === "fixed" && (
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
           <h4 className="font-medium text-gray-800 dark:text-gray-100 mb-3">Fixed Increment Configuration</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,9 +177,9 @@ export default function BidIncrementConfig({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
-      {bidIncrementType === "percentage" && (
+      {/* {bidIncrementType === "percentage" && (
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
           <h4 className="font-medium text-gray-800 dark:text-gray-100 mb-3">Percentage Increment Configuration</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -235,7 +235,7 @@ export default function BidIncrementConfig({
             </p>
           </div>
         </div>
-      )}
+      )} */}
 
       {bidIncrementType === "range-based" && (
         <div className="space-y-4">
@@ -446,7 +446,7 @@ export default function BidIncrementConfig({
       )}
 
       {/* Information Box */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+      {/* <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex items-start">
           <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
           <div>
@@ -461,7 +461,7 @@ export default function BidIncrementConfig({
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

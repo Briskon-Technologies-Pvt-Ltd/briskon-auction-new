@@ -304,7 +304,7 @@ export default function ProductClassification({
   return (
     <div className="space-y-6">
       {/* Product Identification */}
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+      {/* <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
         <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">Product Identification</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -321,7 +321,7 @@ export default function ProductClassification({
             />
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Category Selection */}
       <div>

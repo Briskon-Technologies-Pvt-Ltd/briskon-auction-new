@@ -625,7 +625,7 @@ export default function SellerDashboard() {
                 <div className="text-2xl font-bold flex items-center gap-4">
                   <span>{sales.length}</span>
                   <span className="text-base font-normal text-gray-600">
-                    ${stats ? stats.totalSales : 0}
+                    $({stats ? stats.totalSales : 0})
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-4">View Details</p>

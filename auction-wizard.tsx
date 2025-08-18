@@ -1137,11 +1137,11 @@ const getCurrencySymbol = (currency: Currency) => {
     </div>
 
    <div className="space-y-4">
-{formData.auctionType !== "reverse" && (
+
   <label className="block text-xl font-bold text-gray-800 dark:text-gray-300">
     Select Auction Format <span className="text-destructive-500">*</span>
   </label>
-)}
+
 
   <div className="grid grid-cols-1 gap-4 max-w-[50%]">
     {formData.auctionType === "forward" && (
@@ -1338,67 +1338,96 @@ const getCurrencySymbol = (currency: Currency) => {
     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("productDetails")}</h2>
     {/* API Key Setup Banner */}
     {/* {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />} */}
-    <div className="flex gap-6">
-    <div className="w-1/2">
-      <label
-        htmlFor="productName"
-        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-      >
-        {t("productName")} <span className="text-destructive-500">*</span>
-      </label>
-      <input
-        type="text"
-        id="productName"
-        ref={productNameRef}
-        className={`form-input ${
-          hasError("productName")
-            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-            : ""
-        }`}
-        placeholder={t("enterProductName")}
-        value={formData.productName}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            productName: e.target.value,
-          })
-        }
-      />
-      {hasError("productName") && <ErrorMessage message={getErrorMessage("productName")} />}
-    </div>
-     <div className="w-1/2 ">
-       <label
-      htmlFor="productDescription"
-      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-    >
-      {t("productDescription")}
-    </label>
-      <textarea
-        id="productDescription"
-        ref={productDescriptionRef}
-        rows={4}
-        className={`form-input ${
-          hasError("productDescription")
-            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-            : ""
-        }`}
-        placeholder={t("enterProductDescription")}
-        value={formData.productDescription}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            productDescription: e.target.value,
-          })
-        }
-      />
-      {hasError("productDescription") && <ErrorMessage message={getErrorMessage("productDescription")} />}
-
-      {formData.productDescription && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {formData.productDescription.length} characters
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Left side: Name + SKU stacked */}
+      <div className="space-y-4">
+        {/* Product Name */}
+        <div>
+          <label
+            htmlFor="productName"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            {t("productName")} <span className="text-destructive-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="productName"
+            ref={productNameRef}
+            className={`form-input ${
+              hasError("productName")
+                ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                : ""
+            }`}
+            placeholder={t("enterProductName")}
+            value={formData.productName}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                productName: e.target.value,
+              })
+            }
+          />
+          {hasError("productName") && (
+            <ErrorMessage message={getErrorMessage("productName")} />
+          )}
         </div>
-      )}
-    </div>
+
+        {/* SKU */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            SKU / Product Code
+          </label>
+          <input
+            type="text"
+            value={formData.sku || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                sku: e.target.value,
+              })
+            }
+            placeholder="Enter SKU or product code"
+            className="form-input"
+          />
+        </div>
+      </div>
+
+      {/* Right side: Description */}
+      <div>
+        <label
+          htmlFor="productDescription"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
+          {t("productDescription")} <span className="text-destructive-500">*</span>
+        </label>
+        <textarea
+          id="productDescription"
+          ref={productDescriptionRef}
+          rows={5}
+          className={`form-input ${
+            hasError("productDescription")
+              ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+              : ""
+          }`}
+          placeholder={t("enterProductDescription")}
+          value={formData.productDescription}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              productDescription: e.target.value,
+            })
+          }
+        />
+        {hasError("productDescription") && (
+          <ErrorMessage message={getErrorMessage("productDescription")} />
+        )}
+
+        {formData.productDescription && (
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {formData.productDescription.length} characters
+          </div>
+        )}
+      </div>
     </div>
     {formData.auctionSubType === "yankee" && (
   <div>
@@ -1428,7 +1457,29 @@ const getCurrencySymbol = (currency: Currency) => {
     />
     {hasError("productQuantity") && <ErrorMessage message={getErrorMessage("productQuantity")} />}
   </div>
+
 )}
+{/* <div className="dark:bg-gray-800 p-1 rounded-lg -mt-8"> 
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="w-full md:w-2/3 lg:w-1/2">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        SKU / Product Code
+      </label>
+      <input
+        type="text"
+        value={formData.sku || ""}
+        onChange={(e) =>
+          setFormData({
+            ...formData,
+            sku: e.target.value,
+          })
+        }
+        placeholder="Enter SKU or product code"
+        className="form-input"
+      />
+    </div>
+  </div>
+</div> */}
 
    
       {/* <div className="flex items-center justify-between mb-1">
@@ -1613,7 +1664,7 @@ const getCurrencySymbol = (currency: Currency) => {
       categoryId={formData.categoryId}
       subCategoryId={formData.subCategoryId}
       attributes={formData.attributes}
-      sku={formData.sku}
+      // sku={formData.sku}
       brand={formData.brand}
       model={formData.model}
       onCategoryChange={(categoryId, subCategoryId) =>
@@ -1624,7 +1675,7 @@ const getCurrencySymbol = (currency: Currency) => {
       onBrandChange={(brand) => setFormData((prev) => ({ ...prev, brand }))}
       onModelChange={(model) => setFormData((prev) => ({ ...prev, model }))}
     />
-
+<h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Product Media & Documents</h3>
     <div className="flex gap-6">
   {/* Product Images */}
   <div className="w-1/2">

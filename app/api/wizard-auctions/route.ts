@@ -162,17 +162,29 @@ async function createAuction(req: NextRequest, user: any): Promise<NextResponse>
           { success: false, error: "At least one bid increment rule is required for range-based auctions" },
           { status: 400 }
         );
-      }
+      } 
 
       if (auctionData.bidIncrementType === "fixed") {
-        const fixedRule = auctionData.bidIncrementRules[0];
-        if (!fixedRule || !fixedRule.incrementValue || fixedRule.incrementValue <= 0) {
-          return NextResponse.json(
-            { success: false, error: "Minimum increment must be a positive number for fixed type" },
-            { status: 400 }
-          );
-        }
-      } else if (auctionData.bidIncrementType === "percentage") {
+         if (auctionData.bidIncrementRules.length === 0 && auctionData.minimumIncrement !== undefined) {
+    auctionData.bidIncrementRules.push({
+      id: Math.random().toString(36).substr(2, 9),
+      minBidAmount: auctionData.startPrice ?? 0,
+      incrementValue: auctionData.minimumIncrement, // don't default to 0
+      incrementType: "fixed",
+    });
+    
+  const fixedRule = auctionData.bidIncrementRules[0];
+  const incrementValue = Number(fixedRule?.incrementValue);
+   if (!fixedRule || isNaN(incrementValue) || incrementValue <= 0) {
+    return NextResponse.json(
+      { success: false, error: "Minimum increment must be a positive number for fixed type" },
+      { status: 400 }
+    );
+  }
+}
+
+      }
+       else if (auctionData.bidIncrementType === "percentage") {
         const percentageRule = auctionData.bidIncrementRules[0];
         if (!percentageRule || !percentageRule.incrementValue || percentageRule.incrementValue < 0.1 || percentageRule.incrementValue > 100) {
           return NextResponse.json(

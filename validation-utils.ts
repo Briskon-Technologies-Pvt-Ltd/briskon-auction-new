@@ -35,8 +35,8 @@ export function validateStep1(auctionType: string, auctionSubType: string): Step
 
 // Validate Step 2: Bidding Parameters (updated signature)
 export function validateStep2(
-  startPrice: number,
-  minimumIncrement: number,
+startPrice: number | undefined,
+minimumIncrement: number | undefined,
   days: number,
   hours: number,
   minutes: number,
@@ -50,26 +50,28 @@ export function validateStep2(
 
   const errors: ValidationError[] = []
 
-  if (startPrice <= 0) {
-    errors.push({
-      field: "startPrice",
-      message: "Start price must be greater than zero",
-    })
+    if (!startPrice || startPrice <= 0) {
+    errors.push({ field: "startPrice", message: "Start price is required" });
   }
 
-  if (minimumIncrement <= 0) {
-    errors.push({
-      field: "minimumIncrement",
-      message: "Minimum increment must be greater than zero",
-    })
+  if (!minimumIncrement || minimumIncrement <= 0) {
+    errors.push({ field: "minimumIncrement", message: "Minimum increment is required" });
   }
 
-if (auctionSubType !== "yankee" && minimumIncrement <= 0) {
-  errors.push({
-    field: "minimumIncrement",
-    message: "Minimum increment must be greater than zero",
-  });
-}
+  // Minimum increment: must be 0 or more if not "yankee"
+  if (auctionSubType !== "yankee") {
+    if (minimumIncrement === undefined) {
+      errors.push({
+        field: "minimumIncrement",
+        message: "Minimum increment is required",
+      })
+    } else if (minimumIncrement < 0) {
+      errors.push({
+        field: "minimumIncrement",
+        message: "Minimum increment cannot be negative",
+      })
+    }
+  }
 
 
   // Validate scheduled start time if launch type is scheduled

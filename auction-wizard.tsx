@@ -418,6 +418,15 @@ const handleNext = () => {
     setIsAnimating(false);
     return;
   }
+  const scrollToStep = () => {
+  // Scroll to top of the form container or a little offset
+  const element = document.getElementById("auctionFormContainer");
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    // OR, to scroll slightly below top:
+    // window.scrollTo({ top: element.offsetTop - 20, behavior: 'smooth' });
+  }
+};
 
   if (formData.auctionType === "reverse") {
  if (currentStep === 1) {
@@ -440,7 +449,7 @@ const handleNext = () => {
       handleLaunchAuction();
     }
   }
-
+  window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   setShowValidationErrors(false);
   setIsAnimating(false);
 };
@@ -468,7 +477,7 @@ const handlePrevious = () => {
       setCurrentStep(currentStep - 1);
     }
   }
-
+window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   setShowValidationErrors(false);
   setIsAnimating(false);
 };

@@ -47,6 +47,7 @@ import {
   MoveLeft,
   ChevronDown,
   ChevronRight,
+  FileQuestion,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
@@ -154,6 +155,7 @@ interface Auction {
   profiles?: {
     fname: string;
     location: string;
+    role:string;
   };
   auctionId: string;
   loggedInUserId: string;
@@ -162,7 +164,7 @@ interface Auction {
     username?: string;
     amount: number;
   }[];
-
+  questions?: { user: string; question: string; answer: string | null; question_time: string | null; answer_time: string | null }[];
   productimages?: string[];
   productdocuments?: string[];
   productdescription?: string;
@@ -178,12 +180,6 @@ interface Auction {
     hours?: number;
     minutes?: number;
   };
-  questions?: {
-    user: string;
-    question: string;
-    answer?: string;
-    time: string;
-  }[];
   issilentauction?: boolean; // New field to indicate silent auction
   currentbidder?: string; // New field for current highest bidder email
   percent?: number; // New field for percentage increment (if applicable)
@@ -195,6 +191,7 @@ interface Auction {
   auctionsubtype?: string; // New field for auction subtype (e.g., "sealed", "silent")
   ended?: boolean; // New field to indicate if the auction has ended
   editable?: boolean; // New field to indicate if the auction is editable by the creator
+  approved?:boolean;
 }
 
 // Bid interface
@@ -1080,52 +1077,74 @@ export default function AuctionDetailPage() {
                   <TabsContent value="qa" className="mt-6">
                     <div className="space-y-6">
                       {auction.questions?.length ? (
-                        auction.questions.map(
-                          (
-                            qa: {
-                              user: string;
-                              question: string;
-                              answer?: string;
-                              time: string;
-                            },
-                            index: number
-                          ) => (
-                            <div key={index} className="border-b pb-4">
-                              <div className="mb-2">
-                                <span className="font-medium">{qa.user}</span>
+                        auction.questions.map((qa, index) => (
+                          <div key={index} className="border-b pb-4">
+                            <div className="mb-2">
+                              <span className="font-medium text-sm">{qa.user}</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-300 ml-2">
+                                {DateTime.fromISO(qa.question_time ?? "").setZone("Asia/Kolkata").toLocaleString({
+                                  hour12: true,
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <div className="mb-2">
+                              <FileQuestion className="h-4 w-4 inline mr-2 text-xs text-blue-500" />
+                              <span className="text-sm">{qa.question}</span>
+                            </div>
+                            {qa.answer ? (
+                              <div className="ml-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+                                <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
+                                <span className="text-sm">{qa.answer}</span>
                                 <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                  {new Date(qa.time).toLocaleString("en-US", {
+                                  {DateTime.fromISO(qa.answer_time ?? "").setZone("Asia/Kolkata").toLocaleString({
                                     hour12: true,
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
                                 </span>
                               </div>
-                              <div className="mb-2">
-                                <MessageSquare className="h-4 w-4 inline mr-2" />
-                                <span>{qa.question}</span>
+                            ) : user?.email === auction?.createdby && !isAuctionEnded ? (
+                              <div>
+                                <Textarea
+                                  placeholder="Type your answer here..."
+                                  value={answerInput?.index === index ? answerInput.value : ""}
+                                  onChange={(e) => setAnswerInput({ index, value: e.target.value })}
+                                  className="mt-2 text-sm"
+                                />
+                                <Button
+                                  onClick={() => handleSubmitAnswer(index)}
+                                  className="mt-2"
+                                  disabled={!answerInput?.value.trim()}
+                                >
+                                  Submit Answer
+                                </Button>
                               </div>
-                              {qa.answer && (
-                                <div className="ml-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                  <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
-                                  <span>{qa.answer}</span>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        )
+                            ) : null}
+                          </div>
+                        ))
                       ) : (
                         <p>No questions available</p>
                       )}
-
+                      {user?.email !== auction?.createdby && (
                       <div className="mt-6">
                         <h4 className="font-semibold mb-3">Ask a Question</h4>
                         <Textarea
                           placeholder="Type your question here..."
+                          value={newQuestion}
+                          onChange={(e) => setNewQuestion(e.target.value)}
                           className="mb-3"
+                          disabled={isAuctionNotStarted || isAuctionEnded}
                         />
-                        <Button>Submit Question</Button>
+                        <Button
+                          onClick={handleSubmitQuestion}
+                          disabled={!newQuestion.trim() || isAuctionNotStarted || isAuctionEnded}
+                        >
+                          Submit Question
+                        </Button>
                       </div>
+                      )}
                     </div>
                   </TabsContent>
 
@@ -1289,22 +1308,32 @@ export default function AuctionDetailPage() {
                     {auction.bidder_count ?? 0}
                   </span>
                 </div>
-                {!isLoggedIn && (
-                  <div className="mt-3 text-center">
-                    {isAuctionEnded ? (
-                      <p className="text-sm text-red-600 text-left">
-                        Auction has ended
-                      </p>
-                    ) : (
-                      <Button
-                        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
-                        onClick={() => router.push("/login")}
-                      >
-                        Login to place bid
-                      </Button>
-                    )}
-                  </div>
-                )}
+                {!isLoggedIn ? (
+  <div className="mt-3 text-center">
+    {isAuctionEnded ? (
+      <p className="text-sm text-red-600 text-left">
+        Auction has ended
+      </p>
+    ) : (
+      <Button
+        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
+        onClick={() => router.push("/login")}
+      >
+        Login to place bid
+      </Button>
+    )}
+  </div>
+) : auction.approved === false ? (
+  <p className="text-sm text-red-600 text-left">
+    Auction is pending approval from admin
+  </p>
+) : (
+  // The rest of your normal auction content for logged-in and approved users
+  <div>
+    {/* Auction bidding form or other content */}
+  </div>
+)}
+
               </div>
               {isLoggedIn && (
                 <CardContent className="space-y-3">
@@ -1372,7 +1401,7 @@ export default function AuctionDetailPage() {
                     </p>
                   )}
 
-                  {isLoggedIn && !isAuctionEnded && (
+                  {isLoggedIn && !isAuctionEnded && user?.role !== "seller" && (
                     <div className="space-y-3">
                       <div className="relative">
                         <Input
@@ -1438,13 +1467,6 @@ export default function AuctionDetailPage() {
                         >
                           Place Bid
                         </Button>
-                        {/* {(isAuctionNotStarted || isAuctionEnded) && (
-                          <p className="text-sm text-red-600 mt-2">
-                            {isAuctionNotStarted
-                              ? "Auction has not started yet"
-                              : "Auction has ended"}
-                          </p>
-                        )} */}
                       </div>
                       {auction.buyNowPrice && (
                         <>
@@ -1469,16 +1491,17 @@ export default function AuctionDetailPage() {
             </Card>
 
             {/* Bid Leaders Board */}
-            {isLoggedIn && user?.id && auctionId && (
-              <div className="mt-6">
-                <BidLeadersBoard
-                  auctionId={auctionId}
-                  loggedInUserId={user.id}
-                  currencySymbol={currencySymbol}
-                  auction={auction}
-                />
-              </div>
-            )}
+            {isLoggedIn && user?.id && auctionId && user?.role !== "seller" && (
+  <div className="mt-6">
+    <BidLeadersBoard
+      auctionId={auctionId}
+      loggedInUserId={user.id}
+      currencySymbol={currencySymbol}
+      auction={auction}
+    />
+  </div>
+)}
+
 
             {/* Seller Info */}
             <Card>

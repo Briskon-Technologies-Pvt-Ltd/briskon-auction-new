@@ -28,7 +28,7 @@ import {
   validateStep2,
   validateStep3,
   validateStep4,
-  validateStep5,
+  // validateStep5,
   validateStep7, // Added for Step 7 validation
   isValidEmail,
   type ValidationError,
@@ -266,7 +266,7 @@ const {
       currency: template.currency,
       participationType: template.participationType,
       qualificationCriteria: template.qualificationCriteria,
-      termsAndConditions: template.termsAndConditions,
+      // termsAndConditions: template.termsAndConditions,
       templateId: template.id,
     });
     setShowTemplateSelector(false);
@@ -332,9 +332,9 @@ const {
       case 4:
         stepValidation = validateStep4(formData.participationType, formData.participantEmails);
         break;
-      case 5:
-        stepValidation = validateStep5(formData.termsAndConditions);
-        break;
+      // case 5:
+      //   stepValidation = validateStep5(formData.termsAndConditions);
+      //   break;
       case 7:
         if (formData.auctionType === "reverse") {
           stepValidation = validateStep7(formData.targetprice ?? 0, formData.requireddocuments ?? "");
@@ -428,27 +428,21 @@ const handleNext = () => {
   }
 };
 
-  if (formData.auctionType === "reverse") {
- if (currentStep === 1) {
-      setCurrentStep(7);
-    } else if (currentStep === 7) {
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      setCurrentStep(5);
-    } else if (currentStep === 5) {
-      setCurrentStep(6);
-    } else {
-      handleLaunchAuction(); // Launch from step 6
-    }
+if (formData.auctionType === "reverse") {
+  if (currentStep < 6) {
+    setCurrentStep(currentStep + 1);
   } else {
-    if (currentStep < 6) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleLaunchAuction();
-    }
+    handleLaunchAuction(); // Launch from step 6
   }
+} else {
+  if (currentStep < 6) {
+    setCurrentStep(currentStep + 1);
+  } else {
+    handleLaunchAuction();
+  }
+}
+
+
   window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   setShowValidationErrors(false);
   setIsAnimating(false);
@@ -542,11 +536,11 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
       allErrors.push(...step4Validation.errors);
     }
 
-    const step5Validation = validateStep5(formData.termsAndConditions);
-    if (!step5Validation.isValid) {
-      allValid = false;
-      allErrors.push(...step5Validation.errors);
-    }
+    // const step5Validation = validateStep5(formData.termsAndConditions);
+    // if (!step5Validation.isValid) {
+    //   allValid = false;
+    //   allErrors.push(...step5Validation.errors);
+    // }
 
     // Validate Step 7 for reverse auctions
     if (formData.auctionType === "reverse") {
@@ -991,16 +985,16 @@ const getCurrencySymbol = (currency: Currency) => {
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
           <div className="flex items-center space-x-2">
-            <div className="mr-2">
+            {/* <div className="mr-2">
               <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
-            </div>
+            </div> */}
           </div>
         </div>
 
         {/* Progress Indicator - Update step labels */}
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
           <div className="flex items-center justify-between">
-            {[1, 2, 3, 4, 5, formData.auctionType === "reverse" ? 7 : 6].map((step) => (
+            {[1, 2, 3,4, formData.auctionType === "reverse" ? 5 : 6].map((step) => (
               <div key={step} className="flex flex-col items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all-smooth
@@ -1025,8 +1019,8 @@ const getCurrencySymbol = (currency: Currency) => {
                 {step === 2 && t("product")}
                 {step === 3 && t("bidding")}
                 {step === 4 && t("rules")}
-                {step === 5 && t("terms")}
-                {step === 7 && t("reverseDetails")} {/* New label for Step 7 */}
+                {/* {step === 5 && t("terms")} */}
+                {step === 5 && t("reverseDetails")} {/* New label for Step 7 */}
                 {step === 6 && t("summary")}
               </span>
             </div>
@@ -1036,7 +1030,7 @@ const getCurrencySymbol = (currency: Currency) => {
           <div className="absolute top-0 left-0 h-1 bg-gray-200 dark:bg-gray-700 w-full rounded-full">
             <div
               className="h-1 bg-corporate-600 dark:bg-corporate-500 rounded-full transition-all duration-500 ease-in-out"
-              style={{ width: `${(currentStep - 1) * (100 / (formData.auctionType === "reverse" ? 6 : 5))}%` }}
+              style={{ width: `${(currentStep - 1) * (100 / (formData.auctionType === "reverse" ? 5 : 4))}%` }}
             ></div>
           </div>
         </div>
@@ -1293,7 +1287,7 @@ const getCurrencySymbol = (currency: Currency) => {
           }
         >
           <h3 className="font-medium dark:text-gray-100">
-            {"Sealed Bid Auction"}
+            {"Sealed Reverse Auction"}
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {t("sealedBidReverseDesc")}
@@ -2529,7 +2523,7 @@ const getCurrencySymbol = (currency: Currency) => {
             )}
 
             {/* Step 5: Terms & Conditions */}
-            {currentStep === 5 && (
+            {/* {currentStep === 5 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("termsAndConditions")}</h2>
 
@@ -2566,15 +2560,15 @@ const getCurrencySymbol = (currency: Currency) => {
                   {formData.enableDispute && (
                     <div className="ml-6 space-y-2 animate-fade-in">
                       <p className="text-sm text-gray-600 dark:text-gray-400">{t("allowParticipantsRaiseDisputes")}</p>
-                      {/* Add dispute resolution settings here */}
+                      
                     </div>
                   )}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Step 6: Summary */}
-            {currentStep === 6 && (
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("auctionSummary")}</h2>
 
@@ -2609,7 +2603,7 @@ const getCurrencySymbol = (currency: Currency) => {
               </div>
             )}
 {/* Step 7: Reverse Auction Details */}
-{currentStep === 7 && formData.auctionType === "reverse" && (
+{currentStep === 6 && formData.auctionType === "reverse" && (
   <div className="space-y-6">
     <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("reverseDetails")}</h2>
 
@@ -2843,9 +2837,9 @@ const getCurrencySymbol = (currency: Currency) => {
 
     {(
       // Show "Next" for reverse on steps 1–5 and 7
-      (formData.auctionType === "reverse" && (currentStep < 6 || currentStep === 7)) ||
+      (formData.auctionType === "reverse" && (currentStep < 5 || currentStep === 6)) ||
       // Show "Next" for normal auctions on steps 1–5
-      (formData.auctionType !== "reverse" && currentStep < 6)
+      (formData.auctionType !== "reverse" && currentStep < 5)
     ) ? (
       <button
         type="button"
@@ -2853,12 +2847,7 @@ const getCurrencySymbol = (currency: Currency) => {
         onClick={handleNext}
         disabled={isLaunched}
       >
-        {
-          (formData.auctionType === "reverse" && currentStep === 5) ||
-          (formData.auctionType !== "reverse" && currentStep === 5)
-            ? t("review")
-            : t("next")
-        }
+        {t("next")}
       </button>
     ) : (
       // Show "Launch" on step 6 for both types

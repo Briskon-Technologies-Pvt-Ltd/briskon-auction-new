@@ -68,7 +68,6 @@ export type AuctionItem = {
   role: string;
   featured?: boolean;
   startprice: number;
-
   verified?: boolean;
   currentBid?: number;
   timeLeft?: string;
@@ -214,8 +213,10 @@ export const AuctionCard = ({
         <div className="absolute top-2 left-2 z-10">
           <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold">
             FEATURED
+          
           </Badge>
         </div>
+        
       )}
       {/* Image Section with consistent aspect ratio */}
       <div className="relative w-full aspect-[4/3] group overflow-hidden rounded-t">
@@ -622,23 +623,32 @@ export const AuctionCard = ({
 
         {/* Button at the bottom */}
       <div className="mt-auto pt-3">
+        
   <Button
     className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-sm transition-all duration-300"
     size="sm"
     asChild
   >
-     <Link href={auctionPath}>
-  {auction.role === "seller"
-    ? "View"
-    : auction.status === "closed"
-    ? "Auction Summary"
-    : auction.status === "live"
-    ? isLoggedIn
-      ? "View & Bid"
+<Link href={auctionPath}>
+  {user?.role === "seller" && isLoggedIn ? (
+    // Seller logged in → always just View / Summary
+    auction.status === "live"
+      ? "View"
+      : auction.status === "closed"
+      ? "Auction Summary"
       : "View Auction"
-    : "View Auction"}
+  ) : user?.role === "buyer" && isLoggedIn ? (
+    // Buyer logged in
+    auction.status === "live"
+      ? "View & Bid"
+      : auction.status === "closed"
+      ? "Auction Summary"
+      : "View Auction"
+  ) : (
+    // Not logged in
+    "View Auction"
+  )}
 </Link>
-
   </Button>
 </div>
 
@@ -670,14 +680,12 @@ export default function AuctionsPage({
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSubtype, setSelectedSubtype] = useState("all");
   const [allAuctionItems, setAllAuctionItems] = useState<AuctionItem[]>([]);
-  // const [showShareMenu, setShowShareMenu] = useState(false);
   const [auctionStyleSearch, setAuctionStyleSearch] = useState("");
   const [visibleLive, setVisibleLive] = useState(8);
   const [visibleUpcoming, setVisibleUpcoming] = useState(8);
   const [visibleClosed, setVisibleClosed] = useState(8);
   const [tab, setTab] = useState<"live" | "upcoming" | "closed">("live");
   const upcomingTabRef = useRef<HTMLButtonElement>(null);
-
   const [dbCategories, setDbCategories] = useState<
     { value: string; label: string }[]
   >([]);
@@ -849,7 +857,7 @@ export default function AuctionsPage({
             // seller: a.createdby || "",
             seller: a.seller || "", // This is now a UUID
             fname: a.profiles?.fname || "",
-            role: a.prfiles?.role || "",
+            role: a.profiles?.role || "",
             rating: a.rating ?? undefined,
             targetPrice: a.targetprice ?? undefined,
             deadline: "", // You can calculate this if you have end time

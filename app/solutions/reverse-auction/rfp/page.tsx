@@ -17,13 +17,13 @@ export default function RFPPage() {
           <div className="max-w-4xl mx-auto text-center">
             <Badge className="mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50">
               <FileCheck className="h-4 w-4 mr-2" />
-              RFP - Request for Proposal
+              Selaed Bid Reverse Auction
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-              Comprehensive RFP Process
+              Comprehensive RFP Process - Sealed Bid
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-              Transform your complex procurement with Briskon's intelligent RFP platform. Manage comprehensive proposals
+              Transform your complex procurement with our intelligent Sealed Bid Reverse Auction ( best suited for RFP's) platform. Manage comprehensive proposals
               with detailed evaluations, ensuring you select the best partners for strategic initiatives and complex
               projects.
             </p>
@@ -60,7 +60,7 @@ export default function RFPPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Comprehensive RFP Management</h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              From detailed requirements to proposal evaluation and vendor selection
+              From detailed requirements to proposal evaluation and supplier/vendor selection
             </p>
           </div>
 
@@ -72,7 +72,7 @@ export default function RFPPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Detailed Requirements</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Create comprehensive requirement documents with specifications and criteria
+                  Create comprehensive requirement documents with specifications and criteria.
                 </p>
               </CardContent>
             </Card>
@@ -82,9 +82,9 @@ export default function RFPPage() {
                 <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Users className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Vendor Outreach</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Supplier/Vendor Outreach</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Invite qualified vendors and manage the proposal submission process
+                  Invite qualified suppliers/vendors and manage the proposal submission using sealed bid process.
                 </p>
               </CardContent>
             </Card>
@@ -96,7 +96,7 @@ export default function RFPPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Proposal Evaluation</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Comprehensive evaluation using weighted criteria and scoring matrices
+                  Comprehensive evaluation using proposal and documents submitted by suppliers.
                 </p>
               </CardContent>
             </Card>
@@ -106,9 +106,9 @@ export default function RFPPage() {
                 <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Target className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Vendor Selection</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Supplier/Vendor Selection</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Select the best vendor based on comprehensive evaluation and scoring
+                  Select the best supplier/vendor based on comprehensive evaluation.
                 </p>
               </CardContent>
             </Card>
@@ -120,7 +120,7 @@ export default function RFPPage() {
       <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose Briskon RFP?</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose Briskon Sealed Bid Reverse Auctions?</h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
               Advanced features that streamline complex proposal management and evaluation
             </p>

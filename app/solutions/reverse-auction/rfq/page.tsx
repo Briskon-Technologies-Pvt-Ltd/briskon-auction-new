@@ -17,14 +17,13 @@ export default function RFQPage() {
           <div className="max-w-4xl mx-auto text-center">
             <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50">
               <FileText className="h-4 w-4 mr-2" />
-              RFQ - Request for Quote
+              Ranked Reverse Auction
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
-              Streamlined RFQ Process
+            Ranked Bidding for Excellence
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-              Simplify your procurement with Briskon's intelligent RFQ platform. Get competitive quotes quickly and
-              efficiently while maintaining complete transparency throughout the process.
+            Briskon’s Ranked Reverse Auction platform transforms procurement by delivering timely, competitive proposals. Ensures full visibility and operational efficiency at every stage.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -57,9 +56,9 @@ export default function RFQPage() {
       <section className="py-20 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">RFQ Process Made Simple</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Efficient Ranked Bid Management</h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              From requirement definition to supplier selection in just a few steps
+             Powering decisions with Ranked Reverse auctions: Suppliers submit their best offers and can rebid to improve their rank.
             </p>
           </div>
 
@@ -69,9 +68,9 @@ export default function RFQPage() {
                 <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Target className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Define Requirements</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Invite Suppliers</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Specify your needs with detailed requirements and specifications
+                Engage qualified vendors to participate in the ranked auction event.
                 </p>
               </CardContent>
             </Card>
@@ -81,9 +80,9 @@ export default function RFQPage() {
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Invite Suppliers</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Bidding Starts</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Send RFQ to qualified suppliers from our verified network
+                Suppliers submit their best offers and can rebid to improve their rank
                 </p>
               </CardContent>
             </Card>
@@ -93,9 +92,9 @@ export default function RFQPage() {
                 <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <FileText className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Receive Quotes</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">See Your Rank</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Collect and compare detailed quotes from multiple suppliers
+                Participants see whether they are ranked 1st, 2nd, 3rd, etc. — but exact bid values remain confidential.
                 </p>
               </CardContent>
             </Card>
@@ -107,7 +106,7 @@ export default function RFQPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">Select Winner</h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Evaluate and select the best supplier based on your criteria
+                Buyer awards the contract to the most competitive supplier based on rank and evaluation criteria
                 </p>
               </CardContent>
             </Card>
@@ -119,9 +118,9 @@ export default function RFQPage() {
       <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50 dark:from-slate-800 dark:to-slate-700">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose Briskon RFQ?</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose Briskon Ranked Reverse Auction?</h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Advanced features that make RFQ management effortless and effective
+            Advanced capabilities that make supplier selection seamless, strategic, and transparent
             </p>
           </div>
 
@@ -131,10 +130,10 @@ export default function RFQPage() {
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">
-                    Automated Supplier Matching
+                  Smart Supplier Ranking
                   </h3>
                   <p className="text-slate-600 dark:text-slate-300">
-                    AI-powered system finds the most qualified suppliers for your specific requirements
+                  Automated evaluation system identifies and prioritizes the best-fit suppliers based on custom ranking criteria
                   </p>
                 </div>
               </div>
@@ -142,10 +141,10 @@ export default function RFQPage() {
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">
-                    Real-time Collaboration
+                  Collaborative Bidding Environment
                   </h3>
                   <p className="text-slate-600 dark:text-slate-300">
-                    Built-in messaging and clarification tools for seamless communication
+                  Integrated communication suite enables direct engagement and real-time clarification between parties
                   </p>
                 </div>
               </div>
@@ -153,19 +152,19 @@ export default function RFQPage() {
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">
-                    Comprehensive Analytics
+                  Actionable Insights
                   </h3>
                   <p className="text-slate-600 dark:text-slate-300">
-                    Detailed reporting and analytics to optimize your procurement decisions
+                  Advanced analytics deliver clear, data-driven recommendations for optimal procurement choices
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">Secure & Compliant</h3>
+                  <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-slate-100">Transparent & Secure</h3>
                   <p className="text-slate-600 dark:text-slate-300">
-                    Enterprise-grade security with full audit trails and compliance features
+                  Full process visibility with enterprise-grade security and compliance throughout every bidding stage
                   </p>
                 </div>
               </div>
@@ -187,9 +186,9 @@ export default function RFQPage() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-700 dark:to-blue-700 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-6">Ready to Streamline Your RFQ Process?</h2>
+          <h2 className="text-4xl font-bold mb-6">Ready to Streamline Your Smart Procurement Process?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
-            Start getting better quotes faster with Briskon's intelligent RFQ platform
+            Start getting better quotes faster with Briskon's intelligent Ranked Reverse Auction platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button

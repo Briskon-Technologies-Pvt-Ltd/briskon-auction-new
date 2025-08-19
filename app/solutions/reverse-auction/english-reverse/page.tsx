@@ -22,9 +22,7 @@ export default function EnglishReverseAuctionPage() {
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
               English Reverse Auctions 
             </h1>
-            <p className="text-2xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-            Streamlined RFQ Process: RFQ process made simple
-            </p>
+           
 
             <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
               Experience competitive procurement where suppliers bid down prices in real-time. Perfect for services,

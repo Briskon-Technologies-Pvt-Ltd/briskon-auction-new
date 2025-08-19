@@ -167,7 +167,7 @@ function Navigation({
           icon: <TrendingUp className="h-5 w-5 text-success rotate-180" />,
           subtypes: [
             {
-              title: "English Reverse Auction",
+              title: "Standard Reverse Auction",
               href: "/solutions/reverse-auction/english-reverse",
               description: "Sellers bid down the price",
               icon: <ArrowDown className="h-4 w-4 text-success" />,

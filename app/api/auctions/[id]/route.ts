@@ -32,13 +32,15 @@ interface Auction {
   requireddocuments?: string | null;
   auctiontype?: "forward" | "reverse"; // Added to handle auction type
   ended?: boolean; // Added to track if auction is ended
-  editable?: boolean
+  editable?: boolean;
+  approved?:boolean;
 }
 
 interface AuctionResponse extends Auction {
   profiles?: {
     fname: string;
     location: string;
+    role:string;
   };
   timeLeft?: string;
   sellerAuctionCount?: number;
@@ -100,7 +102,8 @@ export async function GET(
         subcategoryid,
         auctiontype,
         question_count,
-        questions
+        questions,
+        approved
       `
       )
       .eq("id", id)

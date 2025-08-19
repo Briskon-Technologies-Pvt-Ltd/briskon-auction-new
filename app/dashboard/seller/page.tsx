@@ -1186,7 +1186,7 @@ export default function SellerDashboard() {
                             </td>
                             <td>
                               <LiveTimer
-                              className="text-green-500 font-bold"
+                                className="text-green-500 font-bold"
                                 startTime={upcoming.scheduledstart}
                                 duration={upcoming.auctionduration}
                               />
@@ -1209,8 +1209,15 @@ export default function SellerDashboard() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                // onClick={() => handleDelete(auction.id)}
-                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                                onClick={() => {
+                                  const confirmed = window.confirm(
+                                    "Are you sure you want to delete this auction?"
+                                  );
+                                  if (confirmed) {
+                                    // handleDelete(auction.id);
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
@@ -1412,8 +1419,15 @@ export default function SellerDashboard() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                // onClick={() => handleDelete(auction.id)}
-                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6  "
+                                onClick={() => {
+                                  const confirmed = window.confirm(
+                                    "Are you sure you want to delete this auction?"
+                                  );
+                                  if (confirmed) {
+                                    // handleDelete(auction.id);
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-700 p-1 w-6 h-6"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>

@@ -25,6 +25,9 @@ import {
   CircleStop,
   Tag,
   Hourglass,
+  Send,
+  PersonStanding,
+  MapPin,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
@@ -64,6 +67,7 @@ interface Auction {
   bidincrementtype?: "fixed" | "percentage";
   minimumincrement?: number;
   startprice?: number;
+  sellerAuctionCount?: number;
   targetprice?: number;
   scheduledstart?: string;
   auctionduration?: { days?: number; hours?: number; minutes?: number };
@@ -84,6 +88,11 @@ interface Auction {
     answer?: string;
     time: string;
   }[];
+  profiles?: {
+    fname: string;
+    location: string;
+    role: string;
+  };
   approved?: boolean;
   issilentauction?: boolean;
   currentbidder?: string;
@@ -281,10 +290,11 @@ const DragDropUpload = ({
               />
               <label
                 htmlFor={`document-upload-${index}`}
-                className="cursor-pointer bg-white text-blue-600 border border-blue-600 rounded-lg px-4 py-2 hover:bg-blue-50 transition-all shadow-md"
+                className="text-xs cursor-pointer bg-gray-100 text-gray-600 border border-gray-400 rounded-md px-3 py-1.5 hover:bg-gray-200 transition-all shadow-sm"
               >
                 {uploadState.isUploading ? "Uploading..." : "Select Files"}
               </label>
+
               {uploadedDocuments[index]?.files &&
                 uploadedDocuments[index].files.length > 0 && (
                   <div className="ml-4 flex flex-wrap gap-2">
@@ -307,10 +317,10 @@ const DragDropUpload = ({
                   </div>
                 )}
               {!uploadedDocuments[index]?.files?.length && (
-                <p className="text-sm text-red-600 ml-2">Required</p>
+                <p className="text-xs text-red-600 ml-2">Required</p>
               )}
               {uploadState.error && (
-                <p className="text-sm text-red-600 ml-2">{uploadState.error}</p>
+                <p className="text-xs text-red-600 ml-2">{uploadState.error}</p>
               )}
             </div>
           </div>
@@ -911,6 +921,13 @@ export default function ReverseAuctionDetailPage() {
                 </div>
               </CardContent>
             </Card> */}
+            <div className="flex mt-2 mb-2">
+              <Gavel className="w-5 h-5 text-blue-600 animate-bounce" />
+
+              <p className="text-xl font-semibold text-gray-900 dark:text-white ml-2">
+                {auction.productname || "Auction Item"}
+              </p>
+            </div>
             <Card className="shadow-sm border rounded-lg">
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -919,48 +936,89 @@ export default function ReverseAuctionDetailPage() {
                 </h2>{" "}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 text-sm">
                   <p>
-                    <span className="font-medium">Auction Type:</span>{" "}
-                    {auction.auctiontype === "reverse"
-                      ? "Reverse Auction"
-                      : "Forward Auction"}
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Auction Type:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.auctiontype === "reverse"
+                        ? "Reverse Auction"
+                        : "Forward Auction"}
+                    </span>
                   </p>
                   <p>
-                    <span className="font-medium">Auction Format:</span>{" "}
-                    {auction.issilentauction
-                      ? "Silent Bidding"
-                      : "Open Bidding"}
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Auction Format:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.issilentauction
+                        ? "Silent Bidding"
+                        : "Open Bidding"}
+                    </span>
                   </p>
                   <p>
-                    <span className="font-medium">Target Price:</span>{" "}
-                    {auction.targetprice
-                      ? `$${auction.targetprice.toLocaleString()}`
-                      : "—"}
-                  </p>
-
-                  <p>
-                    <span className="font-medium">Reserve Price:</span>{" "}
-                    {auction.reserveprice
-                      ? `$${auction.reserveprice.toLocaleString()}`
-                      : "—"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Current Bid:</span>{" "}
-                    <span className="text-green-600 font-semibold">
-                      {auction.currentbid
-                        ? `$${auction.currentbid.toLocaleString()}`
+                    <span className="font-medium text-gray-800 dark:text-gray-200 ">
+                      Target Price:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.targetprice
+                        ? `$${auction.targetprice.toLocaleString()}`
                         : "—"}
                     </span>
                   </p>
+
                   <p>
-                    <span className="font-medium">Total Bidders:</span>{" "}
-                    {auction.bidders ?? 0}
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Reserve Price:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.reserveprice
+                        ? `$${auction.reserveprice.toLocaleString()}`
+                        : "—"}
+                    </span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Current Bid:
+                    </span>
+                    {auction.auctionsubtype === "sealed" ||
+                    auction.auctionsubtype === "silent" ? (
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
+                        Bids are confidential until opening
+                      </span>
+                    ) : (
+                      <span className="text-green-600 font-semibold text-base">
+                        {auction.currentbid
+                          ? `$${auction.currentbid.toLocaleString()}`
+                          : "—"}
+                      </span>
+                    )}
                   </p>
 
-                  <p className="col-span-2 md:col-span-3">
-                    <span className="font-medium">Time Remaining:</span>{" "}
-                    <span className="text-red-600 font-semibold">
-                      {auction.timeLeft || "Ended"}
+                  <p>
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Total Bidders:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.bidder_count ?? 0}
                     </span>
+                  </p>
+
+                  <p className="col-span-2 md:col-span-3 flex items-center gap-2">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Time Remaining:
+                    </span>
+                    {auction.scheduledstart &&
+                    auction.auctionduration &&
+                    !isAuctionEnded ? (
+                      <span className="text-red-600 font-semibold">
+                        <LiveTimer
+                          startTime={auction.scheduledstart}
+                          duration={auction.auctionduration}
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 font-semibold">Ended</span>
+                    )}
                   </p>
                 </div>
               </CardContent>
@@ -1022,14 +1080,14 @@ export default function ReverseAuctionDetailPage() {
                     Product Specification
                   </h3>
 
-                  <div className="divide-y text-sm">
+                  <div className="divide-y text-xs">
                     {/* SKU */}
                     <div className="grid grid-cols-2 py-2">
                       <span className="font-medium text-gray-800 dark:text-gray-200">
                         SKU
                       </span>
                       <span className="text-gray-600 dark:text-gray-300">
-                        ZX1000-AC
+                       { auction.sku || "NA"}
                       </span>
                     </div>
 
@@ -1141,300 +1199,6 @@ export default function ReverseAuctionDetailPage() {
                 </div>
               </Card>
             </div>
-
-            {/* <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">
-                        {auction.categoryid || "Uncategorized"}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        Reverse Auction
-                      </Badge>
-                    </div>
-                    <CardTitle className="text-2xl">
-                      {auction.productname ||
-                        auction.title ||
-                        "Untitled Auction"}
-                    </CardTitle>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleWatchlist}
-                      className={watchlisted ? "text-red-600" : ""}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          watchlisted ? "fill-current" : ""
-                        }`}
-                      />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="description">Description</TabsTrigger>
-                    <TabsTrigger value="specifications">Specs</TabsTrigger>
-                    <TabsTrigger value="bids">Bid History</TabsTrigger>
-                    <TabsTrigger value="qa">Q&A</TabsTrigger>
-                    <TabsTrigger value="documentation">
-                      Documentation
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="description" className="mt-6">
-                    <div className="prose dark:prose-invert max-w-none">
-                      <p className="whitespace-pre-line">
-                        {auction.productdescription ||
-                          "No description available"}
-                      </p>
-                      {auction.requireddocuments && (
-                        <div className="mt-2">
-                          <strong>Required Documents:</strong>
-                          <ul className="list-disc ml-5 mt-2">
-                            {(() => {
-                              let docs: { name: string }[] = [];
-                              if (
-                                typeof auction.requireddocuments === "string"
-                              ) {
-                                try {
-                                  docs = JSON.parse(auction.requireddocuments);
-                                } catch {
-                                  return (
-                                    <li className="text-red-500">
-                                      Invalid document list
-                                    </li>
-                                  );
-                                }
-                              } else if (
-                                Array.isArray(auction.requireddocuments)
-                              ) {
-                                docs = auction.requireddocuments;
-                              }
-                              return docs.map((doc, index) => (
-                                <li key={index}>{doc.name}</li>
-                              ));
-                            })()}
-                          </ul>
-                          <p className="mt-2">
-                            Please upload all required documents in the
-                            Documentation tab.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="specifications" className="mt-6">
-                    <div className="space-y-4">
-                      {auction.attributes ||
-                      auction.specifications ||
-                      auction.sku ||
-                      auction.brand ||
-                      auction.model ||
-                      auction.reserveprice ? (
-                        <>
-                          {auction.sku && (
-                            <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">SKU</span>
-                              <span className="text-gray-600 dark:text-gray-300">
-                                {auction.sku}
-                              </span>
-                            </div>
-                          )}
-                          {auction.brand && (
-                            <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Brand</span>
-                              <span className="text-gray-600 dark:text-gray-300">
-                                {auction.brand}
-                              </span>
-                            </div>
-                          )}
-                          {auction.model && (
-                            <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Model</span>
-                              <span className="text-gray-600 dark:text-gray-300">
-                                {auction.model}
-                              </span>
-                            </div>
-                          )}
-                          {auction.reserveprice && (
-                            <div className="flex justify-between py-2 border-b">
-                              <span className="font-medium">Reserve Price</span>
-                              <span className="text-gray-600 dark:text-gray-300">
-                                ${auction.reserveprice.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {auction.attributes && (
-                            <div className="flex flex-col py-2 border-b">
-                              <span className="font-medium">Attributes</span>
-                              {renderKeyValueBlock(
-                                auction.attributes,
-                                "No attributes data"
-                              )}
-                            </div>
-                          )}
-                          {auction.specifications && (
-                            <div className="flex flex-col py-2 border-b">
-                              <span className="font-medium">
-                                Specifications
-                              </span>
-                              {renderKeyValueBlock(
-                                auction.specifications,
-                                "No specifications data"
-                              )}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p>No specifications available</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="bids" className="mt-6">
-                    {!(
-                      auction.issilentauction ||
-                      auction.auctionsubtype === "sealed"
-                    ) && (
-                      <div className="space-y-3">
-                        {bidHistory.length > 0 ? (
-                          bidHistory.map((bid, index) => (
-                            <div
-                              key={index}
-                              className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded"
-                            >
-                              <div>
-                                <span className="font-medium">
-                                  {bid.bidder}
-                                </span>
-                                <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                  {bid.time}
-                                </span>
-                              </div>
-                              <span className="font-semibold text-green-600">
-                                ${bid.amount.toLocaleString()}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <p>No bid history available</p>
-                        )}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="qa" className="mt-6">
-                    <div className="space-y-6">
-                      {auction.questions?.length ? (
-                        auction.questions.map((qa, index) => (
-                          <div key={index} className="border-b pb-4">
-                            <div className="mb-2">
-                              <span className="font-medium">{qa.user}</span>
-                              <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                {new Date(qa.time).toLocaleString("en-US", {
-                                  hour12: true,
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                            <div className="mb-2">
-                              <MessageSquare className="h-4 w-4 inline mr-2" />
-                              <span>{qa.question}</span>
-                            </div>
-                            {qa.answer && (
-                              <div className="ml-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
-                                <span>{qa.answer}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <p>No questions available</p>
-                      )}
-
-                      <div className="mt-6">
-                        <h4 className="font-semibold mb-3">Ask a Question</h4>
-                        <Textarea
-                          placeholder="Type your question here..."
-                          className="mb-3"
-                        />
-                        <Button>Submit Question</Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="documentation" className="mt-6">
-                    {auction.productdocuments &&
-                    auction.productdocuments.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {auction.productdocuments.map((doc, index) => (
-                          <a
-                            key={index}
-                            href={doc}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-                          >
-                            <svg
-                              className="w-6 h-6 text-pink-500"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path d="M6 2h9l6 6v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h12V9h-5V4H6zm2 2h3v4H8V6zm4 0h3v2h-3V6zm0 3h3v2h-3V9zm-4 0h3v2H8V9z" />
-                              <path d="M10 12h4v2h-4v-2zm0 3h4v2h-4v-2z" />
-                            </svg>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Document {index + 1}
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <p>No documentation available</p>
-                    )}
-                    {auction.requireddocuments && (
-                      <DragDropUpload
-                        onDocumentUpload={handleDocumentUpload}
-                        onImageUpload={handleImageUpload}
-                        setUploadedImages={setUploadedImages}
-                        requiredDocuments={(() => {
-                          let docs: { name: string }[] = [];
-                          if (typeof auction.requireddocuments === "string") {
-                            try {
-                              docs = JSON.parse(auction.requireddocuments);
-                            } catch {
-                              docs = [];
-                            }
-                          } else if (Array.isArray(auction.requireddocuments)) {
-                            docs = auction.requireddocuments;
-                          }
-                          return docs;
-                        })()}
-                        uploadedDocuments={uploadedDocuments}
-                        uploadedImages={uploadedImages}
-                      />
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card> */}
           </div>
           <div className="space-y-6">
             <Card className="hover-lift transition-smooth">
@@ -1471,20 +1235,10 @@ export default function ReverseAuctionDetailPage() {
             </Card>
 
             {/* right sidebar product detals */}
-            <Card>
-              <div className="space-y-3 mb-5 px-4 gap-2">
-                <div className="flex mt-4 mb-2">
-                  <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                    <Gavel className="w-5 h-5 text-blue-600 animate-bounce" />
-                    {/* <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      Auction Details:
-                    </span> */}
-                  </h2>
-                  <p className="text-xl font-semibold text-gray-900 dark:text-white ml-2">
-                    {auction.productname || "Auction Item"}
-                  </p>
-                </div>
-                {auction.scheduledstart && (
+            <div className="space-y-6">
+              <Card>
+                <div className="space-y-3 mb-5 px-4 gap-2">
+                  {/* {auction.scheduledstart && (
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Timer className="w-[12px] h[12px] text-green-500" />
@@ -1494,9 +1248,9 @@ export default function ReverseAuctionDetailPage() {
                       {formatDateTime(new Date(auction.scheduledstart))}
                     </span>
                   </div>
-                )}
-                {/* End Date */}
-                {auction.scheduledstart && auction.auctionduration && (
+                )} */}
+                  {/* End Date */}
+                  {/* {auction.scheduledstart && auction.auctionduration && (
                   <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <CircleStop className="w-[11px] h-[11px] text-red-500" />
@@ -1511,20 +1265,20 @@ export default function ReverseAuctionDetailPage() {
                       )}
                     </span>
                   </div>
-                )}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
+                )} */}
+                  <div className="space-y-1">
+                    {/* <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center gap-1">
                       <Tag className="w-[11px] h-[11px] text-red-500" />
                       <span>Starting Bid:</span>
                     </div>
                     <span className="font-semibold text-green-600 text-base">
-                      {/* {currencySymbol} */}
+                      {currencySymbol}
                       {auction.startprice?.toLocaleString() || "N/A"}
                     </span>
-                  </div>
-                  {/* minimum bid increment */}
-                  {isLoggedIn && (
+                  </div> */}
+                    {/* minimum bid increment */}
+                    {/* {isLoggedIn && (
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1">
                         <AlertCircle className="w-3 h-3 text-orange-500" />
@@ -1533,7 +1287,7 @@ export default function ReverseAuctionDetailPage() {
                         </span>
                       </div>
                       <span className="font-semibold text-sm text-gray-700 dark:text-gray-100 text-sm">
-                        {/* {currencySymbol} */}
+                        {currencySymbol}
                         {auction.bidincrementtype === "percentage" &&
                         auction.percent &&
                         auction.currentbid
@@ -1544,76 +1298,35 @@ export default function ReverseAuctionDetailPage() {
                           : auction.minimumincrement?.toLocaleString() || "0"}
                       </span>
                     </div>
-                  )}
-
-                  {!isAuctionEnded && (
-                    <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center gap-1">
-                        <Tag className="w-[11px] h-[11px] text-blue-500" />
-                        <span>Current Bid:</span>
-                      </div>
-                      {auction.auctionsubtype === "sealed" ||
-                      auction.auctionsubtype === "silent" ? (
-                        <span className="text-xs text-gray-600 dark:text-gray-300">
-                          Bids are confidential until opening
-                        </span>
+                  )} */}
+                  </div>
+                  {!isLoggedIn ? (
+                    <div className="mt-3 text-center">
+                      {isAuctionEnded ? (
+                        <p className="text-sm text-red-600 text-left">
+                          Auction has ended
+                        </p>
                       ) : (
-                        <span className="font-semibold text-blue-600 text-base">
-                          {/* {currencySymbol} */}
-                          {auction.currentbid?.toLocaleString() || "N/A"}
-                        </span>
+                        <Button
+                          className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
+                          onClick={() => router.push("/login")}
+                        >
+                          Login to place bid
+                        </Button>
                       )}
                     </div>
+                  ) : auction.approved === false ? (
+                    <p className="text-sm text-red-600 text-left">
+                      Auction is pending approval from admin
+                    </p>
+                  ) : (
+                    // The rest of your normal auction content for logged-in and approved users
+                    <div>{/* Auction bidding form or other content */}</div>
                   )}
-                </div>
-                {auction.scheduledstart &&
-                  auction.auctionduration &&
-                  !isAuctionEnded && (
-                    <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center gap-1">
-                        <Hourglass className="w-[11px] h-[11px] text-red-500" />
-                        <span>Ends In:</span>
-                      </div>
-
-                      <LiveTimer
-                        startTime={auction.scheduledstart}
-                        duration={auction.auctionduration}
-                      />
-                    </div>
-                  )}
-                <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
-                  <span>Bidders count:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
-                    {auction.bidder_count ?? 0}
-                  </span>
-                </div>
-                {!isLoggedIn ? (
-                  <div className="mt-3 text-center">
-                    {isAuctionEnded ? (
-                      <p className="text-sm text-red-600 text-left">
-                        Auction has ended
-                      </p>
-                    ) : (
-                      <Button
-                        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
-                        onClick={() => router.push("/login")}
-                      >
-                        Login to place bid
-                      </Button>
-                    )}
-                  </div>
-                ) : auction.approved === false ? (
-                  <p className="text-sm text-red-600 text-left">
-                    Auction is pending approval from admin
-                  </p>
-                ) : (
-                  // The rest of your normal auction content for logged-in and approved users
-                  <div>{/* Auction bidding form or other content */}</div>
-                )}
-                {isLoggedIn && !isAuctionEnded && user?.role !== "seller" && (
-                <CardContent className="space-y-4">
-                  {/* <div className="text-center"> */}
-                  {/* <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
+                  {isLoggedIn && !isAuctionEnded && user?.role !== "seller" && (
+                    <CardContent className="space-y-4">
+                      {/* <div className="text-center"> */}
+                      {/* <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
                       {auction.bidcount === 0
                         ? "N/A"
                         : `$${auction.currentbid?.toLocaleString() || "N/A"}`}
@@ -1634,7 +1347,7 @@ export default function ReverseAuctionDetailPage() {
                       )}
                   </div> */}
 
-                  {/* <div className="flex items-center justify-center gap-4 text-sm">
+                      {/* <div className="flex items-center justify-center gap-4 text-sm">
                     <div className="flex items-center gap-1 hover-lift">
                       <Clock className="h-4 w-4 text-red-600 animate-bounce-gentle" />
                       <span className="font-semibold text-red-600">
@@ -1651,105 +1364,107 @@ export default function ReverseAuctionDetailPage() {
                     </div>
                   </div> */}
 
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium">
-                        Your Bid Amount
-                      </label>
-                      <Input
-                        type="number"
-                        placeholder={`Minimum: $${getMinimumBid().toLocaleString()}`}
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        className="mt-1 transition-smooth"
-                        disabled={isAuctionNotStarted || isAuctionEnded}
-                      />
-                    </div>
-                    {auction?.auctionsubtype === "sealed" &&
-                      auction?.participants?.includes(user?.id ?? "") && (
-                        <p className="text-sm text-red-600 mt-2">
-                          You have already submitted a bid for this auction and
-                          cannot bid again.
-                        </p>
-                      )}
-                    <div
-                      style={{
-                        width: "100%",
-                        display: "block",
-                        position: "relative",
-                        zIndex: 1,
-                        pointerEvents: "auto",
-                      }}
-                    >
-                      <Button
-                        className="w-full transition-smooth hover-lift transform-3d"
-                        onClick={handlePlaceBid}
-                        disabled={isButtonDisabled}
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          padding: "0.5rem",
-                          boxSizing: "border-box",
-                          position: "relative",
-                          zIndex: 1,
-                          pointerEvents: "auto",
-                        }}
-                      >
-                        Place Bid
-                      </Button>
-                      {(isAuctionNotStarted || isAuctionEnded) && (
-                        <p className="text-sm text-red-600 mt-2">
-                          {isAuctionNotStarted
-                            ? "Auction has not started yet"
-                            : "Auction has ended"}
-                        </p>
-                      )}
-                      {uploadedDocuments.some(
-                        (doc) => !doc.files || doc.files.length === 0
-                      ) && (
-                        <p className="text-sm text-red-600 mt-2">
-                          Upload at least one file for all required documents to
-                          bid.
-                        </p>
-                      )}
-                    </div>
-                    {auction.buyNowPrice && (
-                      <>
-                        <div className="text-center text-sm text-gray-600 dark:text-gray-300">
-                          or
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <label className="text-lg font-semibold flex items-center gap-2">
+                            <Send className="w-4 h-4 text-blue-500 animate-bounce" />
+                            Submit Bid / Proposal
+                          </label>
+                          <Input
+                            type="number"
+                            placeholder={`Minimum: $${getMinimumBid().toLocaleString()}`}
+                            value={bidAmount}
+                            onChange={(e) => setBidAmount(e.target.value)}
+                            className="mt-1 transition-smooth"
+                            disabled={isAuctionNotStarted || isAuctionEnded}
+                          />
                         </div>
-                        <Button
-                          variant="outline"
-                          className="w-full transition-smooth hover-lift"
-                          onClick={handleBuyNow}
-                          disabled={isAuctionNotStarted || isAuctionEnded}
+                        {auction?.auctionsubtype === "sealed" &&
+                          auction?.participants?.includes(user?.id ?? "") && (
+                            <p className="text-sm text-red-600 mt-2">
+                              You have already submitted a bid for this auction
+                              and cannot bid again.
+                            </p>
+                          )}
+                        <div
+                          style={{
+                            width: "100%",
+                            display: "block",
+                            position: "relative",
+                            zIndex: 1,
+                            pointerEvents: "auto",
+                          }}
                         >
-                          Buy Now - ${auction.buyNowPrice.toLocaleString()}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {(auction.bidcount ?? 0) > 0 &&
-                    !(
-                      auction.issilentauction ||
-                      auction.auctionsubtype === "sealed"
-                    ) && (
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>
-                          Minimum decrement: $
-                          {auction.minimumincrement?.toLocaleString() || "100"}
-                          {auction.bidincrementtype === "percentage"
-                            ? ` (${auction.minimumincrement}%)`
-                            : " (fixed)"}
-                        </span>
+                          <Button
+                            className="w-full transition-smooth hover-lift transform-3d"
+                            onClick={handlePlaceBid}
+                            disabled={isButtonDisabled}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              padding: "0.5rem",
+                              boxSizing: "border-box",
+                              position: "relative",
+                              zIndex: 1,
+                              pointerEvents: "auto",
+                            }}
+                          >
+                            Place Bid
+                          </Button>
+                          {(isAuctionNotStarted || isAuctionEnded) && (
+                            <p className="text-sm text-red-600 mt-2">
+                              {isAuctionNotStarted
+                                ? "Auction has not started yet"
+                                : "Auction has ended"}
+                            </p>
+                          )}
+                          {uploadedDocuments.some(
+                            (doc) => !doc.files || doc.files.length === 0
+                          ) && (
+                            <p className="text-xs text-red-600 mt-2">
+                              Upload at least one file for all required
+                              documents to bid.
+                            </p>
+                          )}
+                        </div>
+                        {auction.buyNowPrice && (
+                          <>
+                            <div className="text-center text-sm text-gray-600 dark:text-gray-300">
+                              or
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="w-full transition-smooth hover-lift"
+                              onClick={handleBuyNow}
+                              disabled={isAuctionNotStarted || isAuctionEnded}
+                            >
+                              Buy Now - ${auction.buyNowPrice.toLocaleString()}
+                            </Button>
+                          </>
+                        )}
                       </div>
-                    )}
-                    
-                </CardContent>
-                   )}
-              </div>
-            </Card>
+                      {(auction.bidcount ?? 0) > 0 &&
+                        !(
+                          auction.issilentauction ||
+                          auction.auctionsubtype === "sealed"
+                        ) && (
+                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>
+                              Minimum decrement: $
+                              {auction.minimumincrement?.toLocaleString() ||
+                                "100"}
+                              {auction.bidincrementtype === "percentage"
+                                ? ` (${auction.minimumincrement}%)`
+                                : " (fixed)"}
+                            </span>
+                          </div>
+                        )}
+                    </CardContent>
+                  )}
+                </div>
+              </Card>
+            </div>
             <div className="space-6">
               <Card>
                 {auction.productdocuments &&
@@ -1808,89 +1523,51 @@ export default function ReverseAuctionDetailPage() {
               </Card>
             </div>
             <Card>
-              <CardHeader>
-                <CardTitle>Seller Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Image
-                    src="/placeholder.svg"
-                    alt={auction.createdby || "Seller"}
-                    width={60}
-                    height={60}
-                    className="rounded-full"
-                  />
-                  <div>
-                    <h4 className="font-semibold">
-                      {auction.createdby || "Unknown Seller"}
-                    </h4>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm">0</span>
-                    </div>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-blue-600 animate-bounce" />
+                  Seller Information
+                </h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
+                    <PersonStanding className="w-3 h-3 text-green-500 " />
+                    <span className="font-xs">Seller:</span>
                   </div>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Completed Projects</span>
-                    <span className="font-medium">0</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Watchers</span>
-                    <span className="font-medium">{auction.watchers || 0}</span>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full mt-4">
-                  View Seller Profile
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Auction Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span>Target Price</span>
-                  <span className="font-medium">
-                    ${auction.targetprice?.toLocaleString() || "N/A"}
+                  <span className="text-xs text-gray-600 ">
+                    {auction.profiles?.fname || "Unknown Seller"}
                   </span>
                 </div>
-                {auction.auctionsubtype === "sealed" ? (
-                  <div className="flex justify-between">
-                    <span>Sealed Bid</span>
-                    <span className="font-medium">Yes</span>
+
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3text-blue-500" />
+                    <span className="font-xs">Location:</span>
                   </div>
-                ) : (
-                  <div className="flex justify-between">
-                    <span>Current Bid</span>
-                    <span className="font-medium text-green-600">
-                      {auction.bidcount === 0
-                        ? "N/A"
-                        : `$${auction.currentbid?.toLocaleString() || "N/A"}`}
-                    </span>
-                  </div>
-                )}
-                {auction.buyNowPrice && (
-                  <div className="flex justify-between">
-                    <span>Buy Now Price</span>
-                    <span className="font-medium">
-                      ${auction.buyNowPrice.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span>Total Bids</span>
-                  <span className="font-medium">{auction.bidcount || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Time Remaining</span>
-                  <span className="font-medium text-red-600">
-                    {auction.timeLeft || "N/A"}
+                  <span className="font-xs">
+                    {auction.profiles?.location
+                      ? auction.profiles.location
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                          .slice(0, 1)
+                          .concat(
+                            auction.profiles.location
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean)
+                              .slice(2)
+                          )
+                          .join(", ")
+                      : "Unknown Location"}
                   </span>
+                </div>
+                {/* Completed Projects */}
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-purple-500" />
+                    <span className="">Auctions:</span>
+                  </div>
+                  <span className="font-xs">{auction.sellerAuctionCount}</span>
                 </div>
               </CardContent>
             </Card>

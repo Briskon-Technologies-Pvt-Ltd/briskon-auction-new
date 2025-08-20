@@ -295,7 +295,7 @@ const useCases = [
                     Powering Auction Intelligence Since 2005
                   </Badge>
                   <h1 className="text-4xl md:text-6xl font-bold leading-tight text-gray-900">
-                    <span className="block animate-slide-in-up">The Briskon Auction Framework</span>
+                    <span className="block animate-slide-in-up">The Briskon Auction Framework - </span>
                     <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent block animate-slide-in-up delay-300">
                        Accelerating Global Marketplaces
                     </span>

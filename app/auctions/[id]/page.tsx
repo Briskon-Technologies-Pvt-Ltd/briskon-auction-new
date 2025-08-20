@@ -155,7 +155,7 @@ interface Auction {
   profiles?: {
     fname: string;
     location: string;
-    role:string;
+    role: string;
   };
   auctionId: string;
   loggedInUserId: string;
@@ -164,7 +164,13 @@ interface Auction {
     username?: string;
     amount: number;
   }[];
-  questions?: { user: string; question: string; answer: string | null; question_time: string | null; answer_time: string | null }[];
+  questions?: {
+    user: string;
+    question: string;
+    answer: string | null;
+    question_time: string | null;
+    answer_time: string | null;
+  }[];
   productimages?: string[];
   productdocuments?: string[];
   productdescription?: string;
@@ -191,7 +197,7 @@ interface Auction {
   auctionsubtype?: string; // New field for auction subtype (e.g., "sealed", "silent")
   ended?: boolean; // New field to indicate if the auction has ended
   editable?: boolean; // New field to indicate if the auction is editable by the creator
-  approved?:boolean;
+  approved?: boolean;
 }
 
 // Bid interface
@@ -1080,13 +1086,17 @@ export default function AuctionDetailPage() {
                         auction.questions.map((qa, index) => (
                           <div key={index} className="border-b pb-4">
                             <div className="mb-2">
-                              <span className="font-medium text-sm">{qa.user}</span>
+                              <span className="font-medium text-sm">
+                                {qa.user}
+                              </span>
                               <span className="text-xs text-gray-600 dark:text-gray-300 ml-2">
-                                {DateTime.fromISO(qa.question_time ?? "").setZone("Asia/Kolkata").toLocaleString({
-                                  hour12: true,
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {DateTime.fromISO(qa.question_time ?? "")
+                                  .setZone("Asia/Kolkata")
+                                  .toLocaleString({
+                                    hour12: true,
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
                               </span>
                             </div>
                             <div className="mb-2">
@@ -1098,19 +1108,31 @@ export default function AuctionDetailPage() {
                                 <CheckCircle className="h-4 w-4 inline mr-2 text-green-600" />
                                 <span className="text-sm">{qa.answer}</span>
                                 <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                  {DateTime.fromISO(qa.answer_time ?? "").setZone("Asia/Kolkata").toLocaleString({
-                                    hour12: true,
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                  {DateTime.fromISO(qa.answer_time ?? "")
+                                    .setZone("Asia/Kolkata")
+                                    .toLocaleString({
+                                      hour12: true,
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
                                 </span>
                               </div>
-                            ) : user?.email === auction?.createdby && !isAuctionEnded ? (
+                            ) : user?.email === auction?.createdby &&
+                              !isAuctionEnded ? (
                               <div>
                                 <Textarea
                                   placeholder="Type your answer here..."
-                                  value={answerInput?.index === index ? answerInput.value : ""}
-                                  onChange={(e) => setAnswerInput({ index, value: e.target.value })}
+                                  value={
+                                    answerInput?.index === index
+                                      ? answerInput.value
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    setAnswerInput({
+                                      index,
+                                      value: e.target.value,
+                                    })
+                                  }
                                   className="mt-2 text-sm"
                                 />
                                 <Button
@@ -1128,22 +1150,26 @@ export default function AuctionDetailPage() {
                         <p>No questions available</p>
                       )}
                       {user?.email !== auction?.createdby && (
-                      <div className="mt-6">
-                        <h4 className="font-semibold mb-3">Ask a Question</h4>
-                        <Textarea
-                          placeholder="Type your question here..."
-                          value={newQuestion}
-                          onChange={(e) => setNewQuestion(e.target.value)}
-                          className="mb-3"
-                          disabled={isAuctionNotStarted || isAuctionEnded}
-                        />
-                        <Button
-                          onClick={handleSubmitQuestion}
-                          disabled={!newQuestion.trim() || isAuctionNotStarted || isAuctionEnded}
-                        >
-                          Submit Question
-                        </Button>
-                      </div>
+                        <div className="mt-6">
+                          <h4 className="font-semibold mb-3">Ask a Question</h4>
+                          <Textarea
+                            placeholder="Type your question here..."
+                            value={newQuestion}
+                            onChange={(e) => setNewQuestion(e.target.value)}
+                            className="mb-3"
+                            disabled={isAuctionNotStarted || isAuctionEnded}
+                          />
+                          <Button
+                            onClick={handleSubmitQuestion}
+                            disabled={
+                              !newQuestion.trim() ||
+                              isAuctionNotStarted ||
+                              isAuctionEnded
+                            }
+                          >
+                            Submit Question
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
@@ -1309,31 +1335,28 @@ export default function AuctionDetailPage() {
                   </span>
                 </div>
                 {!isLoggedIn ? (
-  <div className="mt-3 text-center">
-    {isAuctionEnded ? (
-      <p className="text-sm text-red-600 text-left">
-        Auction has ended
-      </p>
-    ) : (
-      <Button
-        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
-        onClick={() => router.push("/login")}
-      >
-        Login to place bid
-      </Button>
-    )}
-  </div>
-) : auction.approved === false ? (
-  <p className="text-sm text-red-600 text-left">
-    Auction is pending approval from admin
-  </p>
-) : (
-  // The rest of your normal auction content for logged-in and approved users
-  <div>
-    {/* Auction bidding form or other content */}
-  </div>
-)}
-
+                  <div className="mt-3 text-center">
+                    {isAuctionEnded ? (
+                      <p className="text-sm text-red-600 text-left">
+                        Auction has ended
+                      </p>
+                    ) : (
+                      <Button
+                        className="w-full text-sm bg-gray-500 text-white hover:bg-gray-600 transition-smooth hover-lift transform-3d"
+                        onClick={() => router.push("/login")}
+                      >
+                        Login to place bid
+                      </Button>
+                    )}
+                  </div>
+                ) : auction.approved === false ? (
+                  <p className="text-sm text-red-600 text-left">
+                    Auction is pending approval from admin
+                  </p>
+                ) : (
+                  // The rest of your normal auction content for logged-in and approved users
+                  <div>{/* Auction bidding form or other content */}</div>
+                )}
               </div>
               {isLoggedIn && (
                 <CardContent className="space-y-3">
@@ -1492,16 +1515,15 @@ export default function AuctionDetailPage() {
 
             {/* Bid Leaders Board */}
             {isLoggedIn && user?.id && auctionId && user?.role !== "seller" && (
-  <div className="mt-6">
-    <BidLeadersBoard
-      auctionId={auctionId}
-      loggedInUserId={user.id}
-      currencySymbol={currencySymbol}
-      auction={auction}
-    />
-  </div>
-)}
-
+              <div className="mt-6">
+                <BidLeadersBoard
+                  auctionId={auctionId}
+                  loggedInUserId={user.id}
+                  currencySymbol={currencySymbol}
+                  auction={auction}
+                />
+              </div>
+            )}
 
             {/* Seller Info */}
             <Card>

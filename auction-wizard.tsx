@@ -156,7 +156,12 @@ function AuctionWizardContent({ language, onLanguageChange }: AuctionWizardConte
     ...defaultFormData,
     language: language,
   });
+// Use 5 as the Reverse Details step (we're retiring 7)
+const FORWARD_FLOW = [1, 2, 3, 4, 6];      // normal
+const REVERSE_FLOW = [1, 5, 3, 4, 6];      // reverse: 1 → 5 (Reverse Details) → 3 → 4 → 6 (Summary)
 
+const flow = formData.auctionType === "reverse" ? REVERSE_FLOW : FORWARD_FLOW;
+const lastStep = flow[flow.length - 1];
   const { user, isLoading, login } = useAuth();
   const router = useRouter();
 
@@ -222,7 +227,8 @@ useEffect(() => {
   const participantEmailRef = useRef<HTMLInputElement>(null);
   const scheduledDateRef = useRef<HTMLInputElement>(null);
   const scheduledTimeRef = useRef<HTMLInputElement>(null);
-
+const brandAttr = formData.attributes?.find(attr => attr.id === "brand");
+const modelAttr = formData.attributes?.find(attr => attr.id === "model");
     // This handler triggers the hidden input click
   const handleDivClick = () => {
     if (fileInputRef.current) {
@@ -428,21 +434,74 @@ const handleNext = () => {
   }
 };
 
-if (formData.auctionType === "reverse") {
-  if (currentStep < 6) {
-    setCurrentStep(currentStep + 1);
-  } else {
-    handleLaunchAuction(); // Launch from step 6
-  }
-} else {
-  if (currentStep < 6) {
-    setCurrentStep(currentStep + 1);
-  } else {
-    handleLaunchAuction();
-  }
-}
+// if (formData.auctionType === "reverse") {
+//   if (currentStep < 7) {
+//     setCurrentStep(currentStep + 1);
+//   } else {
+//     handleLaunchAuction(); // Launch from step 6
+//   }
+// } else {
+//   if (currentStep < 6) {
+//     setCurrentStep(currentStep + 1);
+//   } else {
+//     handleLaunchAuction();
+//   }
+// }
 
 
+//   window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+//   setShowValidationErrors(false);
+//   setIsAnimating(false);
+// };
+// const handlePrevious = () => {
+//   if (isAnimating) return;
+
+//   setIsAnimating(true);
+//   setDirection("backward");
+//   setPreviousStep(currentStep);
+
+//   if (formData.auctionType === "reverse") {
+//     if (currentStep === 3) {
+//       setCurrentStep(7);
+//     } else if (currentStep === 7) {
+//       setCurrentStep(1);
+//     } else if (currentStep === 4) {
+//       setCurrentStep(3);
+//     } else if (currentStep === 5) {
+//       setCurrentStep(4);
+//     } else if (currentStep === 6) {
+//       setCurrentStep(5);
+//     }
+//   } else {
+//     if (currentStep > 1) {
+//       setCurrentStep(currentStep - 1);
+//     }
+//   }
+// window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+//   setShowValidationErrors(false);
+//   setIsAnimating(false);
+// };
+  if (formData.auctionType === "reverse") {
+ if (currentStep === 1) {
+      setCurrentStep(6);
+    } else if (currentStep === 6) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      setCurrentStep(4);
+    } else if (currentStep === 4) {
+      setCurrentStep(5);
+    } else if (currentStep === 5) {
+      setCurrentStep(6);
+    } else {
+      handleLaunchAuction(); // Launch from step 6
+    }
+  } else {
+    if (currentStep < 6) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleLaunchAuction();
+    }
+  }
   window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   setShowValidationErrors(false);
   setIsAnimating(false);
@@ -2578,6 +2637,22 @@ const getCurrencySymbol = (currency: Currency) => {
                   {/* Display auction summary here */}
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-2">{t("auctionDetails")}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {"Product Name"}: {formData.productName}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {"Product Description"}: {formData.productDescription}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {"Product Category"}: {formData.categoryId}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {"Product Sub-Category"}: {formData.subCategoryId}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                     Brand: {brandAttr?.value || formData.brand || "N/A"}{" "},
+                       Model: {modelAttr?.value || formData.model || "N/A"}
+                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {t("auctionType")}: {formData.auctionType} - {formData.auctionSubType}
                     </p>

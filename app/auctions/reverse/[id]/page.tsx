@@ -591,8 +591,8 @@ export default function ReverseAuctionDetailPage() {
       return;
     }
 
-    if (!user?.role || (user.role !== "buyer" && user.role !== "both")) {
-      alert("Only buyers can place bids. Please update your account type.");
+    if (!user?.role || ( user.role == "both")) {
+      alert("Only buyers and seller can place bids. Please update your account type.");
       return;
     }
 
@@ -610,6 +610,7 @@ export default function ReverseAuctionDetailPage() {
     const bidCount = auction.bidcount ?? 0;
     const targetPrice = auction.targetprice ?? 0;
     const isSealed = auction.auctionsubtype === "sealed";
+    const isSilent = auction.issilentauction || auction.auctionsubtype === "silent";
     const isReverse = auction.auctiontype === "reverse";
     const incrementType = auction.bidincrementtype ?? "fixed";
     const userId = user?.id ?? "";
@@ -668,7 +669,8 @@ export default function ReverseAuctionDetailPage() {
     try {
       console.log("Placing bid:", { auctionId, userId, amount });
 
-      const formData = new FormData();
+      const formData = new FormData();  
+      formData.append("action","bid");
       formData.append("user_id", userId);
       formData.append("user_email", userEmail);
       formData.append("amount", amount.toString());
@@ -1323,7 +1325,7 @@ export default function ReverseAuctionDetailPage() {
                     // The rest of your normal auction content for logged-in and approved users
                     <div>{/* Auction bidding form or other content */}</div>
                   )}
-                  {isLoggedIn && !isAuctionEnded && user?.role !== "seller" && (
+                  {isLoggedIn && !isAuctionEnded && user?.role == "seller" && (
                     <CardContent className="space-y-4">
                       {/* <div className="text-center"> */}
                       {/* <div className="text-3xl font-bold text-green-600 mb-1 animate-pulse-gow">
@@ -1526,12 +1528,12 @@ export default function ReverseAuctionDetailPage() {
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Package className="w-4 h-4 text-blue-600 animate-bounce" />
-                  Seller Information
+                  Buyer Information
                 </h3>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
                     <PersonStanding className="w-3 h-3 text-green-500 " />
-                    <span className="font-xs">Seller:</span>
+                    <span className="font-xs">Buyer:</span>
                   </div>
                   <span className="text-xs text-gray-600 ">
                     {auction.profiles?.fname || "Unknown Seller"}

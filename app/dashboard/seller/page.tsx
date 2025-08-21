@@ -457,7 +457,7 @@ export default function SellerDashboard() {
     );
   }
 
-  if (user.role !== "seller" && user.role !== "both") {
+  if ( user.role == "both") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Access Denied. This dashboard is for sellers.</p>
@@ -590,23 +590,6 @@ export default function SellerDashboard() {
               Create New
             </div>
           </Card>
-          {/* My Profile */}
-          {/* <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Ban className="h-5 w-5 text-red-500 animate-bounce" />
-
-                <CardTitle className="text-sm font-medium">
-                  Admin Rejected
-                </CardTitle>
-              </div>
-              <div className="mt-1">
-                <div className="text-2xl font-bold">{0}</div>
-                <div className="text-xs font-bold invisible">1</div>
-                <p className="text-xs text-gray-500">View Details</p>
-              </div>
-            </CardHeader>
-          </Card> */}
 
           <Card
             onClick={() => setSelectedSection("winners")}

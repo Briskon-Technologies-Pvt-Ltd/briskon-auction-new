@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       .from("auctions")
       .select("id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, currentbidder, ended, targetprice, profiles:seller(fname), productimages")
       .in("id", auctionIds)
+      .eq("auctiontype", "forward")
       .eq("ended", true);
 
     if (auctionsError) throw new Error(`Failed to fetch auctions: ${auctionsError.message}`);

@@ -14,13 +14,13 @@ export default function CreateAuction() {
   const router = useRouter();
 
   // 🔒 Role-based redirect with debug
-  useEffect(() => {
-    console.log("CreateAuction useEffect - user:", user);
-    if (!user || !["seller", "both"].includes(user.role)) {
-      console.log("Redirecting to / due to non-seller role");
-      router.replace("/");
-    }
-  }, [user, router]);
+ useEffect(() => {
+  console.log("CreateAuction useEffect - user:", user);
+  if (!user || !["seller", "buyer", "both"].includes(user.role)) {
+    console.log("Redirecting to / due to role restriction");
+    router.replace("/");
+  }
+}, [user, router]);
 
   const handleNavigate = (path: string) => {
     console.log("Navigating to:", path); // Debug log
@@ -32,7 +32,7 @@ export default function CreateAuction() {
     router.push("/"); // ⏹ Redirect to landing or login page on logout
   };
 
-  if (!user || !["seller", "both"].includes(user.role)) return null;
+if (!user || !["seller", "buyer", "both"].includes(user.role)) return null;
 
   const displayName = user.fname || user.lname || user.email?.split("@")[0] || "Seller";
 

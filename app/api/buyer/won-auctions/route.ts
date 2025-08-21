@@ -1,28 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-// Define types
-interface Bid {
-  auction_id: string;
-  amount: number;
-  user_id: string;
-}
-
-interface Auction {
-  id: string;
-  productname: string;
-  auctiontype: string | null;
-  auctionsubtype: string | null;
-  startprice: number | null;
-  currentbid: number | null;
-  productquantity: number;
-  participants: string[] | { id: string }[];
-  currentbidder: string;
-  ended: boolean;
-  targetprice?: number; // Optional field for reverse auctions
-  profiles: { fname: string; lname: string }[];
-}
-
 interface WonAuction {
   auctionId: string;
   productName: string;
@@ -60,6 +37,7 @@ export async function GET(request: Request) {
         "id, productname, auctiontype, auctionsubtype, startprice, currentbid, productquantity, participants, ended,targetprice, profiles:seller (fname, lname), productimages"
       )
       .eq("currentbidder", userEmail)
+        .eq("auctiontype", "forward")
       .eq("ended", true);
 
     if (auctionsError)

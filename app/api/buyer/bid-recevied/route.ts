@@ -4,20 +4,21 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-interface Auction {
+interface bidRecevied {
   id: number;
   productname: string;
-  current_bid: number;
+  currentbid:number;
   currentbidder: string;
   auctiontype: string | null;
   auctionsubtype: string | null;
   scheduledstart?: string;
+  startprice:number;
+  categoryid:string;
+  targetprice:number;
   productimages: string[];
   auctionduration?: { days?: number; hours?: number; minutes?: number } | null;
   profiles: { fname: string; lname: string }[] | { fname: string; lname: string };
 }
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("id");
@@ -46,21 +47,27 @@ export async function GET(request: Request) {
         productname,
         currentbidder,
         currentbid,
+        categoryid,
         auctiontype,
+        startprice,
         auctionsubtype,
         auctionduration,
         scheduledstart,
         profiles:seller (fname, lname),
-        productimages
+        productimages,
+        targetprice,
+        createdat
       `)
-      .in("id", auctionIds)
-      .eq("ended", false)
-      .eq("auctiontype", "forward")
-      .returns<Auction[]>();
+    //   .in("id", auctionIds)
+.eq("createdby", userEmail)
+  .eq("approved", true)
+  .gt("bidder_count", 0)
+  .order("createdat", { ascending: false }) // latest bid first
+  .returns<bidRecevied[]>();
 
     if (auctionsError) throw auctionsError;
 
-    const auctions = auctionsRaw as Auction[];
+    const auctions = auctionsRaw as bidRecevied[];
     
 const now = new Date();
 await Promise.all(
@@ -120,8 +127,6 @@ await Promise.all(
     }
   })
 );
-
-
     // Step 5: Build response
     const activeBids = auctions.map((auction) => {
       const userBid = latestBidsMap.get(auction.id);
@@ -137,7 +142,7 @@ await Promise.all(
           ? auction.profiles[0]?.fname ?? "Unknown"
           : auction.profiles?.fname ?? "Unknown",
         auctionType: auction.auctiontype || "standard",
-        auctionSubtype: auction.auctionsubtype,
+        auctionsubtype:auction.auctionsubtype,
         productimage,
         scheduledstart: auction.scheduledstart ?? null,
         auctionduration: auction.auctionduration ?? null,
@@ -145,6 +150,9 @@ await Promise.all(
         totalBids: bidList.length,
         isWinningBid: auction.currentbidder === userEmail,
         currentbid: auction.currentbid ?? 0,
+        categoryid:auction.categoryid,
+        targetprice:auction.targetprice,
+        startAmount:auction.startprice,
         position: position !== -1 ? position + 1 : null,
       };
     });

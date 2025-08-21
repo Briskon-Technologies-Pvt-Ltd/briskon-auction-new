@@ -296,7 +296,7 @@ export default function AuctionDetailPage() {
     }
 
     if (!user?.role || (user.role !== "buyer" && user.role !== "both")) {
-      alert("Only buyers can place bids. Please update your account type.");
+      alert("yankeeOnly buyers can place bids. Please update your account type.");
       return;
     }
 

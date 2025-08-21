@@ -9,7 +9,7 @@ export type ReverseAuctionSubType =
   | "ranked"
   | "tco-based"
   | "sealed-bid"
-  | "reverse-clock"
+  | "ranked"
   | "yankee"
 
 export type AuctionSubType = ForwardAuctionSubType | ReverseAuctionSubType

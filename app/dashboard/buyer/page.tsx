@@ -27,8 +27,16 @@ import {
   Eye,
   ArrowUpIcon,
   ArrowDownIcon,
+  Repeat,
+  Inbox,
+  Medal,
+  Award,
+  AlarmClockOff,
+  CirclePlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import CreateAuction from "@/app/seller-panel/create-listing/page";
+import LiveTimer from "@/app/livetimer/page";
 type Bid = {
   id: string;
   auction_name: string;
@@ -86,6 +94,35 @@ interface WonAuctionEntry {
   targetprice?: number; // Optional field for target price
   productimage: string;
 }
+interface bidRecevied {
+  sellerName: string;
+  auctionId: string;
+  productName: string;
+  auctionType: string | null;
+  startAmount: number;
+  winningBidAmount: number;
+  targetprice?: number; // Optional field for target price
+  productimage: string;
+  categoryid:string;
+  auctionsubtype:string;
+  currentbid:number;
+}
+interface reverseAuction {
+  id: string;
+  productname: string;
+  productimages: string;
+  category: string;
+  targetprice: number;
+  type: string;
+  format: string;
+  starting_bid: number;
+  current_bid: number | null;
+  created_at: string;
+  bidder_count: number;
+  scheduledstart: string;
+  auctionduration: { days?: number; hours?: number; minutes?: number };
+}
+
 type LostAuctionEntry = {
   auctionId: string;
   sellerName: string;
@@ -107,7 +144,15 @@ export default function BuyerDashboard() {
   });
 
   const [selectedSection, setSelectedSection] = useState<
-    "liveAuction" | "activeBids" | "wonAuctions" | "lostAuctions"
+    | "liveAuction"
+    | "activeBids"
+    | "wonAuctions"
+    | "lostAuctions"
+    | "reverseAuctions"
+    | "bidsRecevied"
+    | "awardedAuctions"
+    | "closedAuctions"
+    | "createAuction"
   >("activeBids");
 
   const [isLoadingBids, setIsLoadingBids] = useState(true);
@@ -118,11 +163,12 @@ export default function BuyerDashboard() {
   const [now, setNow] = useState(new Date());
   const [forwardBids, setForwardBids] = useState<Bid[]>([]);
   const [wonAuctions, setWonAuctions] = useState<WonAuctionEntry[]>([]);
+  const [bidRecevied, setBidRecevied] = useState<bidRecevied[]>([]);
   const [lostAuctions, setLostAuctions] = useState<LostAuctionEntry[]>([]);
+  const [reverseAuction, setReverseAuction] = useState<reverseAuction[]>([]);
   const [allAuctionItems, setAllAuctionItems] = useState([]);
   const [liveCount, setLiveCount] = useState(0);
   const [upcomingCount, setUpcomingCount] = useState(0);
-
   const [reverseBids, setReverseBids] = useState<Bid[]>([]);
   useEffect(() => {
     const interval = setInterval(() => {
@@ -285,8 +331,43 @@ export default function BuyerDashboard() {
         console.error("Error fetching won auctions:", error);
       }
     };
-
     fetchWonAuctions();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchWonAuctions = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(
+          `/api/buyer/bid-recevied?email=${encodeURIComponent(
+            user.email
+          )}&id=${encodeURIComponent(user.id)}`
+        );
+        const data = await res.json();
+        setBidRecevied(data || []);
+        // setStats((prevStats) => ({
+        //   ...prevStats,
+        //   wonAuctions: Array.isArray(data) ? data.length : 0,
+        // }));
+      } catch (error) {
+        console.error("Error fetching won auctions:", error);
+      }
+    };
+    fetchWonAuctions();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      if (!user?.email) throw new Error("User email is missing");
+      const response = await fetch(
+        `/api/buyer/reverse-auction?email=${encodeURIComponent(user.email)}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setReverseAuction(data.data || []);
+      }
+    };
+    if (user) fetchAuctions();
   }, [user]);
 
   useEffect(() => {
@@ -375,7 +456,7 @@ export default function BuyerDashboard() {
     <div className="min-h-screen py-12 md:py-20 bg-gray-100 dark:bg-gray-950">
       <div className="container mx-auto px-4">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
           {/* Active Bids */}
           <Card
             onClick={() => setSelectedSection("activeBids")}
@@ -387,14 +468,12 @@ export default function BuyerDashboard() {
               <div className="flex items-center gap-2">
                 <Gavel className="h-5 w-5 text-blue-500 animate-bounce" />
                 <CardTitle className="text-sm font-medium">
-                  Active Bids
+                  My Active Bids
                 </CardTitle>
               </div>
               <div className="mt-1">
                 <div className="text-2xl  font-bold">{stats.activeBids}</div>
-                <p className="text-xs text-gray-500">
-                  All Forward/Reverse Bids
-                </p>
+                <p className="text-xs text-gray-500">All Forward Bids</p>
               </div>
             </CardHeader>
           </Card>
@@ -403,7 +482,7 @@ export default function BuyerDashboard() {
           <Card
             onClick={() => setSelectedSection("wonAuctions")}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "wonAuctions" ? "ring-2 ring-green-500" : ""
+              selectedSection === "wonAuctions" ? "ring-2 ring-blue-500" : ""
             }`}
           >
             <CardHeader className="pb-2">
@@ -415,7 +494,7 @@ export default function BuyerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl  font-bold">{stats.wonAuctions}</div>
-                <p className="text-xs text-gray-500">All Time</p>
+                <p className="text-xs text-gray-500">Forward Auctions Won</p>
               </div>
             </CardHeader>
           </Card>
@@ -423,7 +502,7 @@ export default function BuyerDashboard() {
           <Card
             onClick={() => setSelectedSection("lostAuctions")}
             className={`cursor-pointer transition-shadow hover:shadow-lg ${
-              selectedSection === "lostAuctions" ? "ring-2 ring-red-400" : ""
+              selectedSection === "lostAuctions" ? "ring-2 ring-blue-500" : ""
             }`}
           >
             <CardHeader className="pb-2">
@@ -435,12 +514,100 @@ export default function BuyerDashboard() {
               </div>
               <div className="mt-1">
                 <div className="text-2xl font-bold">{stats.lostAuctions}</div>
-                <p className="text-xs text-gray-500">All Time</p>
+                <p className="text-xs text-gray-500">Forward Auctions Lost</p>
+              </div>
+            </CardHeader>
+          </Card>
+          {/* My Reverse Auction */}
+          <Card
+            onClick={() => setSelectedSection("reverseAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "reverseAuctions"
+                ? "ring-2 ring-blue-500"
+                : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-5 w-5 text-orange-400 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  My Reverse Auction
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">
+                  {reverseAuction.length}
+                </div>
+                <p className="text-xs text-gray-500">Auction I Created</p>
+              </div>
+            </CardHeader>
+          </Card>
+          {/* Bids Recevied */}
+          <Card
+            onClick={() => setSelectedSection("bidsRecevied")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "bidsRecevied" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Inbox className="h-5 w-5 text-lime-700 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Bids Recevied
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{bidRecevied.length}</div>
+                <p className="text-xs text-gray-500">Total Supplier Bids</p>
+              </div>
+            </CardHeader>
+          </Card>
+          {/* awarded auctions */}
+          <Card
+            onClick={() => setSelectedSection("awardedAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "awardedAuctions"
+                ? "ring-2 ring-blue-500"
+                : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-400 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Awarded Auctions
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{5}</div>
+                <p className="text-xs text-gray-500">Reverse Auction Awarded</p>
+              </div>
+            </CardHeader>
+          </Card>
+          {/* closed auctions */}
+          <Card
+            onClick={() => setSelectedSection("closedAuctions")}
+            className={`cursor-pointer transition-shadow hover:shadow-lg ${
+              selectedSection === "closedAuctions" ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <AlarmClockOff className="h-5 w-5 text-red-950 animate-bounce" />
+                <CardTitle className="text-sm font-medium">
+                  Closed Auctions
+                </CardTitle>
+              </div>
+              <div className="mt-1">
+                <div className="text-2xl font-bold">{6}</div>
+                <p className="text-xs text-gray-500">
+                  Completed Reverse Auction
+                </p>
               </div>
             </CardHeader>
           </Card>
           {/* Live Auctions */}
-          <Link href="/auctions">
+          {/* <Link href="/auctions">
             <Card
               className={`cursor-pointer transition-shadow hover:shadow-lg ${
                 selectedSection === "liveAuction"
@@ -461,9 +628,9 @@ export default function BuyerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+          </Link> */}
           {/* Upcoming Auction*/}
-          <Link href="/auctions?tab=upcoming">
+          {/* <Link href="/auctions?tab=upcoming">
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -478,7 +645,7 @@ export default function BuyerDashboard() {
                 </div>
               </CardHeader>
             </Card>
-          </Link>
+          </Link> */}
 
           {/* My Profile */}
 
@@ -493,6 +660,7 @@ export default function BuyerDashboard() {
                 </div>
                 <div className="mt-1">
                   <div className="text-xs font-bold invisible">1</div>
+                  <div className="text-xs font-bold invisible">1</div>
                   <p className="text-xs text-gray-500">
                     Edit Profile & Change Password
                   </p>
@@ -500,171 +668,147 @@ export default function BuyerDashboard() {
               </CardHeader>
             </Card>
           </Link>
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center p-4 text-center bg-blue-600 text-white"
+            onClick={() => {
+              setSelectedSection("createAuction");
+            }}
+          >
+            <CirclePlus className="h-5 w-5 mb-3 text-white" />
+            <CardTitle className="text-sm font-semibold">
+              Create Auction
+            </CardTitle>
+            <p className="text-xs opacity-90">start a reverse auction</p>
+          </Card>
         </div>
         {/* Section Table */}
         <div className="bg-white dark:bg-gray-900 p-4 rounded shadow">
+          {selectedSection === "createAuction" && (
+            <div className="mt-4">
+              <CreateAuction />
+            </div>
+          )}
           {loadingDetails ? (
             <p>Loading...</p>
           ) : selectedSection === "activeBids" ? (
-            <>
-              {[
-                {
-                  type: "forward",
-                  label: "Forward Auctions",
-                  bids: forwardBids,
-                  headingColor: "text-green-700 dark:text-green-400",
-                  headingSpacing: "mt-2 mb-4",
-                  icon: <TrendingUp className="h-3 w-3 text-gray-500" />,
-                },
-                {
-                  type: "reverse",
-                  label: "Reverse Auctions",
-                  bids: reverseBids,
-                  headingColor: "text-red-700 dark:text-red-400",
-                  headingSpacing: "mt-2 mb-4",
-                  icon: <TrendingDown className="w-3 h-3 text-gray-500" />,
-                },
-              ].map(
-                ({ type, label, bids, headingColor, headingSpacing, icon }) => (
-                  <div key={type} className="mb-8">
-                    <h3
-                      className={`flex items-center gap-2 text-lg font-semibold text-blue-800 dark:text-blue-300 ${headingSpacing}`}
-                    >
-                      {/* Icon with soft blue background */}
-                      <span className="inline-flex items-center justify-center  dark:bg-blue-900">
-                        {icon}
-                      </span>
+            <div className="">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-blue-800 dark:text-blue-300 mt-2 mb-4">
+                {/* Icon with soft blue background */}
+                <span className="inline-flex items-center justify-center dark:bg-blue-900">
+                  <TrendingUp className="h-3 w-3 text-gray-500" />
+                </span>
 
-                      {/* Heading Text */}
-                      <span>
-                        Active Bids:
-                        <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 font-semibold">
-                          {label}
-                        </span>
-                      </span>
-                    </h3>
-                    {bids.length === 0 ? (
-                      <p className="text-gray-500 italic">
-                        No {type} auction bids.
-                      </p>
-                    ) : (
-                      <div className="overflow-x-auto rounded-md">
-                        <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
-                          <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-                            <tr>
-                              <th className="px-4 py-2 text-left">
-                                Auction Name
-                              </th>
-                              <th className="px-4 py-2 text-left">Seller</th>
-                              <th className="px-4 py-2 text-left">Time Left</th>
-                              <th className="px-4 py-2 text-left">Your Bid</th>
-                              <th className="px-4 py-2 text-left">
-                                Current Bid
-                              </th>
-                              <th className="px-4 py-2 text-left">
-                                Your Position
-                              </th>
-                              <th className="px-4 py-2 text-left">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {bids.map((bid, idx) => (
-                              <tr
-                                key={bid.id}
-                                className={
-                                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                }
-                              >
-                                <td className="px-4 py-2">
-                                  <Link
-                                    href={`/auctions/${bid.id}`}
-                                    className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
-                                  >
-                                    <img
-                                      src={bid.productimage}
-                                      alt={bid.auction_name}
-                                      className="w-6 h-6 rounded-full object-cover"
-                                    />
-                                    {bid.auction_name}
-                                  </Link>
-                                </td>
+                {/* Heading Text */}
+                <span>
+                  Active Bids:
+                  <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 font-semibold">
+                    Forward Auctions
+                  </span>
+                </span>
+              </h3>
 
-                                <td className="px-4 py-2 text-gray-600">
-                                  {bid.seller_name}
-                                </td>
-                                <td className="px-4 py-2 text-red-700">
-                                  {bid.scheduledstart && bid.auctionduration
-                                    ? getTimeLeftLabel(
-                                        now,
-                                        bid.scheduledstart,
-                                        bid.auctionduration
-                                      )
-                                    : "N/A"}
-                                </td>
-                                <td className="px-4 py-2 text-gray-600">
-                                  ${bid.your_bid.toLocaleString("en-IN")}
-                                </td>
-                                <td className="px-4 py-2 text-gray-600">
-                                  {bid.auctionSubtype &&
-                                  ["sealed", "silent"].includes(
-                                    bid.auctionSubtype.toLowerCase()
-                                  ) ? (
-                                    <span className=" text-gray-600">
-                                      Confidential
-                                    </span>
-                                  ) : (
-                                    `$${bid.current_bid.toLocaleString(
-                                      "en-IN"
-                                    )}`
-                                  )}
-                                </td>
-
-                                <td className="px-4 py-2 text-gray-600">
-                                  {bid.position === 1 ? (
-                                    <span className="text-green-600 font-semibold flex items-center gap-1">
-                                      <ArrowUpIcon size={16} />
-                                      Leading - Position 1
-                                    </span>
-                                  ) : bid.position ? (
-                                    <span className="text-red-600 font-semibold flex items-center gap-1">
-                                      <ArrowDownIcon size={16} />
-                                      Trailing - Position {bid.position}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-600">
-                                      No Rank
-                                    </span>
-                                  )}
-                                </td>
-
-                                <td className="p-2">
-                                  <Link
-                                    href={`/auctions/${bid.id}`}
-                                    className="flex items-center gap-1 text-gray-700 hover:underline transition-colors"
-                                  >
-                                    {bid.status === "leading" ? (
-                                      <>
-                                        <Eye className="w-4 h-4" />
-                                        View Bid
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Gavel className="w-4 h-4" />
-                                        Bid
-                                      </>
-                                    )}
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )
+              {forwardBids.length === 0 ? (
+                <p className="text-gray-500 italic">No Forward auction bids.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-md">
+                  <table className="min-w-full text-sm border border-gray-100 dark:border-gray-800">
+                    <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Auction Name</th>
+                        <th className="px-4 py-2 text-left">Seller</th>
+                        <th className="px-4 py-2 text-left">Time Left</th>
+                        <th className="px-4 py-2 text-left">Your Bid</th>
+                        <th className="px-4 py-2 text-left">Current Bid</th>
+                        <th className="px-4 py-2 text-left">Your Position</th>
+                        <th className="px-4 py-2 text-left">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forwardBids.map((bid, idx) => (
+                        <tr
+                          key={bid.id}
+                          className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                        >
+                          <td className="px-4 py-2">
+                            <Link
+                              href={`/auctions/${bid.id}`}
+                              className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                            >
+                              <img
+                                src={bid.productimage}
+                                alt={bid.auction_name}
+                                className="w-6 h-6 rounded-full object-cover"
+                              />
+                              {bid.auction_name}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {bid.seller_name}
+                          </td>
+                          <td className="px-4 py-2 text-red-700">
+                            {bid.scheduledstart && bid.auctionduration
+                              ? getTimeLeftLabel(
+                                  now,
+                                  bid.scheduledstart,
+                                  bid.auctionduration
+                                )
+                              : "N/A"}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            ${bid.your_bid.toLocaleString("en-IN")}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {bid.auctionSubtype &&
+                            ["sealed", "silent"].includes(
+                              bid.auctionSubtype.toLowerCase()
+                            ) ? (
+                              <span className="text-gray-600">
+                                Confidential
+                              </span>
+                            ) : (
+                              `$${bid.current_bid.toLocaleString("en-IN")}`
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {bid.position === 1 ? (
+                              <span className="text-green-600 font-semibold flex items-center gap-1">
+                                <ArrowUpIcon size={16} />
+                                Leading - Position 1
+                              </span>
+                            ) : bid.position ? (
+                              <span className="text-red-600 font-semibold flex items-center gap-1">
+                                <ArrowDownIcon size={16} />
+                                Trailing - Position {bid.position}
+                              </span>
+                            ) : (
+                              <span className="text-gray-600">No Rank</span>
+                            )}
+                          </td>
+                          <td className="p-2">
+                            <Link
+                              href={`/auctions/${bid.id}`}
+                              className="flex items-center gap-1 text-gray-700 hover:underline transition-colors"
+                            >
+                              {bid.status === "leading" ? (
+                                <>
+                                  <Eye className="w-4 h-4" />
+                                  View Bid
+                                </>
+                              ) : (
+                                <>
+                                  <Gavel className="w-4 h-4" />
+                                  Bid
+                                </>
+                              )}
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </>
+            </div>
           ) : selectedSection === "wonAuctions" ? (
             wonAuctions.length > 0 ? (
               <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -784,11 +928,268 @@ export default function BuyerDashboard() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 italic">No lost auctions.</p>
+              <p className="text-gray-500 italic">No lost Auctions.</p>
+            )
+          ) : selectedSection === "reverseAuctions" ? (
+            reverseAuction.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left px-4 p-2">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="text-left px-4 p-2">Type</th>
+                      <th className="text-left px-4 py-2 ">Format</th>
+                      <th className="text-left px-4 py-2 ">Target Price</th>
+                      <th className="text-left px-4 p-2">Starting Bid</th>
+                      <th className="text-left px-4 p-2">Current Bid</th>
+                      <th className="text-left px-4 p-2">Ends In</th>
+                      <th className="text-left px-4 py-2 ">Bidders</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reverseAuction.map((auction, index) => (
+                      <tr
+                        key={auction.id}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.id}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={auction.productimages}
+                              alt={auction.productname}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {auction.productname}
+                          </Link>
+                        </td>
+                        <td className="p-2 px-4 text-gray-600">
+                          {auction.category}
+                        </td>
+                        <td className="p-2 px-4 capitalize text-gray-600">
+                          {auction.type}
+                        </td>
+                        <td className="p-2 px-4 text-gray-600">
+                          {auction.format}
+                        </td>
+                        <td className="p-2 px-4 text-gray-600">
+                          {auction.targetprice}
+                        </td>
+                        <td className="p-2 px-4 text-gray-600">
+                          {auction.starting_bid.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.current_bid}
+                        </td>
+                        <td className="px-4 py-2">
+                          {
+                            <LiveTimer
+                              startTime={auction.scheduledstart}
+                              duration={auction.auctionduration}
+                            />
+                          }
+                        </td>
+                        <td className="p-2 px-4 text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-4 h-4 text-blue-500" />
+                            <span>{auction.bidder_count}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No Reverse Auctions.</p>
+            )
+          ) : selectedSection === "bidsRecevied" ? (
+            bidRecevied.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left px-4 p-2">Auction Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="text-left px-4 p-2">Type</th>
+                      <th className="text-left px-4 py-2 ">Format</th>
+                      <th className="text-left px-4 py-2 ">Target Price</th>
+                      <th className="text-left px-4 p-2">Starting Bid</th>
+                      <th className="text-left px-4 p-2">Current Bid</th>
+                
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    {bidRecevied.map((auction, index) => (
+                      <tr
+                        key={auction.auctionId}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.auctionId}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={auction.productimage}
+                              alt={auction.productName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {auction.productName}
+                          </Link>
+                        </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.categoryid}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.auctionType}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.auctionsubtype}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.targetprice}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.startAmount}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.currentbid}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No Bids Recevied.</p>
+            )
+          ) : selectedSection === "awardedAuctions" ? (
+            lostAuctions.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left p-2">Auction Name</th>
+                      <th className="text-left p-2">Auction Type</th>
+                      <th className="text-left p-2">Seller</th>
+                      <th className="text-left p-2">Starting Bid</th>
+                      <th className="text-left p-2">Your Bid</th>
+                      <th className="text-left p-2">Winning Bid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lostAuctions.map((auction, index) => (
+                      <tr
+                        key={auction.auctionId}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.auctionId}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={auction.productimage}
+                              alt={auction.productName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {auction.productName}
+                          </Link>
+                        </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.auctionType}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.sellerName}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.startAmount.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.userBidAmount?.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.winningBidAmount.toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No Awarded Auction.</p>
+            )
+          ) : selectedSection === "closedAuctions" ? (
+            lostAuctions.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                    <tr>
+                      <th className="text-left p-2">Auction Name</th>
+                      <th className="text-left p-2">Auction Type</th>
+                      <th className="text-left p-2">Seller</th>
+                      <th className="text-left p-2">Starting Bid</th>
+                      <th className="text-left p-2">Your Bid</th>
+                      <th className="text-left p-2">Winning Bid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lostAuctions.map((auction, index) => (
+                      <tr
+                        key={auction.auctionId}
+                        className={`${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } dark:bg-transparent`}
+                      >
+                        <td className="p-2">
+                          <Link
+                            href={`/auctions/${auction.auctionId}`}
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-100 hover:underline"
+                          >
+                            <img
+                              src={auction.productimage}
+                              alt={auction.productName}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {auction.productName}
+                          </Link>
+                        </td>
+                        <td className="p-2 capitalize text-gray-600">
+                          {auction.auctionType}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.sellerName}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.startAmount.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.userBidAmount?.toLocaleString("en-IN")}
+                        </td>
+                        <td className="p-2 text-gray-600">
+                          {auction.winningBidAmount.toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No Closed Auction.</p>
             )
           ) : null}
         </div>
-
         {/* Notifications and Account */}
       </div>
     </div>

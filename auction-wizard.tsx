@@ -14,9 +14,18 @@ import LotManager from "@/components/lot-manager";
 import LanguageSelector from "@/components/language-selector";
 import ApiKeySetup from "./components/api-key-setup";
 import { I18nProvider, useTranslation } from "@/i18n/i18n-context";
-import type { AuctionFormData, AuctionTemplate, UploadedFile, Currency, Language } from "./types/auction-types";
+import type {
+  AuctionFormData,
+  AuctionTemplate,
+  UploadedFile,
+  Currency,
+  Language,
+} from "./types/auction-types";
 import { createClient } from "@supabase/supabase-js";
-import { useFileUpload,handleImagesOrVideosUploaded } from "./hooks/use-file-upload"; // Adjust path as needed
+import {
+  useFileUpload,
+  handleImagesOrVideosUploaded,
+} from "./hooks/use-file-upload"; // Adjust path as needed
 import { useRouter } from "next/navigation";
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -59,20 +68,50 @@ const requiredDocumentOptions = [
   { label: "Tax Compliance Certificate", value: "Tax Compliance Certificate" },
   { label: "Business License", value: "Business License" },
   { label: "Industry Certifications", value: "Industry Certifications" },
-  { label: "NDA / Confidentiality Agreement", value: "NDA / Confidentiality Agreement" },
-  { label: "Conflict of Interest Declaration", value: "Conflict of Interest Declaration" },
-  { label: "Annual Turnover – Last 3 Years", value: "Annual Turnover – Last 3 Years" },
-  { label: "Audited Financial Statements", value: "Audited Financial Statements" },
+  {
+    label: "NDA / Confidentiality Agreement",
+    value: "NDA / Confidentiality Agreement",
+  },
+  {
+    label: "Conflict of Interest Declaration",
+    value: "Conflict of Interest Declaration",
+  },
+  {
+    label: "Annual Turnover – Last 3 Years",
+    value: "Annual Turnover – Last 3 Years",
+  },
+  {
+    label: "Audited Financial Statements",
+    value: "Audited Financial Statements",
+  },
   { label: "Experience Summary", value: "Experience Summary" },
   { label: "List of Past Projects", value: "List of Past Projects" },
   { label: "Key Personnel CVs", value: "Key Personnel CVs" },
   { label: "Company Profile", value: "Company Profile" },
-  { label: "Certificate of Incorporation / Registration", value: "Certificate of Incorporation / Registration" },
-  { label: "Bank Reference Letter or Credit Rating Report", value: "Bank Reference Letter or Credit Rating Report" },
-  { label: "Compliance with Environmental and Social Standards", value: "Compliance with Environmental and Social Standards" },
-  { label: "Quality Assurance Policy / ISO Certifications", value: "Quality Assurance Policy / ISO Certifications" },
-  { label: "Work Plan / Implementation Schedule", value: "Work Plan / Implementation Schedule" },
-  { label: "References / Client Testimonials", value: "References / Client Testimonials" },
+  {
+    label: "Certificate of Incorporation / Registration",
+    value: "Certificate of Incorporation / Registration",
+  },
+  {
+    label: "Bank Reference Letter or Credit Rating Report",
+    value: "Bank Reference Letter or Credit Rating Report",
+  },
+  {
+    label: "Compliance with Environmental and Social Standards",
+    value: "Compliance with Environmental and Social Standards",
+  },
+  {
+    label: "Quality Assurance Policy / ISO Certifications",
+    value: "Quality Assurance Policy / ISO Certifications",
+  },
+  {
+    label: "Work Plan / Implementation Schedule",
+    value: "Work Plan / Implementation Schedule",
+  },
+  {
+    label: "References / Client Testimonials",
+    value: "References / Client Testimonials",
+  },
 ];
 type Option = {
   label: string;
@@ -144,25 +183,29 @@ interface AuctionWizardContentProps {
   onLanguageChange: (language: Language) => void;
 }
 
-function AuctionWizardContent({ language, onLanguageChange }: AuctionWizardContentProps) {
-  
+function AuctionWizardContent({
+  language,
+  onLanguageChange,
+}: AuctionWizardContentProps) {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [previousStep, setPreviousStep] = useState(1);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [showTemplateSelector, setShowTemplateSelector] = useState(true);
- const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, isLoading, login } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<AuctionFormData>({
     ...defaultFormData,
+    auctionType: user?.role === "buyer" ? "reverse" : "forward", // 👈 logic here
     language: language,
   });
-// Use 5 as the Reverse Details step (we're retiring 7)
-const FORWARD_FLOW = [1, 2, 3, 4, 6];      // normal
-const REVERSE_FLOW = [1, 5, 3, 4, 6];      // reverse: 1 → 5 (Reverse Details) → 3 → 4 → 6 (Summary)
 
-const flow = formData.auctionType === "reverse" ? REVERSE_FLOW : FORWARD_FLOW;
-const lastStep = flow[flow.length - 1];
-  const { user, isLoading, login } = useAuth();
+  // Use 5 as the Reverse Details step (we're retiring 7)
+  const FORWARD_FLOW = [1, 2, 3, 4, 6]; // normal
+  const REVERSE_FLOW = [1, 5, 3, 4, 6]; // reverse: 1 → 5 (Reverse Details) → 3 → 4 → 6 (Summary)
+
+  const flow = formData.auctionType === "reverse" ? REVERSE_FLOW : FORWARD_FLOW;
+  const lastStep = flow[flow.length - 1];
   const router = useRouter();
 
   // API Key management
@@ -182,15 +225,21 @@ const lastStep = flow[flow.length - 1];
     setFormData((prev) => ({ ...prev, language }));
   }, [language]);
 
-//   useEffect(() => {
-//   setFormData((prev) => ({ ...prev, startPrice: 1, minimumIncrement: 1 }));
-// }, []); // Runs once on mount
-useEffect(() => {
-  setFormData((prev) => ({ ...prev, startPrice: undefined , minimumIncrement: undefined }));
-}, []);
+  //   useEffect(() => {
+  //   setFormData((prev) => ({ ...prev, startPrice: 1, minimumIncrement: 1 }));
+  // }, []); // Runs once on mount
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      startPrice: undefined,
+      minimumIncrement: undefined,
+    }));
+  }, []);
 
   // Validation state
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -227,21 +276,21 @@ useEffect(() => {
   const participantEmailRef = useRef<HTMLInputElement>(null);
   const scheduledDateRef = useRef<HTMLInputElement>(null);
   const scheduledTimeRef = useRef<HTMLInputElement>(null);
-const brandAttr = formData.attributes?.find(attr => attr.id === "brand");
-const modelAttr = formData.attributes?.find(attr => attr.id === "model");
-    // This handler triggers the hidden input click
+  const brandAttr = formData.attributes?.find((attr) => attr.id === "brand");
+  const modelAttr = formData.attributes?.find((attr) => attr.id === "model");
+  // This handler triggers the hidden input click
   const handleDivClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
   // File upload hooks
-const {
-  uploadState: fileUploadState,
-  uploadFiles,
-  removeFile: removeFile,
-  resetUploadState: resetFileUpload,
-} = useFileUpload("public");
+  const {
+    uploadState: fileUploadState,
+    uploadFiles,
+    removeFile: removeFile,
+    resetUploadState: resetFileUpload,
+  } = useFileUpload("public");
 
   const {
     uploadState: documentUploadState,
@@ -284,7 +333,10 @@ const {
 
     switch (currentStep) {
       case 1:
-        stepValidation = validateStep1(formData.auctionType, formData.auctionSubType);
+        stepValidation = validateStep1(
+          formData.auctionType,
+          formData.auctionSubType
+        );
         break;
       case 2:
         // Step 2 is now Product Details
@@ -293,22 +345,38 @@ const {
           if (formData.lots.length === 0) {
             stepValidation = {
               isValid: false,
-              errors: [{ field: "lots", message: "Please add at least one lot" }],
+              errors: [
+                { field: "lots", message: "Please add at least one lot" },
+              ],
             };
           } else {
             // Check each lot for validity
             const invalidLots = formData.lots.filter(
-              (lot) => !lot.name || !lot.description || lot.startPrice <= 0 || lot.minimumIncrement <= 0
+              (lot) =>
+                !lot.name ||
+                !lot.description ||
+                lot.startPrice <= 0 ||
+                lot.minimumIncrement <= 0
             );
             if (invalidLots.length > 0) {
               stepValidation = {
                 isValid: false,
-                errors: [{ field: "lots", message: "Please complete all required fields for each lot" }],
+                errors: [
+                  {
+                    field: "lots",
+                    message: "Please complete all required fields for each lot",
+                  },
+                ],
               };
             }
           }
         } else {
-          stepValidation = validateStep3(formData.productName, formData.productDescription,formData.auctionSubType,formData.productQuantity);
+          stepValidation = validateStep3(
+            formData.productName,
+            formData.productDescription,
+            formData.auctionSubType,
+            formData.productQuantity
+          );
           // Also validate category selection
           if (!formData.categoryId) {
             stepValidation.errors.push({
@@ -336,14 +404,20 @@ const {
         );
         break;
       case 4:
-        stepValidation = validateStep4(formData.participationType, formData.participantEmails);
+        stepValidation = validateStep4(
+          formData.participationType,
+          formData.participantEmails
+        );
         break;
       // case 5:
       //   stepValidation = validateStep5(formData.termsAndConditions);
       //   break;
       case 7:
         if (formData.auctionType === "reverse") {
-          stepValidation = validateStep7(formData.targetprice ?? 0, formData.requireddocuments ?? "");
+          stepValidation = validateStep7(
+            formData.targetprice ?? 0,
+            formData.requireddocuments ?? ""
+          );
         }
         break;
     }
@@ -411,129 +485,128 @@ const {
     setShowValidationErrors(false);
   }, [currentStep]);
 
-const handleNext = () => {
-  if (isAnimating) return;
+  const handleNext = () => {
+    if (isAnimating) return;
 
-  setIsAnimating(true);
-  setDirection("forward");
-  setPreviousStep(currentStep);
+    setIsAnimating(true);
+    setDirection("forward");
+    setPreviousStep(currentStep);
 
-  const isValid = validateCurrentStep();
-  if (!isValid) {
-    setShowValidationErrors(true);
+    const isValid = validateCurrentStep();
+    if (!isValid) {
+      setShowValidationErrors(true);
+      setIsAnimating(false);
+      return;
+    }
+    const scrollToStep = () => {
+      // Scroll to top of the form container or a little offset
+      const element = document.getElementById("auctionFormContainer");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        // OR, to scroll slightly below top:
+        // window.scrollTo({ top: element.offsetTop - 20, behavior: 'smooth' });
+      }
+    };
+
+    // if (formData.auctionType === "reverse") {
+    //   if (currentStep < 7) {
+    //     setCurrentStep(currentStep + 1);
+    //   } else {
+    //     handleLaunchAuction(); // Launch from step 6
+    //   }
+    // } else {
+    //   if (currentStep < 6) {
+    //     setCurrentStep(currentStep + 1);
+    //   } else {
+    //     handleLaunchAuction();
+    //   }
+    // }
+
+    //   window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    //   setShowValidationErrors(false);
+    //   setIsAnimating(false);
+    // };
+    // const handlePrevious = () => {
+    //   if (isAnimating) return;
+
+    //   setIsAnimating(true);
+    //   setDirection("backward");
+    //   setPreviousStep(currentStep);
+
+    //   if (formData.auctionType === "reverse") {
+    //     if (currentStep === 3) {
+    //       setCurrentStep(7);
+    //     } else if (currentStep === 7) {
+    //       setCurrentStep(1);
+    //     } else if (currentStep === 4) {
+    //       setCurrentStep(3);
+    //     } else if (currentStep === 5) {
+    //       setCurrentStep(4);
+    //     } else if (currentStep === 6) {
+    //       setCurrentStep(5);
+    //     }
+    //   } else {
+    //     if (currentStep > 1) {
+    //       setCurrentStep(currentStep - 1);
+    //     }
+    //   }
+    // window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    //   setShowValidationErrors(false);
+    //   setIsAnimating(false);
+    // };
+    if (formData.auctionType === "reverse") {
+      if (currentStep === 1) {
+        setCurrentStep(6);
+      } else if (currentStep === 6) {
+        setCurrentStep(3);
+      } else if (currentStep === 3) {
+        setCurrentStep(4);
+      } else if (currentStep === 4) {
+        setCurrentStep(5);
+      } else if (currentStep === 5) {
+        setCurrentStep(6);
+      } else {
+        handleLaunchAuction(); // Launch from step 6
+      }
+    } else {
+      if (currentStep < 6) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        handleLaunchAuction();
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    setShowValidationErrors(false);
     setIsAnimating(false);
-    return;
-  }
-  const scrollToStep = () => {
-  // Scroll to top of the form container or a little offset
-  const element = document.getElementById("auctionFormContainer");
-  if (element) {
-    element.scrollIntoView({ behavior: "smooth", block: "start" });
-    // OR, to scroll slightly below top:
-    // window.scrollTo({ top: element.offsetTop - 20, behavior: 'smooth' });
-  }
-};
+  };
+  const handlePrevious = () => {
+    if (isAnimating) return;
 
-// if (formData.auctionType === "reverse") {
-//   if (currentStep < 7) {
-//     setCurrentStep(currentStep + 1);
-//   } else {
-//     handleLaunchAuction(); // Launch from step 6
-//   }
-// } else {
-//   if (currentStep < 6) {
-//     setCurrentStep(currentStep + 1);
-//   } else {
-//     handleLaunchAuction();
-//   }
-// }
+    setIsAnimating(true);
+    setDirection("backward");
+    setPreviousStep(currentStep);
 
-
-//   window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-//   setShowValidationErrors(false);
-//   setIsAnimating(false);
-// };
-// const handlePrevious = () => {
-//   if (isAnimating) return;
-
-//   setIsAnimating(true);
-//   setDirection("backward");
-//   setPreviousStep(currentStep);
-
-//   if (formData.auctionType === "reverse") {
-//     if (currentStep === 3) {
-//       setCurrentStep(7);
-//     } else if (currentStep === 7) {
-//       setCurrentStep(1);
-//     } else if (currentStep === 4) {
-//       setCurrentStep(3);
-//     } else if (currentStep === 5) {
-//       setCurrentStep(4);
-//     } else if (currentStep === 6) {
-//       setCurrentStep(5);
-//     }
-//   } else {
-//     if (currentStep > 1) {
-//       setCurrentStep(currentStep - 1);
-//     }
-//   }
-// window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-//   setShowValidationErrors(false);
-//   setIsAnimating(false);
-// };
-  if (formData.auctionType === "reverse") {
- if (currentStep === 1) {
-      setCurrentStep(6);
-    } else if (currentStep === 6) {
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      setCurrentStep(5);
-    } else if (currentStep === 5) {
-      setCurrentStep(6);
+    if (formData.auctionType === "reverse") {
+      if (currentStep === 3) {
+        setCurrentStep(7);
+      } else if (currentStep === 7) {
+        setCurrentStep(1);
+      } else if (currentStep === 4) {
+        setCurrentStep(3);
+      } else if (currentStep === 5) {
+        setCurrentStep(4);
+      } else if (currentStep === 6) {
+        setCurrentStep(5);
+      }
     } else {
-      handleLaunchAuction(); // Launch from step 6
+      if (currentStep > 1) {
+        setCurrentStep(currentStep - 1);
+      }
     }
-  } else {
-    if (currentStep < 6) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleLaunchAuction();
-    }
-  }
-  window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-  setShowValidationErrors(false);
-  setIsAnimating(false);
-};
-const handlePrevious = () => {
-  if (isAnimating) return;
-
-  setIsAnimating(true);
-  setDirection("backward");
-  setPreviousStep(currentStep);
-
-  if (formData.auctionType === "reverse") {
-    if (currentStep === 3) {
-      setCurrentStep(7);
-    } else if (currentStep === 7) {
-      setCurrentStep(1);
-    } else if (currentStep === 4) {
-      setCurrentStep(3);
-    } else if (currentStep === 5) {
-      setCurrentStep(4);
-    } else if (currentStep === 6) {
-      setCurrentStep(5);
-    }
-  } else {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  }
-window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-  setShowValidationErrors(false);
-  setIsAnimating(false);
-};
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    setShowValidationErrors(false);
+    setIsAnimating(false);
+  };
 
   const handleSaveDraft = () => {
     // In a real app, this would save to backend or localStorage
@@ -544,7 +617,10 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     let allValid = true;
     const allErrors: ValidationError[] = [];
 
-    const step1Validation = validateStep1(formData.auctionType, formData.auctionSubType);
+    const step1Validation = validateStep1(
+      formData.auctionType,
+      formData.auctionSubType
+    );
     if (!step1Validation.isValid) {
       allValid = false;
       allErrors.push(...step1Validation.errors);
@@ -571,25 +647,43 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     if (formData.isMultiLot) {
       if (formData.lots.length === 0) {
         allValid = false;
-        allErrors.push({ field: "lots", message: "Please add at least one lot" });
+        allErrors.push({
+          field: "lots",
+          message: "Please add at least one lot",
+        });
       } else {
         const invalidLots = formData.lots.filter(
-          (lot) => !lot.name || !lot.description || lot.startPrice <= 0 || lot.minimumIncrement <= 0
+          (lot) =>
+            !lot.name ||
+            !lot.description ||
+            lot.startPrice <= 0 ||
+            lot.minimumIncrement <= 0
         );
         if (invalidLots.length > 0) {
           allValid = false;
-          allErrors.push({ field: "lots", message: "Please complete all required fields for each lot" });
+          allErrors.push({
+            field: "lots",
+            message: "Please complete all required fields for each lot",
+          });
         }
       }
     } else {
-      const step3Validation = validateStep3(formData.productName, formData.productDescription, formData.auctionSubType, formData.productQuantity);
+      const step3Validation = validateStep3(
+        formData.productName,
+        formData.productDescription,
+        formData.auctionSubType,
+        formData.productQuantity
+      );
       if (!step3Validation.isValid) {
         allValid = false;
         allErrors.push(...step3Validation.errors);
       }
     }
 
-    const step4Validation = validateStep4(formData.participationType, formData.participantEmails);
+    const step4Validation = validateStep4(
+      formData.participationType,
+      formData.participantEmails
+    );
     if (!step4Validation.isValid) {
       allValid = false;
       allErrors.push(...step4Validation.errors);
@@ -603,7 +697,10 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
 
     // Validate Step 7 for reverse auctions
     if (formData.auctionType === "reverse") {
-      const step7Validation = validateStep7(formData.targetprice ?? 0, formData.requireddocuments ?? "");;
+      const step7Validation = validateStep7(
+        formData.targetprice ?? 0,
+        formData.requireddocuments ?? ""
+      );
       if (!step7Validation.isValid) {
         allValid = false;
         allErrors.push(...step7Validation.errors);
@@ -611,18 +708,21 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     }
 
     if (!allValid) {
-      console.log("Validation Errors:", allErrors); 
+      console.log("Validation Errors:", allErrors);
       setValidationErrors(allErrors);
       setShowValidationErrors(true);
       alert("Please fix all validation errors before launching the auction.");
       return;
     }
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
     if (!session) {
-  console.error("No active session");
-  return;
-}
-  const userId = session.user.id;
+      console.error("No active session");
+      return;
+    }
+    const userId = session.user.id;
     try {
       if (!user) {
         alert("Please log in to launch the auction.");
@@ -634,20 +734,29 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
         seller: userId,
         productimages: formData.productImages.map((img) => img.url),
         productdocuments: formData.productDocuments.map((doc) => doc.url || ""),
-        percent: formData.bidIncrementType === "percentage" ? formData.bidIncrementRules[0]?.incrementValue : null,
-        minimumIncrement: formData.bidIncrementType === "fixed" ? formData.bidIncrementRules[0]?.incrementValue : 0,
+        percent:
+          formData.bidIncrementType === "percentage"
+            ? formData.bidIncrementRules[0]?.incrementValue
+            : null,
+        minimumIncrement:
+          formData.bidIncrementType === "fixed"
+            ? formData.bidIncrementRules[0]?.incrementValue
+            : 0,
         targetprice: formData.targetprice, // Include targetprice if defined
         requireddocuments: formData.requireddocuments, // Include requireddocuments if defined
       };
 
-      const res = await fetch(`/api/wizard-auctions?user=${encodeURIComponent(user.email)}`, {
-        method: "POST",
-         headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`, // This is important!
-      },
-        body: JSON.stringify(formDataToSend),
-      });
+      const res = await fetch(
+        `/api/wizard-auctions?user=${encodeURIComponent(user.email)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`, // This is important!
+          },
+          body: JSON.stringify(formDataToSend),
+        }
+      );
       const result = await res.json();
 
       if (!result.success) {
@@ -661,31 +770,44 @@ window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   };
 
 const handleGoToDashboard = () => {
-  // In a real app, this would navigate to the dashboard
-  alert("Navigating to dashboard...");
-  // Reset the wizard state if needed
+  // Reset wizard state
   setIsLaunched(false);
   setCurrentStep(1);
-  // Navigate to /seller-panel
-  router.push("/dashboard/seller");
+
+  if (user?.role === "seller") {
+    router.push("/dashboard/seller");
+  } else if (user?.role === "buyer") {
+    router.push("/dashboard/buyer");
+  } else if (user?.role === "both") {
+    router.push("/dashboard");
+  } else {
+    // fallback (guest or unknown role)
+    router.push("/");
+  }
 };
 
   // Handler for uploaded images
-const handleImagesUploaded = async (newFiles: UploadedFile[]) => {
-  console.log("New files (images or videos):", newFiles); // Debug, clarified in log
-  const files = newFiles.map((file) => file.file as unknown as File); // Safer cast via unknown
-  const uploadedFiles = await handleImagesOrVideosUploaded(newFiles, uploadFiles); // Use the utility function
-  setFormData({
-    ...formData,
-    productImages: [
-      ...formData.productImages,
-      ...uploadedFiles.map((file) => ({
-        ...file,
-        url: file.url || "", // Ensure url is a string
-      }) as const), // Type assertion to enforce UploadedFile shape
-    ],
-  });
-};
+  const handleImagesUploaded = async (newFiles: UploadedFile[]) => {
+    console.log("New files (images or videos):", newFiles); // Debug, clarified in log
+    const files = newFiles.map((file) => file.file as unknown as File); // Safer cast via unknown
+    const uploadedFiles = await handleImagesOrVideosUploaded(
+      newFiles,
+      uploadFiles
+    ); // Use the utility function
+    setFormData({
+      ...formData,
+      productImages: [
+        ...formData.productImages,
+        ...uploadedFiles.map(
+          (file) =>
+          ({
+            ...file,
+            url: file.url || "", // Ensure url is a string
+          } as const)
+        ), // Type assertion to enforce UploadedFile shape
+      ],
+    });
+  };
 
   const handleDocumentsUploaded = async (newDocuments: UploadedFile[]) => {
     const files = newDocuments.map((doc) => doc.file as unknown as File); // Safer cast via unknown
@@ -694,29 +816,36 @@ const handleImagesUploaded = async (newFiles: UploadedFile[]) => {
       ...formData,
       productDocuments: [
         ...formData.productDocuments,
-        ...uploadedFiles.map((file) => ({
-          ...file,
-          url: file.url || "", // Ensure url is a string
-        }) as const), // Type assertion to enforce UploadedFile shape
+        ...uploadedFiles.map(
+          (file) =>
+          ({
+            ...file,
+            url: file.url || "", // Ensure url is a string
+          } as const)
+        ), // Type assertion to enforce UploadedFile shape
       ],
     });
   };
 
   // Handler for removed images
-const handleImageRemoved = async (fileId: string) => {
-  await removeFile(fileId);
-  setFormData({
-    ...formData,
-    productImages: formData.productImages.filter((file) => file.id !== fileId),
-  });
-};
+  const handleImageRemoved = async (fileId: string) => {
+    await removeFile(fileId);
+    setFormData({
+      ...formData,
+      productImages: formData.productImages.filter(
+        (file) => file.id !== fileId
+      ),
+    });
+  };
 
   // Handler for removed documents
   const handleDocumentRemoved = async (fileId: string) => {
     await removeDocument(fileId);
     setFormData({
       ...formData,
-      productDocuments: formData.productDocuments.filter((doc) => doc.id !== fileId),
+      productDocuments: formData.productDocuments.filter(
+        (doc) => doc.id !== fileId
+      ),
     });
   };
 
@@ -730,168 +859,185 @@ const handleImageRemoved = async (fileId: string) => {
     });
     setShowDeleteModal(true);
   };
-// Handle actual deletion after confirmation
-const handleConfirmDelete = () => {
-  if (!deletionInfo.type) return;
+  // Handle actual deletion after confirmation
+  const handleConfirmDelete = () => {
+    if (!deletionInfo.type) return;
 
-  if (deletionInfo.type === "participant") {
-    const updatedEmails = [...formData.participantEmails];
-    updatedEmails.splice(deletionInfo.index, 1);
+    if (deletionInfo.type === "participant") {
+      const updatedEmails = [...formData.participantEmails];
+      updatedEmails.splice(deletionInfo.index, 1);
+
+      setFormData({
+        ...formData,
+        participantEmails: updatedEmails,
+      });
+    }
+
+    // Close the modal and reset deletion info
+    setShowDeleteModal(false);
+    setDeletionInfo({ type: null, index: -1, name: "" });
+  };
+
+  // Cancel deletion
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeletionInfo({ type: null, index: -1, name: "" });
+  };
+
+  const handleAddParticipant = (email: string) => {
+    if (!email.trim()) {
+      setEmailError("Email cannot be empty");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    if (formData.participantEmails.includes(email)) {
+      setEmailError("This email is already added");
+      return;
+    }
 
     setFormData({
       ...formData,
-      participantEmails: updatedEmails,
+      participantEmails: [...formData.participantEmails, email],
     });
-  }
+    setEmailInput("");
+    setEmailError("");
+  };
 
-  // Close the modal and reset deletion info
-  setShowDeleteModal(false);
-  setDeletionInfo({ type: null, index: -1, name: "" });
-};
+  // Handle scheduled date and time changes
+  const handleScheduledDateChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const dateValue = e.target.value;
 
-// Cancel deletion
-const handleCancelDelete = () => {
-  setShowDeleteModal(false);
-  setDeletionInfo({ type: null, index: -1, name: "" });
-};
+    // Get the time portion from the existing scheduledStart
+    const existingDate = new Date(formData.scheduledStart);
+    const hours = existingDate.getHours().toString().padStart(2, "0");
+    const minutes = existingDate.getMinutes().toString().padStart(2, "0");
+    const timeString = `${hours}:${minutes}`;
 
-const handleAddParticipant = (email: string) => {
-  if (!email.trim()) {
-    setEmailError("Email cannot be empty");
-    return;
-  }
+    // Combine the new date with the existing time
+    const newScheduledStart = new Date(`${dateValue}T${timeString}:00`);
 
-  if (!isValidEmail(email)) {
-    setEmailError("Please enter a valid email address");
-    return;
-  }
+    setFormData({
+      ...formData,
+      scheduledStart: newScheduledStart.toISOString(),
+    });
+  };
 
-  if (formData.participantEmails.includes(email)) {
-    setEmailError("This email is already added");
-    return;
-  }
+  const handleScheduledTimeChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const timeValue = e.target.value;
 
-  setFormData({
-    ...formData,
-    participantEmails: [...formData.participantEmails, email],
-  });
-  setEmailInput("");
-  setEmailError("");
-};
+    // Get the date portion from the existing scheduledStart
+    const existingDate = new Date(formData.scheduledStart);
+    const year = existingDate.getFullYear();
+    const month = (existingDate.getMonth() + 1).toString().padStart(2, "0");
+    const day = existingDate.getDate().toString().padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
 
-// Handle scheduled date and time changes
-const handleScheduledDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const dateValue = e.target.value;
+    // Combine the existing date with the new time
+    const newScheduledStart = new Date(`${dateString}T${timeValue}:00`);
 
-  // Get the time portion from the existing scheduledStart
-  const existingDate = new Date(formData.scheduledStart);
-  const hours = existingDate.getHours().toString().padStart(2, "0");
-  const minutes = existingDate.getMinutes().toString().padStart(2, "0");
-  const timeString = `${hours}:${minutes}`;
+    setFormData({
+      ...formData,
+      scheduledStart: newScheduledStart.toISOString(),
+    });
+  };
 
-  // Combine the new date with the existing time
-  const newScheduledStart = new Date(`${dateValue}T${timeString}:00`);
+  // Format date for input fields
+  const formatDateForInput = (isoString: string): string => {
+    const date = new Date(isoString);
+    return `${date.getFullYear()}-${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+  };
 
-  setFormData({
-    ...formData,
-    scheduledStart: newScheduledStart.toISOString(),
-  });
-};
+  // Format time for input fields
+  const formatTimeForInput = (isoString: string): string => {
+    const date = new Date(isoString);
+    return `${date.getHours().toString().padStart(2, "0")}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+  };
 
-const handleScheduledTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const timeValue = e.target.value;
+  // Format date and time for display
+  const formatDateTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
-  // Get the date portion from the existing scheduledStart
-  const existingDate = new Date(formData.scheduledStart);
-  const year = existingDate.getFullYear();
-  const month = (existingDate.getMonth() + 1).toString().padStart(2, "0");
-  const day = existingDate.getDate().toString().padStart(2, "0");
-  const dateString = `${year}-${month}-${day}`;
+  // ... (AI Description Generation and remaining code would follow, but limited to 624 lines)
 
-  // Combine the existing date with the new time
-  const newScheduledStart = new Date(`${dateString}T${timeValue}:00`);
+  // AI Description Generation
+  const generateProductDescription = async () => {
+    if (!formData.productName || !formData.categoryId) return;
 
-  setFormData({
-    ...formData,
-    scheduledStart: newScheduledStart.toISOString(),
-  });
-};
+    // Check if API key is available
+    if (!apiKey) {
+      setShowApiKeySetup(true);
+      return;
+    }
 
-// Format date for input fields
-const formatDateForInput = (isoString: string): string => {
-  const date = new Date(isoString);
-  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
-};
+    setIsGeneratingDescription(true);
+    setShowAiSuggestion(false);
 
-// Format time for input fields
-const formatTimeForInput = (isoString: string): string => {
-  const date = new Date(isoString);
-  return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-};
+    try {
+      // Get category name for context
+      const categoryName =
+        PRODUCT_CATEGORIES.find((cat) => cat.id === formData.categoryId)
+          ?.name || "product";
+      const subCategoryName = formData.subCategoryId
+        ? PRODUCT_CATEGORIES.find(
+          (cat) => cat.id === formData.categoryId
+        )?.subcategories?.find((sub) => sub.id === formData.subCategoryId)
+          ?.name
+        : "";
 
-// Format date and time for display
-const formatDateTime = (isoString: string): string => {
-  const date = new Date(isoString);
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
+      // Build comprehensive context from available product information
+      const productContext = {
+        name: formData.productName,
+        category: categoryName,
+        subCategory: subCategoryName || "",
+        brand: formData.brand || "",
+        model: formData.model || "",
+        sku: formData.sku || "",
+        auctionType: formData.auctionType,
+        attributes: formData.attributes
+          .filter((attr) => attr.value)
+          .map((attr) => `${attr.name}: ${attr.value}`)
+          .join(", "),
+      };
 
-// ... (AI Description Generation and remaining code would follow, but limited to 624 lines)
-
-// AI Description Generation
-const generateProductDescription = async () => {
-  if (!formData.productName || !formData.categoryId) return;
-
-  // Check if API key is available
-  if (!apiKey) {
-    setShowApiKeySetup(true);
-    return;
-  }
-
-  setIsGeneratingDescription(true);
-  setShowAiSuggestion(false);
-
-  try {
-    // Get category name for context
-    const categoryName = PRODUCT_CATEGORIES.find((cat) => cat.id === formData.categoryId)?.name || "product";
-    const subCategoryName = formData.subCategoryId
-      ? PRODUCT_CATEGORIES.find((cat) => cat.id === formData.categoryId)?.subcategories?.find(
-          (sub) => sub.id === formData.subCategoryId,
-        )?.name
-      : "";
-
-    // Build comprehensive context from available product information
-    const productContext = {
-      name: formData.productName,
-      category: categoryName,
-      subCategory: subCategoryName || "",
-      brand: formData.brand || "",
-      model: formData.model || "",
-      sku: formData.sku || "",
-      auctionType: formData.auctionType,
-      attributes: formData.attributes
-        .filter((attr) => attr.value)
-        .map((attr) => `${attr.name}: ${attr.value}`)
-        .join(", "),
-    };
-
-    // Enhanced prompt for GPT-4 Turbo with more specific instructions
-    const prompt = `Generate a compelling, professional product description for a ${formData.auctionType} auction listing.
+      // Enhanced prompt for GPT-4 Turbo with more specific instructions
+      const prompt = `Generate a compelling, professional product description for a ${formData.auctionType
+        } auction listing.
 
 PRODUCT DETAILS:
 - Name: ${productContext.name}
-- Category: ${productContext.category}${productContext.subCategory ? ` > ${productContext.subCategory}` : ""}
+- Category: ${productContext.category}${productContext.subCategory ? ` > ${productContext.subCategory}` : ""
+        }
 ${productContext.brand ? `- Brand: ${productContext.brand}` : ""}
 ${productContext.model ? `- Model: ${productContext.model}` : ""}
 ${productContext.sku ? `- SKU: ${productContext.sku}` : ""}
 ${productContext.attributes ? `- Features: ${productContext.attributes}` : ""}
-- Auction Type: ${formData.auctionType === "forward" ? "Forward Auction (buyers bid up)" : "Reverse Auction (suppliers bid down)"}
+- Auction Type: ${formData.auctionType === "forward"
+          ? "Forward Auction (buyers bid up)"
+          : "Reverse Auction (suppliers bid down)"
+        }
 
 REQUIREMENTS:
 - Write 150-200 words
@@ -905,144 +1051,167 @@ REQUIREMENTS:
 
 TONE: Professional, confident, and engaging
 FORMAT: Single paragraph, no bullet points
-FOCUS: ${formData.auctionType === "reverse" ? "Emphasize specifications and requirements for suppliers" : "Emphasize benefits and value for buyers"}`;
+FOCUS: ${formData.auctionType === "reverse"
+          ? "Emphasize specifications and requirements for suppliers"
+          : "Emphasize benefits and value for buyers"
+        }`;
 
-    const { text } = await generateText({
-      model: openai("gpt-4-turbo", {
-        apiKey: apiKey,
-      }),
-      prompt: prompt,
-      system:
-        "You are an expert auction copywriter specializing in creating high-converting product descriptions that maximize bidding activity and final sale prices. You understand buyer psychology and auction dynamics.",
-      maxTokens: 300,
-      temperature: 0.7,
-    });
+      const { text } = await generateText({
+        model: openai("gpt-4-turbo", {
+          apiKey: apiKey,
+        }),
+        prompt: prompt,
+        system:
+          "You are an expert auction copywriter specializing in creating high-converting product descriptions that maximize bidding activity and final sale prices. You understand buyer psychology and auction dynamics.",
+        maxTokens: 300,
+        temperature: 0.7,
+      });
 
-    setAiGeneratedDescription(text.trim());
-    setShowAiSuggestion(true);
-    setHasUserSeenAiSuggestion(true);
-  } catch (error: any) {
-    console.error("Error generating description:", error);
-    // Enhanced error handling with user-friendly messages
-    if (error.message?.includes("API key") || error.message?.includes("Unauthorized")) {
-      alert("Invalid API key. Please check your OpenAI API key and try again.");
-      setShowApiKeySetup(true);
-    } else if (error.message?.includes("rate limit")) {
-      alert("AI service is temporarily busy. Please try again in a moment.");
-    } else if (error.message?.includes("model")) {
-      alert("AI model temporarily unavailable. Please try again or write your description manually.");
-    } else {
-      alert("Unable to generate description at this time. Please write your own description.");
-    }
-  } finally {
-    setIsGeneratingDescription(false);
-  }
-};
-
-// Handle AI suggestion acceptance
-const handleAcceptAiDescription = () => {
-  setFormData({
-    ...formData,
-    productDescription: aiGeneratedDescription,
-  });
-  setShowAiSuggestion(false);
-  setAiGeneratedDescription("");
-};
-
-// Handle AI suggestion rejection
-const handleRejectAiDescription = () => {
-  setShowAiSuggestion(false);
-  setAiGeneratedDescription("");
-  // Focus on the description textarea
-  setTimeout(() => {
-    productDescriptionRef.current?.focus();
-  }, 100);
-};
-
-// Auto-generate description when key fields change
-useEffect(() => {
-  // Only auto-generate if we have minimum required information
-  const hasMinimumInfo =
-    formData.productName &&
-    formData.categoryId &&
-    formData.productName.length >= 3 &&
-    !formData.productDescription &&
-    !hasUserSeenAiSuggestion &&
-    !isGeneratingDescription &&
-    currentStep === 2 &&
-    !formData.isMultiLot &&
-    apiKey;
-
-  if (hasMinimumInfo) {
-    // Enhanced debouncing - wait for user to finish typing
-    const timer = setTimeout(() => {
-      // Double-check conditions haven't changed during debounce
-      if (formData.productName && formData.categoryId && !formData.productDescription && !isGeneratingDescription) {
-        generateProductDescription();
+      setAiGeneratedDescription(text.trim());
+      setShowAiSuggestion(true);
+      setHasUserSeenAiSuggestion(true);
+    } catch (error: any) {
+      console.error("Error generating description:", error);
+      // Enhanced error handling with user-friendly messages
+      if (
+        error.message?.includes("API key") ||
+        error.message?.includes("Unauthorized")
+      ) {
+        alert(
+          "Invalid API key. Please check your OpenAI API key and try again."
+        );
+        setShowApiKeySetup(true);
+      } else if (error.message?.includes("rate limit")) {
+        alert("AI service is temporarily busy. Please try again in a moment.");
+      } else if (error.message?.includes("model")) {
+        alert(
+          "AI model temporarily unavailable. Please try again or write your description manually."
+        );
+      } else {
+        alert(
+          "Unable to generate description at this time. Please write your own description."
+        );
       }
-    }, 1000); // 1 second debounce as requested
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }
-}, [
-  formData.productName,
-  formData.categoryId,
-  formData.subCategoryId,
-  formData.brand,
-  formData.model,
-  formData.attributes,
-  formData.auctionType,
-  currentStep,
-  formData.isMultiLot,
-  apiKey,
-]);
+  // Handle AI suggestion acceptance
+  const handleAcceptAiDescription = () => {
+    setFormData({
+      ...formData,
+      productDescription: aiGeneratedDescription,
+    });
+    setShowAiSuggestion(false);
+    setAiGeneratedDescription("");
+  };
 
-// Get animation classes based on direction and animation state
-const getAnimationClasses = () => {
-  if (!isAnimating) return "opacity-100";
+  // Handle AI suggestion rejection
+  const handleRejectAiDescription = () => {
+    setShowAiSuggestion(false);
+    setAiGeneratedDescription("");
+    // Focus on the description textarea
+    setTimeout(() => {
+      productDescriptionRef.current?.focus();
+    }, 100);
+  };
 
-  return direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left";
-};
+  // Auto-generate description when key fields change
+  useEffect(() => {
+    // Only auto-generate if we have minimum required information
+    const hasMinimumInfo =
+      formData.productName &&
+      formData.categoryId &&
+      formData.productName.length >= 3 &&
+      !formData.productDescription &&
+      !hasUserSeenAiSuggestion &&
+      !isGeneratingDescription &&
+      currentStep === 2 &&
+      !formData.isMultiLot &&
+      apiKey;
 
-// Error message component
-const ErrorMessage = ({ message }: { message: string }) => (
-  <div className="flex items-center mt-1 text-destructive-600 dark:text-destructive-400 text-sm">
-    <AlertCircle className="h-4 w-4 mr-1" />
-    <span>{message}</span>
-  </div>
-);
+    if (hasMinimumInfo) {
+      // Enhanced debouncing - wait for user to finish typing
+      const timer = setTimeout(() => {
+        // Double-check conditions haven't changed during debounce
+        if (
+          formData.productName &&
+          formData.categoryId &&
+          !formData.productDescription &&
+          !isGeneratingDescription
+        ) {
+          generateProductDescription();
+        }
+      }, 1000); // 1 second debounce as requested
 
-// Get currency symbol
-const getCurrencySymbol = (currency: Currency) => {
-  switch (currency) {
-    case "USD":
-      return "$";
-    case "EUR":
-      return "€";
-    case "GBP":
-      return "£";
-    case "JPY":
-      return "¥";
-    case "INR":
-      return "₹";
-    case "AUD":
-      return "A$";
-    case "CAD":
-      return "C$";
-    case "CNY":
-      return "¥";
-    default:
-      return "$";
-  }
-};
+      return () => clearTimeout(timer);
+    }
+  }, [
+    formData.productName,
+    formData.categoryId,
+    formData.subCategoryId,
+    formData.brand,
+    formData.model,
+    formData.attributes,
+    formData.auctionType,
+    currentStep,
+    formData.isMultiLot,
+    apiKey,
+  ]);
 
-// Updated render section with translations
+  // Get animation classes based on direction and animation state
+  const getAnimationClasses = () => {
+    if (!isAnimating) return "opacity-100";
+
+    return direction === "forward"
+      ? "animate-slide-in-right"
+      : "animate-slide-in-left";
+  };
+
+  // Error message component
+  const ErrorMessage = ({ message }: { message: string }) => (
+    <div className="flex items-center mt-1 text-destructive-600 dark:text-destructive-400 text-sm">
+      <AlertCircle className="h-4 w-4 mr-1" />
+      <span>{message}</span>
+    </div>
+  );
+
+  // Get currency symbol
+  const getCurrencySymbol = (currency: Currency) => {
+    switch (currency) {
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      case "JPY":
+        return "¥";
+      case "INR":
+        return "₹";
+      case "AUD":
+        return "A$";
+      case "CAD":
+        return "C$";
+      case "CNY":
+        return "¥";
+      default:
+        return "$";
+    }
+  };
+
+  // Updated render section with translations
   return (
-    <div className={`min-h-screen p-4 md:p-16 transition-colors duration-300 ${inter.className}`}>
+    <div
+      className={`min-h-screen p-4 md:p-16 transition-colors duration-300 ${inter.className}`}
+    >
       <div className="card">
         {/* Header with Theme Toggle */}
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("auctionBuilder")}</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {t("auctionBuilder")}
+          </h1>
           <div className="flex items-center space-x-2">
             {/* <div className="mr-2">
               <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
@@ -1053,471 +1222,500 @@ const getCurrencySymbol = (currency: Currency) => {
         {/* Progress Indicator - Update step labels */}
         <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
           <div className="flex items-center justify-between">
-            {[1, 2, 3,4, formData.auctionType === "reverse" ? 5 : 6].map((step) => (
-              <div key={step} className="flex flex-col items-center">
+            {[1, 2, 3, 4, formData.auctionType === "reverse" ? 5 : 6].map(
+              (step) => (
+                <div key={step} className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all-smooth
+                  ${currentStep === step
+                        ? "border-corporate-600 bg-corporate-600 text-white dark:border-corporate-500 dark:bg-corporate-500"
+                        : currentStep > step
+                          ? "border-corporate-600 bg-white text-corporate-600 dark:border-corporate-500 dark:bg-gray-800 dark:text-corporate-500"
+                          : "border-gray-300 bg-white text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-500"
+                      }`}
+                  >
+                    {currentStep > step ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      step
+                    )}
+                  </div>
+                  <span
+                    className={`mt-2 text-xs hidden sm:block transition-colors-smooth ${currentStep >= step
+                        ? "text-corporate-600 dark:text-corporate-500"
+                        : "text-gray-400 dark:text-gray-500"
+                      }`}
+                  >
+                    {step === 1 && t("type")}
+                    {step === 2 && t("product")}
+                    {step === 3 && "Auction"}
+                    {step === 4 && "Participants"}
+                    {/* {step === 5 && t("terms")} */}
+                    {step === 5 && t("reverseDetails")}{" "}
+                    {/* New label for Step 7 */}
+                    {step === 6 && t("summary")}
+                  </span>
+                </div>
+              )
+            )}
+          </div>
+          <div className="relative mt-2">
+            <div className="absolute top-0 left-0 h-1 bg-gray-200 dark:bg-gray-700 w-full rounded-full">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all-smooth
-                  ${
-                    currentStep === step
-                      ? "border-corporate-600 bg-corporate-600 text-white dark:border-corporate-500 dark:bg-corporate-500"
-                      : currentStep > step
-                        ? "border-corporate-600 bg-white text-corporate-600 dark:border-corporate-500 dark:bg-gray-800 dark:text-corporate-500"
-                        : "border-gray-300 bg-white text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-500"
-                  }`}
-              >
-                {currentStep > step ? <CheckCircle className="w-5 h-5" /> : step}
+                className="h-1 bg-corporate-600 dark:bg-corporate-500 rounded-full transition-all duration-500 ease-in-out"
+                style={{
+                  width: `${(currentStep - 1) *
+                    (100 / (formData.auctionType === "reverse" ? 5 : 4))
+                    }%`,
+                }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        {/* API Key Setup Modal */}
+        {showApiKeySetup && (
+          <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                Setup OpenAI API Key
+              </h2>
+              <ApiKeySetup
+                onApiKeySet={handleApiKeySet}
+                currentApiKey={apiKey}
+              />
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => setShowApiKeySetup(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
-              <span
-                className={`mt-2 text-xs hidden sm:block transition-colors-smooth ${
-                  currentStep >= step
-                    ? "text-corporate-600 dark:text-corporate-500"
-                    : "text-gray-400 dark:text-gray-500"
-                }`}
-              >
-                {step === 1 && t("type")}
-                {step === 2 && t("product")}
-                {step === 3 && t("bidding")}
-                {step === 4 && t("rules")}
-                {/* {step === 5 && t("terms")} */}
-                {step === 5 && t("reverseDetails")} {/* New label for Step 7 */}
-                {step === 6 && t("summary")}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="relative mt-2">
-          <div className="absolute top-0 left-0 h-1 bg-gray-200 dark:bg-gray-700 w-full rounded-full">
-            <div
-              className="h-1 bg-corporate-600 dark:bg-corporate-500 rounded-full transition-all duration-500 ease-in-out"
-              style={{ width: `${(currentStep - 1) * (100 / (formData.auctionType === "reverse" ? 5 : 4))}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* API Key Setup Modal */}
-      {showApiKeySetup && (
-        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">Setup OpenAI API Key</h2>
-            <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowApiKeySetup(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Validation Error Summary */}
-      {showValidationErrors && validationErrors.length > 0 && (
-        <div className="bg-destructive-50 dark:bg-destructive-900/20 border border-destructive-200 dark:border-destructive-800 text-destructive-700 dark:text-destructive-300 p-4 m-4 rounded-md animate-fade-in">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-medium">{t("pleaseFixErrors")}</h3>
-              <ul className="mt-1 list-disc list-inside text-sm">
-                {validationErrors.map((error, index) => (
-                  <li key={index}>{error.message}</li>
-                ))}
-              </ul>
+        {/* Validation Error Summary */}
+        {showValidationErrors && validationErrors.length > 0 && (
+          <div className="bg-destructive-50 dark:bg-destructive-900/20 border border-destructive-200 dark:border-destructive-800 text-destructive-700 dark:text-destructive-300 p-4 m-4 rounded-md animate-fade-in">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium">{t("pleaseFixErrors")}</h3>
+                <ul className="mt-1 list-disc list-inside text-sm">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>{error.message}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Form Content */}
-      <div className="p-6 relative overflow-hidden bg-white dark:bg-gray-800 transition-colors duration-300">
-        <div className={getAnimationClasses()}>
-          {/* Step 1: Auction Type */}
-{currentStep === 1 && (
-  <div className="space-y-6">
-    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("selectAuctionType")}<span className= "text-base text-destructive-500"> *</span></h2>
+        {/* Form Content */}
+        <div className="p-6 relative overflow-hidden bg-white dark:bg-gray-800 transition-colors duration-300">
+          <div className={getAnimationClasses()}>
+            {/* Step 1: Auction Type */}
+            {/* <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("selectAuctionType")}<span className= "text-base text-destructive-500"> *</span></h2> */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-    <div className="space-y-4">
-      {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("auctionDirection")} <span className="text-destructive-500">*</span>
-      </label> */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionType === "forward"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${hasError("auctionType") ? "border-destructive-500 dark:border-destructive-400" : ""}`}
-          onClick={() => setFormData({ ...formData, auctionType: "forward" })}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-md dark:text-gray-100">{t("forwardAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("forwardAuctionDesc")}</p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                formData.auctionType === "forward"
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {formData.auctionType === "forward" && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
-          </div>
-        </div>
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionType === "reverse"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${hasError("auctionType") ? "border-destructive-500 dark:border-destructive-400" : ""}`}
-          onClick={() => setFormData({ ...formData, auctionType: "reverse" })}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium dark:text-gray-100">{t("reverseAuction")}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("reverseAuctionDesc")}<br /><span className="text-xs text-gray-400">Includes an additional step for target price and required documents.</span></p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                formData.auctionType === "reverse"
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {formData.auctionType === "reverse" && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
-          </div>
-        </div>
-          {/* <label
-        className="block text-md font-medium text-gray-700 dark:text-gray-300 md:col-start-2 md:row-start-2"
-      >
-        Auction Format <span className="text-destructive-500">*</span>
-      </label> */}
-      </div>
-      {hasError("auctionType") && <ErrorMessage message={getErrorMessage("auctionType")} />}
-    </div>
+                    {user?.role !== "buyer" && (
+                       <div className="md:col-span-1">
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+                       ${formData.auctionType === "forward"
+                            ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                            : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                          } ${hasError("auctionType")
+                            ? "border-destructive-500 dark:border-destructive-400"
+                            : ""
+                          }`}
+                        onClick={() =>
+                          setFormData({ ...formData, auctionType: "forward" })
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-md dark:text-gray-100">
+                              {t("forwardAuction")}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {t("forwardAuctionDesc")}
+                            </p>
+                          </div>
+                          <div
+                            className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.auctionType === "forward"
+                                ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                                : "border-gray-300 dark:border-gray-600"
+                              }`}
+                          >
+                            {formData.auctionType === "forward" && (
+                              <CheckCircle className="w-5 h-5 text-white" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                       </div>
+                    )}
+                    {/* reverse card */}
+                       {user?.role !== "seller" && (
+                    <div
+                      className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${formData.auctionType === "reverse"
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        } ${hasError("auctionType")
+                          ? "border-destructive-500 dark:border-destructive-400"
+                          : ""
+                        }`}
+                      onClick={() =>
+                        setFormData({ ...formData, auctionType: "reverse" })
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("reverseAuction")}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {t("reverseAuctionDesc")}
+                            <br />
+                            <span className="text-xs text-gray-400">
+                              Includes an additional step for target price and
+                              required documents.
+                            </span>
+                          </p>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.auctionType === "reverse"
+                              ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                              : "border-gray-300 dark:border-gray-600"
+                            }`}
+                        >
+                          {formData.auctionType === "reverse" && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                       )}
+                  {hasError("auctionType") && (
+                    <ErrorMessage message={getErrorMessage("auctionType")} />
+                  )}
+                </div>
 
-   <div className="space-y-4">
+                <div className="space-y-4">
+                  <label className="block text-xl font-bold text-gray-800 dark:text-gray-300">
+                    Select Auction Format{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
 
-  <label className="block text-xl font-bold text-gray-800 dark:text-gray-300">
-    Select Auction Format <span className="text-destructive-500">*</span>
-  </label>
+                  {user?.role !== "buyer" &&
+                    formData.auctionType === "forward" && (
+                      <div className="grid grid-cols-1 gap-4 max-w-[50%]">
+                        <>
+                          <div
+                            className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+                              ${formData.auctionSubType === "english"
+                                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                              } ${hasError("auctionSubType")
+                                ? "border-destructive-500 dark:border-destructive-400"
+                                : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                auctionSubType: "english",
+                              })
+                            }
+                          >
+                            <h3 className="font-medium dark:text-gray-100">
+                              {t("englishAuction")}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {t("englishAuctionDesc")}
+                            </p>
+                          </div>
 
+                          <div
+                            className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+                              ${formData.auctionSubType === "silent"
+                                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                              } ${hasError("auctionSubType")
+                                ? "border-destructive-500 dark:border-destructive-400"
+                                : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                auctionSubType: "silent",
+                              })
+                            }
+                          >
+                            <h3 className="font-medium dark:text-gray-100">
+                              {t("silentAuction")}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {t("silentAuctionDesc")}
+                            </p>
+                          </div>
 
-  <div className="grid grid-cols-1 gap-4 max-w-[50%]">
-    {formData.auctionType === "forward" && (
-      <>
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionSubType === "english"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "english" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("englishAuction")}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("englishAuctionDesc")}
-          </p>
-        </div>
-
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionSubType === "silent"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "silent" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("silentAuction")}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("silentAuctionDesc")}
-          </p>
-        </div>
-
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionSubType === "sealed"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "sealed" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("sealedBidAuction")}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("sealedBidAuctionDesc")}
-          </p>
-        </div>
-      </>
-    )}
-</div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {formData.auctionType === "reverse" && (
-      <>
-      <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
-            ${
-              formData.auctionSubType === "standard"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "standard" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("standardReverseAuction")}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("standardReverseAuctionDesc")}
-          </p>
-        </div>
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
-            ${
-              formData.auctionSubType === "reverse-clock"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "reverse-clock" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("reverseClockAuction")}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("reverseClockAuctionDesc")}
-          </p>
-        </div>
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  md:col-start-2 md:col-end-3
-            ${
-              formData.auctionSubType === "sealed-bid"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "sealed-bid" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {"Sealed Reverse Auction"}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("sealedBidReverseDesc")}
-          </p>
-        </div>
-
-        
-
-        
-
-        {/* <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.auctionSubType === "japanese"
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            } ${
-              hasError("auctionSubType")
-                ? "border-destructive-500 dark:border-destructive-400"
-                : ""
-            }`}
-          onClick={() =>
-            setFormData({ ...formData, auctionSubType: "japanese" })
-          }
-        >
-          <h3 className="font-medium dark:text-gray-100">
-            {t("japaneseReverseAuction")}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t("japaneseReverseAuctionDesc")}
-          </p>
-        </div> */}
-      </>
-    )}
-</div>
-
-  {hasError("auctionSubType") && (
-    <ErrorMessage message={getErrorMessage("auctionSubType")} />
-  )}
-</div>
-
-  </div>
-)}
+                          <div
+                            className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+                                ${formData.auctionSubType === "sealed"
+                                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                              } ${hasError("auctionSubType")
+                                ? "border-destructive-500 dark:border-destructive-400"
+                                : ""
+                              }`}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                auctionSubType: "sealed",
+                              })
+                            }
+                          >
+                            <h3 className="font-medium dark:text-gray-100">
+                              {t("sealedBidAuction")}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {t("sealedBidAuctionDesc")}
+                            </p>
+                          </div>
+                        </>
+                      </div>
+                    )}
+                  {/* reverse auction subtype */}
+                  {user?.role === "buyer" && formData.auctionType === "reverse" &&  (
+            
+                     <div className="grid grid-cols-1 gap-4 max-w-[50%]">
+                      <>
+                        <div
+                          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+                            ${formData.auctionSubType === "standard"
+                              ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                              : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                            } ${hasError("auctionSubType")
+                              ? "border-destructive-500 dark:border-destructive-400"
+                              : ""
+                            }`}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              auctionSubType: "standard",
+                            })
+                          }
+                        >
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("standardReverseAuction")}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {t("standardReverseAuctionDesc")}
+                          </p>
+                        </div>
+                        <div
+                          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  
+                           ${formData.auctionSubType === "ranked"
+                              ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                              : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                            } ${hasError("auctionSubType")
+                              ? "border-destructive-500 dark:border-destructive-400"
+                              : ""
+                            }`}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              auctionSubType: "ranked",
+                            })
+                          }
+                        >
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("reverseClockAuction")}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {t("reverseClockAuctionDesc")}
+                          </p>
+                        </div>
+                        <div
+                          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale  
+                                ${formData.auctionSubType === "sealed-bid"
+                              ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                              : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                            } ${hasError("auctionSubType")
+                              ? "border-destructive-500 dark:border-destructive-400"
+                              : ""
+                            }`}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              auctionSubType: "sealed-bid",
+                            })
+                          }
+                        >
+                          <h3 className="font-medium dark:text-gray-100">
+                            {"Sealed Reverse Auction"}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {t("sealedBidReverseDesc")}
+                          </p>
+                        </div>
+                      </>
+                    </div>
+                    
+                  )}
+                  {hasError("auctionSubType") && (
+                    <ErrorMessage message={getErrorMessage("auctionSubType")} />
+                  )}
+                </div>
+              </div>
+                </div>
+            )}
             {/* Step 2: Product/Lot Details (moved from step 3) */}
-{currentStep === 2 && (
-  <div className="space-y-6">
-    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("productDetails")}</h2>
-    {/* API Key Setup Banner */}
-    {/* {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />} */}
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Left side: Name + SKU stacked */}
-      <div className="space-y-4">
-        {/* Product Name */}
-        <div>
-          <label
-            htmlFor="productName"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            {t("productName")} <span className="text-destructive-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="productName"
-            ref={productNameRef}
-            className={`form-input ${
-              hasError("productName")
-                ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-                : ""
-            }`}
-            placeholder={t("enterProductName")}
-            value={formData.productName}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                productName: e.target.value,
-              })
-            }
-          />
-          {hasError("productName") && (
-            <ErrorMessage message={getErrorMessage("productName")} />
-          )}
-        </div>
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {t("productDetails")}
+                </h2>
+                {/* API Key Setup Banner */}
+                {/* {!apiKey && <ApiKeySetup onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />} */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left side: Name + SKU stacked */}
+                  <div className="space-y-4">
+                    {/* Product Name */}
+                    <div>
+                      <label
+                        htmlFor="productName"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        {t("productName")}{" "}
+                        <span className="text-destructive-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="productName"
+                        ref={productNameRef}
+                        className={`form-input ${hasError("productName")
+                            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                            : ""
+                          }`}
+                        placeholder={t("enterProductName")}
+                        value={formData.productName}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            productName: e.target.value,
+                          })
+                        }
+                      />
+                      {hasError("productName") && (
+                        <ErrorMessage
+                          message={getErrorMessage("productName")}
+                        />
+                      )}
+                    </div>
 
-        {/* SKU */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            SKU / Product Code
-          </label>
-          <input
-            type="text"
-            value={formData.sku || ""}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                sku: e.target.value,
-              })
-            }
-            placeholder="Enter SKU or product code"
-            className="form-input"
-          />
-        </div>
-      </div>
+                    {/* SKU */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        SKU / Product Code
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.sku || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            sku: e.target.value,
+                          })
+                        }
+                        placeholder="Enter SKU or product code"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
 
-      {/* Right side: Description */}
-      <div>
-        <label
-          htmlFor="productDescription"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-        >
-          {t("productDescription")} <span className="text-destructive-500">*</span>
-        </label>
-        <textarea
-          id="productDescription"
-          ref={productDescriptionRef}
-          rows={5}
-          className={`form-input ${
-            hasError("productDescription")
-              ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-              : ""
-          }`}
-          placeholder={t("enterProductDescription")}
-          value={formData.productDescription}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              productDescription: e.target.value,
-            })
-          }
-        />
-        {hasError("productDescription") && (
-          <ErrorMessage message={getErrorMessage("productDescription")} />
-        )}
+                  {/* Right side: Description */}
+                  <div>
+                    <label
+                      htmlFor="productDescription"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      {t("productDescription")}{" "}
+                      <span className="text-destructive-500">*</span>
+                    </label>
+                    <textarea
+                      id="productDescription"
+                      ref={productDescriptionRef}
+                      rows={5}
+                      className={`form-input ${hasError("productDescription")
+                          ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                          : ""
+                        }`}
+                      placeholder={t("enterProductDescription")}
+                      value={formData.productDescription}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          productDescription: e.target.value,
+                        })
+                      }
+                    />
+                    {hasError("productDescription") && (
+                      <ErrorMessage
+                        message={getErrorMessage("productDescription")}
+                      />
+                    )}
 
-        {formData.productDescription && (
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {formData.productDescription.length} characters
-          </div>
-        )}
-      </div>
-    </div>
-    {formData.auctionSubType === "yankee" && (
-  <div>
-    <label
-      htmlFor="productQuantity"
-      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-    >
-      Quantity <span className="text-destructive-500">*</span>
-    </label>
-    <input
-      type="number"
-      id="productQuantity"
-      min={1}
-      className={`form-input ${
-        hasError("productQuantity")
-          ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-          : ""
-      }`}
-      placeholder="Enter quantity"
-      value={formData.productQuantity || ""}
-      onChange={(e) =>
-        setFormData({
-          ...formData,
-          productQuantity: e.target.value === "" ? undefined : parseInt(e.target.value),
-        })
-      }
-    />
-    {hasError("productQuantity") && <ErrorMessage message={getErrorMessage("productQuantity")} />}
-  </div>
-
-)}
-{/* <div className="dark:bg-gray-800 p-1 rounded-lg -mt-8"> 
+                    {formData.productDescription && (
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {formData.productDescription.length} characters
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {formData.auctionSubType === "yankee" && (
+                  <div>
+                    <label
+                      htmlFor="productQuantity"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Quantity <span className="text-destructive-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="productQuantity"
+                      min={1}
+                      className={`form-input ${hasError("productQuantity")
+                          ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                          : ""
+                        }`}
+                      placeholder="Enter quantity"
+                      value={formData.productQuantity || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          productQuantity:
+                            e.target.value === ""
+                              ? undefined
+                              : parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    {hasError("productQuantity") && (
+                      <ErrorMessage
+                        message={getErrorMessage("productQuantity")}
+                      />
+                    )}
+                  </div>
+                )}
+                {/* <div className="dark:bg-gray-800 p-1 rounded-lg -mt-8"> 
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div className="w-full md:w-2/3 lg:w-1/2">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1539,8 +1737,7 @@ const getCurrencySymbol = (currency: Currency) => {
   </div>
 </div> */}
 
-   
-      {/* <div className="flex items-center justify-between mb-1">
+                {/* <div className="flex items-center justify-between mb-1">
         <label
           htmlFor="productDescription"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -1606,8 +1803,8 @@ const getCurrencySymbol = (currency: Currency) => {
         </div>
       </div> */}
 
-      {/* Enhanced AI Suggestion Modal with Loading Spinner */}
-      {/* {showAiSuggestion && aiGeneratedDescription && (
+                {/* Enhanced AI Suggestion Modal with Loading Spinner */}
+                {/* {showAiSuggestion && aiGeneratedDescription && (
         <div className="mb-4 p-4 border border-corporate-200 dark:border-corporate-700 rounded-lg bg-gradient-to-r from-corporate-50 to-blue-50 dark:from-corporate-900/30 dark:to-blue-900/30 animate-fade-in shadow-sm">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center">
@@ -1689,8 +1886,8 @@ const getCurrencySymbol = (currency: Currency) => {
         </div>
       )} */}
 
-      {/* Enhanced Loading State */}
-      {/* {isGeneratingDescription && (
+                {/* Enhanced Loading State */}
+                {/* {isGeneratingDescription && (
         <div className="mb-4 p-4 border border-corporate-200 dark:border-corporate-700 rounded-lg bg-gradient-to-r from-corporate-50 to-blue-50 dark:from-corporate-900/30 dark:to-blue-900/30 animate-pulse">
           <div className="flex items-center">
             <div className="flex items-center justify-center w-8 h-8 bg-corporate-100 dark:bg-corporate-800 rounded-full mr-3">
@@ -1715,81 +1912,94 @@ const getCurrencySymbol = (currency: Currency) => {
         </div>
       )} */}
 
-      
+                {/* Product Classification */}
+                <ProductClassification
+                  categoryId={formData.categoryId}
+                  subCategoryId={formData.subCategoryId}
+                  attributes={formData.attributes}
+                  // sku={formData.sku}
+                  brand={formData.brand}
+                  model={formData.model}
+                  onCategoryChange={(categoryId, subCategoryId) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      categoryId,
+                      subCategoryId,
+                    }))
+                  }
+                  onAttributesChange={(attributes) =>
+                    setFormData((prev) => ({ ...prev, attributes }))
+                  }
+                  onSkuChange={(sku) =>
+                    setFormData((prev) => ({ ...prev, sku }))
+                  }
+                  onBrandChange={(brand) =>
+                    setFormData((prev) => ({ ...prev, brand }))
+                  }
+                  onModelChange={(model) =>
+                    setFormData((prev) => ({ ...prev, model }))
+                  }
+                />
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                  Product Media & Documents
+                </h3>
+                <div className="flex gap-6">
+                  {/* Product Images */}
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t("productImages")}
+                    </label>
+                    <FileUploader
+                      accept="image/*,video/mp4,video/webm,video/quicktime"
+                      type="media"
+                      uploadedFiles={formData.productImages}
+                      onFilesUploaded={handleImagesUploaded}
+                      onFileRemoved={handleImageRemoved}
+                    />
+                  </div>
 
-    {/* Product Classification */}
-    <ProductClassification
-      categoryId={formData.categoryId}
-      subCategoryId={formData.subCategoryId}
-      attributes={formData.attributes}
-      // sku={formData.sku}
-      brand={formData.brand}
-      model={formData.model}
-      onCategoryChange={(categoryId, subCategoryId) =>
-        setFormData((prev) => ({ ...prev, categoryId, subCategoryId }))
-      }
-      onAttributesChange={(attributes) => setFormData((prev) => ({ ...prev, attributes }))}
-      onSkuChange={(sku) => setFormData((prev) => ({ ...prev, sku }))}
-      onBrandChange={(brand) => setFormData((prev) => ({ ...prev, brand }))}
-      onModelChange={(model) => setFormData((prev) => ({ ...prev, model }))}
-    />
-<h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Product Media & Documents</h3>
-    <div className="flex gap-6">
-  {/* Product Images */}
-  <div className="w-1/2">
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      {t("productImages")}
-    </label>
-    <FileUploader
-      accept="image/*,video/mp4,video/webm,video/quicktime"
-      type="media"
-      uploadedFiles={formData.productImages}
-      onFilesUploaded={handleImagesUploaded}
-      onFileRemoved={handleImageRemoved}
-    />
-  </div>
+                  {/* Product Documents */}
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t("productDocuments")}
+                    </label>
+                    <FileUploader
+                      accept="application/*,text/*"
+                      maxFiles={10}
+                      maxSize={10 * 1024 * 1024} // 10MB
+                      uploadedFiles={formData.productDocuments}
+                      onFilesUploaded={handleDocumentsUploaded}
+                      onFileRemoved={handleDocumentRemoved}
+                      type="document"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
-  {/* Product Documents */}
-  <div className="w-1/2">
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-      {t("productDocuments")}
-    </label>
-    <FileUploader
-      accept="application/*,text/*"
-      maxFiles={10}
-      maxSize={10 * 1024 * 1024} // 10MB
-      uploadedFiles={formData.productDocuments}
-      onFilesUploaded={handleDocumentsUploaded}
-      onFileRemoved={handleDocumentRemoved}
-      type="document"
-    />
-  </div>
-</div>
+            {/* Step 3: Bidding Parameters */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {t("biddingParameters")}
+                </h2>
 
-  </div>
-)}
-
-  {/* Step 3: Bidding Parameters */}
-{currentStep === 3 && (
-  <div className="space-y-6">
-    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("biddingParameters")}</h2>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-72">
-      <div>
-        <label
-          htmlFor="startPrice"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-        >
-          {"Starting Bid Price"}
-          <span className="text-destructive-500">*</span>
-        </label>
-        <div className="relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
-              {getCurrencySymbol(formData.currency)}
-            </span>
-          </div>
-          {/* <input
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-72">
+                  <div>
+                    <label
+                      htmlFor="startPrice"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      {"Starting Bid Price"}
+                      <span className="text-destructive-500">*</span>
+                    </label>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                          {getCurrencySymbol(formData.currency)}
+                        </span>
+                      </div>
+                      {/* <input
             type="number"
             id="startPrice"
             ref={startPriceRef}
@@ -1807,540 +2017,640 @@ const getCurrencySymbol = (currency: Currency) => {
               }))
             }
           /> */}
-        <input
-  type="number"
-  id="startPrice"
-  ref={startPriceRef}
-  className={`form-input pl-7 pr-12 ${
-    hasError("startPrice")
-      ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-      : ""
-  }`}
-  placeholder="0.00"
-  value={formData.startPrice ?? ""} // initially empty
-  onChange={(e) =>
-    setFormData((prev) => ({
-      ...prev,
-      // if input is empty, keep it undefined; otherwise parse number
-      startPrice: e.target.value === "" ? undefined : Number(e.target.value),
-    }))
-  }
-/>
+                      <input
+                        type="number"
+                        id="startPrice"
+                        ref={startPriceRef}
+                        className={`form-input pl-7 pr-12 ${hasError("startPrice")
+                            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                            : ""
+                          }`}
+                        placeholder="0.00"
+                        value={formData.startPrice ?? ""} // initially empty
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            // if input is empty, keep it undefined; otherwise parse number
+                            startPrice:
+                              e.target.value === ""
+                                ? undefined
+                                : Number(e.target.value),
+                          }))
+                        }
+                      />
 
-          <div className="absolute inset-y-0 right-0 flex items-center">
-            <select
-              id="currency"
-              name="currency"
-              className="form-select h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 sm:text-sm rounded-md"
-              value={formData.currency}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  currency: e.target.value as Currency,
-                }))
-              }
-            >
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="GBP">GBP</option>
-              <option value="JPY">JPY</option>
-              <option value="CAD">CAD</option>
-              <option value="INR">INR</option>
-              <option value="AUD">AUD</option>
-              <option value="CNY">CNY</option>
-            </select>
-          </div>
-        </div>
-        {hasError("startPrice") && <ErrorMessage message={getErrorMessage("startPrice")} />}
-      </div>
+                      <div className="absolute inset-y-0 right-0 flex items-center">
+                        <select
+                          id="currency"
+                          name="currency"
+                          className="form-select h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 dark:text-gray-400 sm:text-sm rounded-md"
+                          value={formData.currency}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              currency: e.target.value as Currency,
+                            }))
+                          }
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="JPY">JPY</option>
+                          <option value="CAD">CAD</option>
+                          <option value="INR">INR</option>
+                          <option value="AUD">AUD</option>
+                          <option value="CNY">CNY</option>
+                        </select>
+                      </div>
+                    </div>
+                    {hasError("startPrice") && (
+                      <ErrorMessage message={getErrorMessage("startPrice")} />
+                    )}
+                  </div>
 
-  {formData.auctionSubType !== "yankee" && (
-  <div>
-    <label
-      htmlFor="minimumIncrement"
-      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-    >
-      {formData.auctionType === "reverse" ? "Minimum Bid Decrement" : "Minimum Bid Increment"}
-      <span className="text-destructive-500">*</span>
-    </label>
-    <div className="relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
-          {getCurrencySymbol(formData.currency)}
-        </span>
-      </div>
-      <input
-        type="number"
-        id="minimumIncrement"
-        ref={minimumIncrementRef}
-        className={`form-input pl-7 pr-12 ${
-          hasError("minimumIncrement")
-            ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-            : ""
-        }`}
-        placeholder="0.00"
-        min={0} // ensure zero is allowed
-        value={formData.minimumIncrement ?? ""} // initially empty
-        onChange={(e) =>
-          setFormData((prev) => ({
-            ...prev,
-            minimumIncrement:
-              e.target.value === "" ? undefined : Number(e.target.value),
-          }))
-        }
-      />
-    </div>
-    {hasError("minimumIncrement") && (
-      <ErrorMessage message={getErrorMessage("minimumIncrement")} />
-    )}
-  </div>
-)}
-
-
-    </div>
-
-    {formData.auctionSubType !== "yankee" && (
-      <BidIncrementConfig
-        bidIncrementType={formData.bidIncrementType}
-        bidIncrementRules={formData.bidIncrementRules}
-        currency={formData.currency}
-        onIncrementTypeChange={(type) =>
-          setFormData((prev) => {
-            let updatedMinimumIncrement = prev.minimumIncrement;
-            let updatedPercent = prev.percent;
-            if (type === "percentage") {
-              updatedPercent = prev.bidIncrementRules[0]?.incrementValue || 5; // Default to 5%
-              if (prev.minimumIncrement === 0 || prev.bidIncrementType !== "fixed") {
-                updatedMinimumIncrement = 1;
-              }
-            } else if (type === "fixed") {
-              updatedMinimumIncrement = prev.bidIncrementRules[0]?.incrementValue || 0;
-              updatedPercent = null;
-            }
-            return {
-              ...prev,
-              bidIncrementType: type,
-              minimumIncrement: updatedMinimumIncrement,
-              percent: updatedPercent,
-            };
-          })
-        }
-        onRulesChange={(rules) =>
-          setFormData((prev) => {
-            let updatedMinimumIncrement = prev.minimumIncrement;
-            let updatedPercent = prev.percent;
-            if (prev.bidIncrementType === "percentage" && rules[0]?.incrementValue) {
-              updatedPercent = rules[0].incrementValue;
-              if (prev.minimumIncrement === 0 || prev.bidIncrementType !== "fixed") {
-                updatedMinimumIncrement = 1;
-              }
-            } else if (prev.bidIncrementType === "fixed" && rules[0]?.incrementValue) {
-              updatedMinimumIncrement = rules[0].incrementValue;
-              updatedPercent = null;
-            }
-            return {
-              ...prev,
-              bidIncrementRules: rules,
-              minimumIncrement: updatedMinimumIncrement,
-              percent: updatedPercent,
-            };
-          })
-        }
-      />
-    )}
-
-    {/* Scheduled Auction Section - MOVED UP */}
-    <div className="space-y-4 border-t pt-6 dark:border-gray-700">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("launchType")} <span className="text-destructive-500">*</span>
-      </label>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover:scale-105 ${
-            formData.launchType === "immediate"
-              ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-              : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-          }`}
-          onClick={() => setFormData((prev) => ({ ...prev, launchType: "immediate" }))}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium dark:text-gray-100">{t("launchImmediately")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("auctionWillStartAsSoon")}</p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                formData.launchType === "immediate"
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {formData.launchType === "immediate" && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover:scale-105 ${
-            formData.launchType === "scheduled"
-              ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-              : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-          }`}
-          onClick={() => setFormData((prev) => ({ ...prev, launchType: "scheduled" }))}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium dark:text-gray-100">{t("scheduleForLater")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("setFutureDateAndTime")}</p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                formData.launchType === "scheduled"
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {formData.launchType === "scheduled" && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {formData.launchType === "scheduled" && (
-        <div className="mt-4 space-y-4 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="scheduledDate"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                {t("startDate")} <span className="text-destructive-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  {formData.auctionSubType !== "yankee" && (
+                    <div>
+                      <label
+                        htmlFor="minimumIncrement"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        {formData.auctionType === "reverse"
+                          ? "Minimum Bid Decrement"
+                          : "Minimum Bid Increment"}
+                        <span className="text-destructive-500">*</span>
+                      </label>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                            {getCurrencySymbol(formData.currency)}
+                          </span>
+                        </div>
+                        <input
+                          type="number"
+                          id="minimumIncrement"
+                          ref={minimumIncrementRef}
+                          className={`form-input pl-7 pr-12 ${hasError("minimumIncrement")
+                              ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                              : ""
+                            }`}
+                          placeholder="0.00"
+                          min={0} // ensure zero is allowed
+                          value={formData.minimumIncrement ?? ""} // initially empty
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              minimumIncrement:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+                      {hasError("minimumIncrement") && (
+                        <ErrorMessage
+                          message={getErrorMessage("minimumIncrement")}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
-                <input
-                  type="date"
-                  id="scheduledDate"
-                  ref={scheduledDateRef}
-                  className={`form-input pl-10 ${
-                    hasError("scheduledStart")
-                      ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-                      : ""
-                  }`}
-                  value={formatDateForInput(formData.scheduledStart)}
-                  min={formatDateForInput(new Date().toISOString())}
-                  onChange={handleScheduledDateChange}
-                />
-              </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="scheduledTime"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                {t("startTime")} <span className="text-destructive-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                {formData.auctionSubType !== "yankee" && (
+                  <BidIncrementConfig
+                    bidIncrementType={formData.bidIncrementType}
+                    bidIncrementRules={formData.bidIncrementRules}
+                    currency={formData.currency}
+                    onIncrementTypeChange={(type) =>
+                      setFormData((prev) => {
+                        let updatedMinimumIncrement = prev.minimumIncrement;
+                        let updatedPercent = prev.percent;
+                        if (type === "percentage") {
+                          updatedPercent =
+                            prev.bidIncrementRules[0]?.incrementValue || 5; // Default to 5%
+                          if (
+                            prev.minimumIncrement === 0 ||
+                            prev.bidIncrementType !== "fixed"
+                          ) {
+                            updatedMinimumIncrement = 1;
+                          }
+                        } else if (type === "fixed") {
+                          updatedMinimumIncrement =
+                            prev.bidIncrementRules[0]?.incrementValue || 0;
+                          updatedPercent = null;
+                        }
+                        return {
+                          ...prev,
+                          bidIncrementType: type,
+                          minimumIncrement: updatedMinimumIncrement,
+                          percent: updatedPercent,
+                        };
+                      })
+                    }
+                    onRulesChange={(rules) =>
+                      setFormData((prev) => {
+                        let updatedMinimumIncrement = prev.minimumIncrement;
+                        let updatedPercent = prev.percent;
+                        if (
+                          prev.bidIncrementType === "percentage" &&
+                          rules[0]?.incrementValue
+                        ) {
+                          updatedPercent = rules[0].incrementValue;
+                          if (
+                            prev.minimumIncrement === 0 ||
+                            prev.bidIncrementType !== "fixed"
+                          ) {
+                            updatedMinimumIncrement = 1;
+                          }
+                        } else if (
+                          prev.bidIncrementType === "fixed" &&
+                          rules[0]?.incrementValue
+                        ) {
+                          updatedMinimumIncrement = rules[0].incrementValue;
+                          updatedPercent = null;
+                        }
+                        return {
+                          ...prev,
+                          bidIncrementRules: rules,
+                          minimumIncrement: updatedMinimumIncrement,
+                          percent: updatedPercent,
+                        };
+                      })
+                    }
+                  />
+                )}
+
+                {/* Scheduled Auction Section - MOVED UP */}
+                <div className="space-y-4 border-t pt-6 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("launchType")}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                      className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover:scale-105 ${formData.launchType === "immediate"
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        }`}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          launchType: "immediate",
+                        }))
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("launchImmediately")}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("auctionWillStartAsSoon")}
+                          </p>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.launchType === "immediate"
+                              ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                              : "border-gray-300 dark:border-gray-600"
+                            }`}
+                        >
+                          {formData.launchType === "immediate" && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover:scale-105 ${formData.launchType === "scheduled"
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        }`}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          launchType: "scheduled",
+                        }))
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("scheduleForLater")}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("setFutureDateAndTime")}
+                          </p>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.launchType === "scheduled"
+                              ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                              : "border-gray-300 dark:border-gray-600"
+                            }`}
+                        >
+                          {formData.launchType === "scheduled" && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.launchType === "scheduled" && (
+                    <div className="mt-4 space-y-4 animate-fade-in">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label
+                            htmlFor="scheduledDate"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                          >
+                            {t("startDate")}{" "}
+                            <span className="text-destructive-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <input
+                              type="date"
+                              id="scheduledDate"
+                              ref={scheduledDateRef}
+                              className={`form-input pl-10 ${hasError("scheduledStart")
+                                  ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                                  : ""
+                                }`}
+                              value={formatDateForInput(
+                                formData.scheduledStart
+                              )}
+                              min={formatDateForInput(new Date().toISOString())}
+                              onChange={handleScheduledDateChange}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="scheduledTime"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                          >
+                            {t("startTime")}{" "}
+                            <span className="text-destructive-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <input
+                              type="time"
+                              id="scheduledTime"
+                              ref={scheduledTimeRef}
+                              className={`form-input pl-10 ${hasError("scheduledStart")
+                                  ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
+                                  : ""
+                                }`}
+                              value={formatTimeForInput(
+                                formData.scheduledStart
+                              )}
+                              onChange={handleScheduledDateChange}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {hasError("scheduledStart") && (
+                        <ErrorMessage
+                          message={getErrorMessage("scheduledStart")}
+                        />
+                      )}
+
+                      <div className="bg-corporate-50 dark:bg-corporate-900/30 p-4 rounded-md flex items-start">
+                        <Calendar className="w-5 h-5 text-corporate-500 dark:text-corporate-400 mt-0.5 mr-2 flex-shrink-0" />
+                        <p className="text-sm text-corporate-700 dark:text-corporate-300">
+                          {t("auctionWillBeScheduled")}{" "}
+                          {formatDateTime(formData.scheduledStart)}.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <input
-                  type="time"
-                  id="scheduledTime"
-                  ref={scheduledTimeRef}
-                  className={`form-input pl-10 ${
-                    hasError("scheduledStart")
-                      ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
-                      : ""
-                  }`}
-                  value={formatTimeForInput(formData.scheduledStart)}
-                  onChange={handleScheduledDateChange}
-                />
+
+                {/* Auction Duration - MOVED TO AFTER LAUNCH TYPE */}
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("auctionDuration")}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <div
+                    className={`flex items-center gap-4 ${hasError("auctionDuration")
+                        ? "border border-destructive-500 dark:border-destructive-400 p-3 rounded-md"
+                        : ""
+                      }`}
+                  >
+                    <div>
+                      <label
+                        htmlFor="days"
+                        className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+                      >
+                        {t("days")}
+                      </label>
+                      <input
+                        type="number"
+                        id="days"
+                        ref={daysRef}
+                        min={0}
+                        max={365} // limit to 365 days
+                        className="form-input"
+                        value={formData.auctionDuration.days}
+                        onChange={(e) => {
+                          let value = Number.parseInt(e.target.value) || 0;
+                          if (value > 365) value = 365;
+                          setFormData((prev) => ({
+                            ...prev,
+                            auctionDuration: {
+                              ...prev.auctionDuration,
+                              days: value,
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="hours"
+                        className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+                      >
+                        {t("hours")}
+                      </label>
+                      <input
+                        type="number"
+                        id="hours"
+                        min={0}
+                        max={23} // limit to 23 hours
+                        className="form-input"
+                        value={formData.auctionDuration.hours}
+                        onChange={(e) => {
+                          let value = Number.parseInt(e.target.value) || 0;
+                          if (value > 23) value = 23;
+                          setFormData((prev) => ({
+                            ...prev,
+                            auctionDuration: {
+                              ...prev.auctionDuration,
+                              hours: value,
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="minutes"
+                        className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+                      >
+                        {t("minutes")}
+                      </label>
+                      <input
+                        type="number"
+                        id="minutes"
+                        min={0}
+                        max={59} // limit to 59 minutes
+                        className="form-input"
+                        value={formData.auctionDuration.minutes}
+                        onChange={(e) => {
+                          let value = Number.parseInt(e.target.value) || 0;
+                          if (value > 59) value = 59;
+                          setFormData((prev) => ({
+                            ...prev,
+                            auctionDuration: {
+                              ...prev.auctionDuration,
+                              minutes: value,
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {hasError("auctionDuration") && (
+                    <ErrorMessage
+                      message={getErrorMessage("auctionDuration")}
+                    />
+                  )}
+
+                  <div className="bg-corporate-50 dark:bg-corporate-900/30 p-4 rounded-md flex items-start animate-fade-in">
+                    <Clock className="w-5 h-5 text-corporate-500 dark:text-corporate-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-sm text-corporate-700 dark:text-corporate-300">
+                      {t("auctionWillRunFor")} {formData.auctionDuration.days}{" "}
+                      {t("days")}, {formData.auctionDuration.hours} {t("hours")}
+                      , and {formData.auctionDuration.minutes} {t("minutes")}{" "}
+                      {t("afterLaunch")}.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Anti-Sniping Controls */}
+                <div className="space-y-4 border-t pt-4 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("antiSnipingControls")}
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="bidExtension"
+                      className="form-checkbox"
+                      checked={formData.bidExtension}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bidExtension: e.target.checked,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor="bidExtension"
+                      className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      {t("enableBidExtension")}
+                    </label>
+                  </div>
+
+                  {formData.bidExtension && (
+                    <div className="ml-6 animate-fade-in">
+                      <label
+                        htmlFor="bidExtensionTime"
+                        className="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        {t("extendAuctionIfBid")}
+                      </label>
+                      <div className="flex items-center">
+                        <input
+                          type="number"
+                          id="bidExtensionTime"
+                          min="1"
+                          max="30"
+                          className="form-input w-20"
+                          value={formData.bidExtensionTime}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              bidExtensionTime:
+                                Number.parseInt(e.target.value) || 5,
+                            }))
+                          }
+                        />
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                          {t("minutes")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("preventsLastSecondBidding")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto-Bidding */}
+                <div className="space-y-4 border-t pt-4 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("automatedBidding")}
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="allowAutoBidding"
+                      className="form-checkbox"
+                      checked={formData.allowAutoBidding}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          allowAutoBidding: e.target.checked,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor="allowAutoBidding"
+                      className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      {t("allowParticipantsAutoBidding")}
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t("participantsCanSetMaxBid")}
+                  </p>
+                </div>
+
+                {/* Reserve Price */}
+                <div className="space-y-4 border-t pt-4 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("reservePrice")}
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="enableReservePrice"
+                      className="form-checkbox"
+                      checked={formData.reservePrice !== undefined}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          reservePrice: e.target.checked ? 0 : undefined,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor="enableReservePrice"
+                      className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      {t("setReservePrice")}
+                    </label>
+                  </div>
+
+                  {formData.reservePrice !== undefined && (
+                    <div className="ml-6 animate-fade-in">
+                      <label
+                        htmlFor="reservePrice"
+                        className="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        {t("reservePrice")}
+                      </label>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                            {getCurrencySymbol(formData.currency)}
+                          </span>
+                        </div>
+                        <input
+                          type="number"
+                          id="reservePrice"
+                          className="form-input pl-7"
+                          placeholder="0.00"
+                          value={formData.reservePrice}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              reservePrice:
+                                Number.parseFloat(e.target.value) || 0,
+                            }))
+                          }
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("auctionWillNotComplete")}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-          {hasError("scheduledStart") && <ErrorMessage message={getErrorMessage("scheduledStart")} />}
-
-          <div className="bg-corporate-50 dark:bg-corporate-900/30 p-4 rounded-md flex items-start">
-            <Calendar className="w-5 h-5 text-corporate-500 dark:text-corporate-400 mt-0.5 mr-2 flex-shrink-0" />
-            <p className="text-sm text-corporate-700 dark:text-corporate-300">
-              {t("auctionWillBeScheduled")} {formatDateTime(formData.scheduledStart)}.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-
-    {/* Auction Duration - MOVED TO AFTER LAUNCH TYPE */}
-    <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("auctionDuration")} <span className="text-destructive-500">*</span>
-      </label>
-      <div
-        className={`flex items-center gap-4 ${
-          hasError("auctionDuration")
-            ? "border border-destructive-500 dark:border-destructive-400 p-3 rounded-md"
-            : ""
-        }`}
-      >
-        <div>
-          <label htmlFor="days" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-            {t("days")}
-          </label>
-             <input
-        type="number"
-        id="days"
-        ref={daysRef}
-        min={0}
-        max={365} // limit to 365 days
-        className="form-input"
-        value={formData.auctionDuration.days}
-        onChange={(e) => {
-          let value = Number.parseInt(e.target.value) || 0;
-          if (value > 365) value = 365;
-          setFormData((prev) => ({
-            ...prev,
-            auctionDuration: {
-              ...prev.auctionDuration,
-              days: value,
-            },
-          }));
-        }}
-      />
-        </div>
-
-        <div >
-          <label htmlFor="hours" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-            {t("hours")}
-          </label>
-           <input
-        type="number"
-        id="hours"
-        min={0}
-        max={23} // limit to 23 hours
-        className="form-input"
-        value={formData.auctionDuration.hours}
-        onChange={(e) => {
-          let value = Number.parseInt(e.target.value) || 0;
-          if (value > 23) value = 23;
-          setFormData((prev) => ({
-            ...prev,
-            auctionDuration: {
-              ...prev.auctionDuration,
-              hours: value,
-            },
-          }));
-        }}
-      />
-        </div>
-
-        <div >
-          <label htmlFor="minutes" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-            {t("minutes")}
-          </label>
-          <input
-        type="number"
-        id="minutes"
-        min={0}
-        max={59} // limit to 59 minutes
-        className="form-input"
-        value={formData.auctionDuration.minutes}
-        onChange={(e) => {
-          let value = Number.parseInt(e.target.value) || 0;
-          if (value > 59) value = 59;
-          setFormData((prev) => ({
-            ...prev,
-            auctionDuration: {
-              ...prev.auctionDuration,
-              minutes: value,
-            },
-          }));
-        }}
-      />
-        </div>
-      </div>
-      {hasError("auctionDuration") && <ErrorMessage message={getErrorMessage("auctionDuration")} />}
-
-      <div className="bg-corporate-50 dark:bg-corporate-900/30 p-4 rounded-md flex items-start animate-fade-in">
-        <Clock className="w-5 h-5 text-corporate-500 dark:text-corporate-400 mt-0.5 mr-2 flex-shrink-0" />
-        <p className="text-sm text-corporate-700 dark:text-corporate-300">
-          {t("auctionWillRunFor")} {formData.auctionDuration.days} {t("days")}, {formData.auctionDuration.hours}{" "}
-          {t("hours")}, and {formData.auctionDuration.minutes} {t("minutes")} {t("afterLaunch")}.
-        </p>
-      </div>
-    </div>
-
-    {/* Anti-Sniping Controls */}
-    <div className="space-y-4 border-t pt-4 dark:border-gray-700">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("antiSnipingControls")}
-      </label>
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="bidExtension"
-          className="form-checkbox"
-          checked={formData.bidExtension}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              bidExtension: e.target.checked,
-            }))
-          }
-        />
-        <label htmlFor="bidExtension" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-          {t("enableBidExtension")}
-        </label>
-      </div>
-
-      {formData.bidExtension && (
-        <div className="ml-6 animate-fade-in">
-          <label htmlFor="bidExtensionTime" className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-            {t("extendAuctionIfBid")}
-          </label>
-          <div className="flex items-center">
-            <input
-              type="number"
-              id="bidExtensionTime"
-              min="1"
-              max="30"
-              className="form-input w-20"
-              value={formData.bidExtensionTime}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  bidExtensionTime: Number.parseInt(e.target.value) || 5,
-                }))
-              }
-            />
-            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{t("minutes")}</span>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("preventsLastSecondBidding")}</p>
-        </div>
-      )}
-    </div>
-
-    {/* Auto-Bidding */}
-    <div className="space-y-4 border-t pt-4 dark:border-gray-700">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("automatedBidding")}
-      </label>
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="allowAutoBidding"
-          className="form-checkbox"
-          checked={formData.allowAutoBidding}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              allowAutoBidding: e.target.checked,
-            }))
-          }
-        />
-        <label htmlFor="allowAutoBidding" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-          {t("allowParticipantsAutoBidding")}
-        </label>
-      </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{t("participantsCanSetMaxBid")}</p>
-    </div>
-
-    {/* Reserve Price */}
-    <div className="space-y-4 border-t pt-4 dark:border-gray-700">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("reservePrice")}
-      </label>
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="enableReservePrice"
-          className="form-checkbox"
-          checked={formData.reservePrice !== undefined}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              reservePrice: e.target.checked ? 0 : undefined,
-            }))
-          }
-        />
-        <label htmlFor="enableReservePrice" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-          {t("setReservePrice")}
-        </label>
-      </div>
-
-      {formData.reservePrice !== undefined && (
-        <div className="ml-6 animate-fade-in">
-          <label htmlFor="reservePrice" className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-            {t("reservePrice")}
-          </label>
-          <div className="relative rounded-md shadow-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
-                {getCurrencySymbol(formData.currency)}
-              </span>
-            </div>
-            <input
-              type="number"
-              id="reservePrice"
-              className="form-input pl-7"
-              placeholder="0.00"
-              value={formData.reservePrice}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  reservePrice: Number.parseFloat(e.target.value) || 0,
-                }))
-              }
-            />
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("auctionWillNotComplete")}</p>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+            )}
 
             {/* Step 4: Participation Rules */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("participationRules")}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {t("participationRules")}
+                </h2>
 
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t("whoCanParticipate")} <span className="text-destructive-500">*</span>
+                    {t("whoCanParticipate")}{" "}
+                    <span className="text-destructive-500">*</span>
                   </label>
                   <div
-                    className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
-                      hasError("participationType")
+                    className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${hasError("participationType")
                         ? "border border-destructive-500 dark:border-destructive-400 p-3 rounded-md"
                         : ""
-                    }`}
+                      }`}
                   >
                     <div
                       className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                        ${
-                          formData.participationType === "public"
-                            ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                            : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        ${formData.participationType === "public"
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
                         }`}
-                      onClick={() => setFormData({ ...formData, participationType: "public" })}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          participationType: "public",
+                        })
+                      }
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-medium dark:text-gray-100">{"Verified Users"}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{"Only registered & verified users can participate"}</p>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {"Verified Users"}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {"Only registered & verified users can participate"}
+                          </p>
                         </div>
                         <div
-                          className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                            formData.participationType === "public"
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.participationType === "public"
                               ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
                               : "border-gray-300 dark:border-gray-600"
-                          }`}
+                            }`}
                         >
-                          {formData.participationType === "public" && <CheckCircle className="w-5 h-5 text-white" />}
+                          {formData.participationType === "public" && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2373,24 +2683,31 @@ const getCurrencySymbol = (currency: Currency) => {
 
                     <div
                       className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-                        ${
-                          formData.participationType === "invite-only"
-                            ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                            : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        ${formData.participationType === "invite-only"
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
                         }`}
-                      onClick={() => setFormData({ ...formData, participationType: "invite-only" })}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          participationType: "invite-only",
+                        })
+                      }
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-medium dark:text-gray-100">{t("inviteOnly")}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{t("onlyInvitedParticipants")}</p>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("inviteOnly")}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("onlyInvitedParticipants")}
+                          </p>
                         </div>
                         <div
-                          className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                            formData.participationType === "invite-only"
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.participationType === "invite-only"
                               ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
                               : "border-gray-300 dark:border-gray-600"
-                          }`}
+                            }`}
                         >
                           {formData.participationType === "invite-only" && (
                             <CheckCircle className="w-5 h-5 text-white" />
@@ -2399,35 +2716,40 @@ const getCurrencySymbol = (currency: Currency) => {
                       </div>
                     </div>
                   </div>
-                  {hasError("participationType") && <ErrorMessage message={getErrorMessage("participationType")} />}
+                  {hasError("participationType") && (
+                    <ErrorMessage
+                      message={getErrorMessage("participationType")}
+                    />
+                  )}
                 </div>
 
                 {formData.participationType === "invite-only" && (
                   <div className="space-y-4 mt-6 animate-fade-in">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       {t("participantEmailList")}{" "}
-                      {hasError("participantEmails") && <span className="text-destructive-500">*</span>}
+                      {hasError("participantEmails") && (
+                        <span className="text-destructive-500">*</span>
+                      )}
                     </label>
                     <div className="flex">
                       <input
                         type="email"
                         id="participantEmail"
                         ref={participantEmailRef}
-                        className={`form-input rounded-r-none ${
-                          emailError
+                        className={`form-input rounded-r-none ${emailError
                             ? "border-destructive-500 dark:border-destructive-400 focus:border-destructive-500 dark:focus:border-destructive-400 focus:ring-destructive-500/20 dark:focus:ring-destructive-400/20"
                             : ""
-                        }`}
+                          }`}
                         placeholder={t("enterEmailAddress")}
                         value={emailInput}
                         onChange={(e) => {
-                          setEmailInput(e.target.value)
-                          setEmailError("")
+                          setEmailInput(e.target.value);
+                          setEmailError("");
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            e.preventDefault()
-                            handleAddParticipant(emailInput)
+                            e.preventDefault();
+                            handleAddParticipant(emailInput);
                           }
                         }}
                       />
@@ -2450,7 +2772,9 @@ const getCurrencySymbol = (currency: Currency) => {
                           >
                             <div className="flex items-center">
                               <Users className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-2" />
-                              <span className="text-sm dark:text-gray-200">{email}</span>
+                              <span className="text-sm dark:text-gray-200">
+                                {email}
+                              </span>
                             </div>
                             <button
                               type="button"
@@ -2478,20 +2802,26 @@ const getCurrencySymbol = (currency: Currency) => {
                       </div>
                     ) : (
                       <div
-                        className={`text-sm text-gray-500 dark:text-gray-400 mt-2 ${
-                          hasError("participantEmails") ? "text-destructive-500 dark:text-destructive-400" : ""
-                        }`}
+                        className={`text-sm text-gray-500 dark:text-gray-400 mt-2 ${hasError("participantEmails")
+                            ? "text-destructive-500 dark:text-destructive-400"
+                            : ""
+                          }`}
                       >
                         {t("noParticipantsAddedYet")}
                       </div>
                     )}
-                    {hasError("participantEmails") && <ErrorMessage message={getErrorMessage("participantEmails")} />}
+                    {hasError("participantEmails") && (
+                      <ErrorMessage
+                        message={getErrorMessage("participantEmails")}
+                      />
+                    )}
                   </div>
                 )}
 
-
                 <div className="space-y-4 border-t pt-6 dark:border-gray-700">
-                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">{t("notificationSettings")}</h3>
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">
+                    {t("notificationSettings")}
+                  </h3>
 
                   <div className="flex items-center">
                     <input
@@ -2506,7 +2836,10 @@ const getCurrencySymbol = (currency: Currency) => {
                         })
                       }
                     />
-                    <label htmlFor="enableNotifications" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="enableNotifications"
+                      className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
                       {t("enableParticipantNotifications")}
                     </label>
                   </div>
@@ -2522,14 +2855,19 @@ const getCurrencySymbol = (currency: Currency) => {
                           onChange={(e) => {
                             const updatedTypes = e.target.checked
                               ? [...formData.notificationTypes, "email"]
-                              : formData.notificationTypes.filter((type) => type !== "email")
+                              : formData.notificationTypes.filter(
+                                (type) => type !== "email"
+                              );
                             setFormData({
                               ...formData,
                               notificationTypes: updatedTypes,
-                            })
+                            });
                           }}
                         />
-                        <label htmlFor="notifyEmail" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        <label
+                          htmlFor="notifyEmail"
+                          className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                        >
                           {t("emailNotifications")}
                         </label>
                       </div>
@@ -2543,14 +2881,19 @@ const getCurrencySymbol = (currency: Currency) => {
                           onChange={(e) => {
                             const updatedTypes = e.target.checked
                               ? [...formData.notificationTypes, "sms"]
-                              : formData.notificationTypes.filter((type) => type !== "sms")
+                              : formData.notificationTypes.filter(
+                                (type) => type !== "sms"
+                              );
                             setFormData({
                               ...formData,
                               notificationTypes: updatedTypes,
-                            })
+                            });
                           }}
                         />
-                        <label htmlFor="notifySMS" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        <label
+                          htmlFor="notifySMS"
+                          className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                        >
                           {t("smsNotifications")}
                         </label>
                       </div>
@@ -2564,14 +2907,19 @@ const getCurrencySymbol = (currency: Currency) => {
                           onChange={(e) => {
                             const updatedTypes = e.target.checked
                               ? [...formData.notificationTypes, "push"]
-                              : formData.notificationTypes.filter((type) => type !== "push")
+                              : formData.notificationTypes.filter(
+                                (type) => type !== "push"
+                              );
                             setFormData({
                               ...formData,
                               notificationTypes: updatedTypes,
-                            })
+                            });
                           }}
                         />
-                        <label htmlFor="notifyPush" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        <label
+                          htmlFor="notifyPush"
+                          className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                        >
                           {t("pushNotifications")}
                         </label>
                       </div>
@@ -2629,14 +2977,20 @@ const getCurrencySymbol = (currency: Currency) => {
             {/* Step 6: Summary */}
             {currentStep === 5 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t("auctionSummary")}</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  {t("auctionSummary")}
+                </h2>
 
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("reviewAuctionDetails")}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {t("reviewAuctionDetails")}
+                  </p>
 
                   {/* Display auction summary here */}
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md">
-                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-2">{t("auctionDetails")}</h3>
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-2">
+                      {t("auctionDetails")}
+                    </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {"Product Name"}: {formData.productName}
                     </p>
@@ -2650,293 +3004,395 @@ const getCurrencySymbol = (currency: Currency) => {
                       {"Product Sub-Category"}: {formData.subCategoryId}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                     Brand: {brandAttr?.value || formData.brand || "N/A"}{" "},
-                       Model: {modelAttr?.value || formData.model || "N/A"}
-                     </p>
+                      Brand: {brandAttr?.value || formData.brand || "N/A"} ,
+                      Model: {modelAttr?.value || formData.model || "N/A"}
+                    </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {t("auctionType")}: {formData.auctionType} - {formData.auctionSubType}
+                      {t("auctionType")}: {formData.auctionType} -{" "}
+                      {formData.auctionSubType}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {t("startPrice")}: {getCurrencySymbol(formData.currency)}
                       {formData.startPrice}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {t("minimumIncrement")}: {getCurrencySymbol(formData.currency)}
+                      {t("minimumIncrement")}:{" "}
+                      {getCurrencySymbol(formData.currency)}
                       {formData.minimumIncrement}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {t("auctionDuration")}: {formData.auctionDuration.days} {t("days")},{" "}
-                      {formData.auctionDuration.hours} {t("hours")}, {formData.auctionDuration.minutes} {t("minutes")}
+                      {t("auctionDuration")}: {formData.auctionDuration.days}{" "}
+                      {t("days")}, {formData.auctionDuration.hours} {t("hours")}
+                      , {formData.auctionDuration.minutes} {t("minutes")}
                     </p>
                     {formData.launchType === "scheduled" && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t("scheduledStart")}: {formatDateTime(formData.scheduledStart)}
+                        {t("scheduledStart")}:{" "}
+                        {formatDateTime(formData.scheduledStart)}
                       </p>
                     )}
                   </div>
                 </div>
               </div>
             )}
-{/* Step 7: Reverse Auction Details */}
-{currentStep === 6 && formData.auctionType === "reverse" && (
-  <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t("reverseDetails")}</h2>
+            {/* Step 7: Reverse Auction Details */}
+            {currentStep === 6 && formData.auctionType === "reverse" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                  {t("reverseDetails")}
+                </h2>
 
-    {/* Product Name */}
-    <div>
-      <label htmlFor="productName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("productName")} <span className="text-destructive-500">*</span>
-      </label>
-      <input
-        type="text"
-        id="productName"
-        className={`form-input ${hasError("productName") ? "border-destructive-500" : ""}`}
-        value={formData.productName || ""}
-        onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-      />
-      {hasError("productName") && <ErrorMessage message={getErrorMessage("productName")} />}
-    </div>
+                {/* Product Name */}
+                <div>
+                  <label
+                    htmlFor="productName"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {t("productName")}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="productName"
+                    className={`form-input ${hasError("productName") ? "border-destructive-500" : ""
+                      }`}
+                    value={formData.productName || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, productName: e.target.value })
+                    }
+                  />
+                  {hasError("productName") && (
+                    <ErrorMessage message={getErrorMessage("productName")} />
+                  )}
+                </div>
 
-    {/* Product Description */}
-    <div>
-      <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("productDescription")} <span className="text-destructive-500">*</span>
-      </label>
-      <textarea
-        id="productDescription"
-        rows={4}
-        className={`form-input ${hasError("productDescription") ? "border-destructive-500" : ""}`}
-        value={formData.productDescription || ""}
-        onChange={(e) => setFormData({ ...formData, productDescription: e.target.value })}
-      />
-      {hasError("productDescription") && <ErrorMessage message={getErrorMessage("productDescription")} />}
-    </div>
+                {/* Product Description */}
+                <div>
+                  <label
+                    htmlFor="productDescription"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {t("productDescription")}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <textarea
+                    id="productDescription"
+                    rows={4}
+                    className={`form-input ${hasError("productDescription")
+                        ? "border-destructive-500"
+                        : ""
+                      }`}
+                    value={formData.productDescription || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        productDescription: e.target.value,
+                      })
+                    }
+                  />
+                  {hasError("productDescription") && (
+                    <ErrorMessage
+                      message={getErrorMessage("productDescription")}
+                    />
+                  )}
+                </div>
 
-    {/* Product Classification */}
-    <ProductClassification
-      categoryId={formData.categoryId}
-      subCategoryId={formData.subCategoryId}
-      attributes={formData.attributes || { condition: "" }} // Default empty condition
-      sku={formData.sku || ""}
-      brand={formData.brand || ""}
-      model={formData.model || ""}
-      onCategoryChange={(categoryId, subCategoryId) =>
-        setFormData((prev) => ({ ...prev, categoryId, subCategoryId }))
-      }
-      onAttributesChange={(attributes) => setFormData((prev) => ({ ...prev, attributes }))}
-      onSkuChange={(sku) => setFormData((prev) => ({ ...prev, sku }))}
-      onBrandChange={(brand) => setFormData((prev) => ({ ...prev, brand }))}
-      onModelChange={(model) => setFormData((prev) => ({ ...prev, model }))}
-    />
-    {hasError("categoryId") && <ErrorMessage message={getErrorMessage("categoryId")} />}
-    {hasError("subCategoryId") && <ErrorMessage message={getErrorMessage("subCategoryId")} />}
-    {hasError("attributes") && <ErrorMessage message={getErrorMessage("attributes")} />}
-    {hasError("sku") && <ErrorMessage message={getErrorMessage("sku")} />}
-    {hasError("brand") && <ErrorMessage message={getErrorMessage("brand")} />}
-    {hasError("model") && <ErrorMessage message={getErrorMessage("model")} />}
+                {/* Product Classification */}
+                <ProductClassification
+                  categoryId={formData.categoryId}
+                  subCategoryId={formData.subCategoryId}
+                  attributes={formData.attributes || { condition: "" }} // Default empty condition
+                  sku={formData.sku || ""}
+                  brand={formData.brand || ""}
+                  model={formData.model || ""}
+                  onCategoryChange={(categoryId, subCategoryId) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      categoryId,
+                      subCategoryId,
+                    }))
+                  }
+                  onAttributesChange={(attributes) =>
+                    setFormData((prev) => ({ ...prev, attributes }))
+                  }
+                  onSkuChange={(sku) =>
+                    setFormData((prev) => ({ ...prev, sku }))
+                  }
+                  onBrandChange={(brand) =>
+                    setFormData((prev) => ({ ...prev, brand }))
+                  }
+                  onModelChange={(model) =>
+                    setFormData((prev) => ({ ...prev, model }))
+                  }
+                />
+                {hasError("categoryId") && (
+                  <ErrorMessage message={getErrorMessage("categoryId")} />
+                )}
+                {hasError("subCategoryId") && (
+                  <ErrorMessage message={getErrorMessage("subCategoryId")} />
+                )}
+                {hasError("attributes") && (
+                  <ErrorMessage message={getErrorMessage("attributes")} />
+                )}
+                {hasError("sku") && (
+                  <ErrorMessage message={getErrorMessage("sku")} />
+                )}
+                {hasError("brand") && (
+                  <ErrorMessage message={getErrorMessage("brand")} />
+                )}
+                {hasError("model") && (
+                  <ErrorMessage message={getErrorMessage("model")} />
+                )}
 
-    {/* Product Details (Lot Configuration like Step 2) */}
-    <div className="space-y-4 border-b pb-6 dark:border-gray-700">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("lotConfiguration")}
-      </label>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              !formData.isMultiLot
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            }`}
-          onClick={() => setFormData({ ...formData, isMultiLot: false })}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium dark:text-gray-100">{t("singleProduct")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("singleProductDesc")}</p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                !formData.isMultiLot
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {!formData.isMultiLot && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
+                {/* Product Details (Lot Configuration like Step 2) */}
+                <div className="space-y-4 border-b pb-6 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("lotConfiguration")}
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                      className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${!formData.isMultiLot
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        }`}
+                      onClick={() =>
+                        setFormData({ ...formData, isMultiLot: false })
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("singleProduct")}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("singleProductDesc")}
+                          </p>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${!formData.isMultiLot
+                              ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                              : "border-gray-300 dark:border-gray-600"
+                            }`}
+                        >
+                          {!formData.isMultiLot && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
+            ${formData.isMultiLot
+                          ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
+                          : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
+                        }`}
+                      onClick={() =>
+                        setFormData({ ...formData, isMultiLot: true })
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium dark:text-gray-100">
+                            {t("multipleLots")}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("multipleLotsDesc")}
+                          </p>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border transition-all-smooth ${formData.isMultiLot
+                              ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
+                              : "border-gray-300 dark:border-gray-600"
+                            }`}
+                        >
+                          {formData.isMultiLot && (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {formData.isMultiLot && (
+                    <LotManager
+                      lots={formData.lots}
+                      onChange={(lots) => setFormData({ ...formData, lots })}
+                      currency={formData.currency}
+                    />
+                  )}
+                </div>
+
+                {/* Target Price with Currency Selector */}
+                <div>
+                  <label
+                    htmlFor="targetPrice"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {"Target Price"}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <div className="flex space-x-2">
+                    <select
+                      id="currency"
+                      className="form-select w-1/4"
+                      value={formData.currency}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          currency: e.target.value as Currency,
+                        })
+                      }
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="JPY">JPY</option>
+                      <option value="INR">INR</option>
+                      <option value="AUD">AUD</option>
+                      <option value="CAD">CAD</option>
+                      <option value="CNY">CNY</option>
+                    </select>
+                    <div className="relative rounded-md shadow-sm w-3/4">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                          {getCurrencySymbol(formData.currency)}
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        id="targetPrice"
+                        className={`form-input pl-7 w-full ${hasError("targetPrice")
+                            ? "border-destructive-500"
+                            : ""
+                          }`}
+                        value={formData.targetprice || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            targetprice: Number(e.target.value) || null,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  {hasError("targetPrice") && (
+                    <ErrorMessage message={getErrorMessage("targetPrice")} />
+                  )}
+                </div>
+
+                {/* Required Documents */}
+                {formData.auctionSubType !== "standard" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {"Required Documents"}{" "}
+                    <span className="text-destructive-500">*</span>
+                  </label>
+                  <Select
+                    isMulti
+                    options={requiredDocumentOptions}
+                    value={(
+                      JSON.parse(formData.requireddocuments || "[]") as {
+                        name: string;
+                      }[]
+                    ).map((val) => ({
+                      label: val.name,
+                      value: val.name,
+                    }))}
+                    onChange={(selected: readonly Option[]) => {
+                      const documents = selected.map((opt) => ({
+                        name: opt.value,
+                      }));
+                      setFormData({
+                        ...formData,
+                        requireddocuments: JSON.stringify(documents),
+                      });
+                    }}
+                    menuPortalTarget={document.body}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                    }}
+                  />
+                  {hasError("requireddocuments") && (
+                    <ErrorMessage
+                      message={getErrorMessage("requireddocuments")}
+                    />
+                  )}
+                </div>
+                )}
+                {/* Image Uploader (Using Step 2 Logic) */}
+                <div onClick={handleDivClick} className="cursor-pointer">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t("productImages")}{" "}
+                    {/* Update translation if needed to reflect media */}
+                  </label>
+                  <FileUploader
+                    accept="image/jpeg,image/png,image/gif,video/mp4,video/webm,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    type="media"
+                    uploadedFiles={formData.productImages}
+                    onFilesUploaded={handleImagesUploaded}
+                    onFileRemoved={handleImageRemoved}
+                  />
+                  {hasError("productImages") && (
+                    <ErrorMessage message={getErrorMessage("productImages")} />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all-smooth hover-scale 
-            ${
-              formData.isMultiLot
-                ? "border-corporate-500 bg-corporate-50 dark:border-corporate-400 dark:bg-corporate-900/30"
-                : "border-gray-200 hover:border-corporate-200 dark:border-gray-700 dark:hover:border-corporate-700"
-            }`}
-          onClick={() => setFormData({ ...formData, isMultiLot: true })}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium dark:text-gray-100">{t("multipleLots")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("multipleLotsDesc")}</p>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border transition-all-smooth ${
-                formData.isMultiLot
-                  ? "border-corporate-500 bg-corporate-500 dark:border-corporate-400 dark:bg-corporate-400"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-            >
-              {formData.isMultiLot && <CheckCircle className="w-5 h-5 text-white" />}
-            </div>
+        {/* Footer with Navigation Buttons */}
+        <div className="w-full bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 flex justify-between items-center">
+          <button
+            type="button"
+            className="btn-secondary btn-md active-scale"
+            onClick={handleSaveDraft}
+            disabled={isLaunched}
+          >
+            {t("saveDraft")}
+          </button>
+
+          <div>
+            {currentStep > 1 && (
+              <button
+                type="button"
+                className="btn-secondary btn-md mr-2 active-scale"
+                onClick={handlePrevious}
+                disabled={isLaunched}
+              >
+                {t("previous")}
+              </button>
+            )}
+
+            {
+              // Show "Next" for reverse on steps 1–5 and 7
+              (formData.auctionType === "reverse" &&
+                (currentStep < 5 || currentStep === 6)) ||
+                // Show "Next" for normal auctions on steps 1–5
+                (formData.auctionType !== "reverse" && currentStep < 5) ? (
+                <button
+                  type="button"
+                  className="btn-primary btn-md active-scale"
+                  onClick={handleNext}
+                  disabled={isLaunched}
+                >
+                  {t("next")}
+                </button>
+              ) : (
+                // Show "Launch" on step 6 for both types
+                <button
+                  type="button"
+                  className="btn-primary btn-md active-scale"
+                  onClick={handleLaunchAuction}
+                  disabled={isLaunched}
+                >
+                  {t("launchAuction")}
+                </button>
+              )
+            }
           </div>
         </div>
-      </div>
-      {formData.isMultiLot && (
-        <LotManager
-          lots={formData.lots}
-          onChange={(lots) => setFormData({ ...formData, lots })}
-          currency={formData.currency}
-        />
-      )}
-    </div>
-
-    {/* Target Price with Currency Selector */}
-    <div>
-      <label htmlFor="targetPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {"Target Price"} <span className="text-destructive-500">*</span>
-      </label>
-      <div className="flex space-x-2">
-        <select
-          id="currency"
-          className="form-select w-1/4"
-          value={formData.currency}
-          onChange={(e) => setFormData({ ...formData, currency: e.target.value as Currency })}
-        >
-          <option value="USD">USD</option>
-          <option value="EUR">EUR</option>
-          <option value="GBP">GBP</option>
-          <option value="JPY">JPY</option>
-          <option value="INR">INR</option>
-          <option value="AUD">AUD</option>
-          <option value="CAD">CAD</option>
-          <option value="CNY">CNY</option>
-        </select>
-        <div className="relative rounded-md shadow-sm w-3/4">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
-              {getCurrencySymbol(formData.currency)}
-            </span>
-          </div>
-          <input
-            type="number"
-            id="targetPrice"
-            className={`form-input pl-7 w-full ${hasError("targetPrice") ? "border-destructive-500" : ""}`}
-            value={formData.targetprice || ""}
-            onChange={(e) => setFormData({ ...formData, targetprice: Number(e.target.value) || null })}
-          />
-        </div>
-      </div>
-      {hasError("targetPrice") && <ErrorMessage message={getErrorMessage("targetPrice")} />}
-    </div>
-
-    {/* Required Documents */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {t("Required Documents")} <span className="text-destructive-500">*</span>
-      </label>
-      <Select
-        isMulti
-        options={requiredDocumentOptions}
-        value={(JSON.parse(formData.requireddocuments || "[]") as { name: string }[]).map((val) => ({
-          label: val.name,
-          value: val.name,
-        }))}
-        onChange={(selected: readonly Option[]) => {
-          const documents = selected.map((opt) => ({ name: opt.value }));
-          setFormData({
-            ...formData,
-            requireddocuments: JSON.stringify(documents),
-          });
-        }}
-        menuPortalTarget={document.body}
-        styles={{
-          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-        }}
-      />
-      {hasError("requireddocuments") && <ErrorMessage message={getErrorMessage("requireddocuments")} />}
-    </div>
-
-    {/* Image Uploader (Using Step 2 Logic) */}
-<div onClick={handleDivClick} className="cursor-pointer">
-  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-    {t("productImages")} {/* Update translation if needed to reflect media */}
-  </label>
-  <FileUploader
-    accept="image/jpeg,image/png,image/gif,video/mp4,video/webm,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-    type="media"
-    uploadedFiles={formData.productImages}
-    onFilesUploaded={handleImagesUploaded}
-    onFileRemoved={handleImageRemoved}
-  />
-  {hasError("productImages") && <ErrorMessage message={getErrorMessage("productImages")} />}
-</div>
-  </div>
-)}
-</div>
-</div>
-
-{/* Footer with Navigation Buttons */}
-<div className="w-full bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 flex justify-between items-center">
-  <button
-    type="button"
-    className="btn-secondary btn-md active-scale"
-    onClick={handleSaveDraft}
-    disabled={isLaunched}
-  >
-    {t("saveDraft")}
-  </button>
-
-  <div>
-    {currentStep > 1 && (
-      <button
-        type="button"
-        className="btn-secondary btn-md mr-2 active-scale"
-        onClick={handlePrevious}
-        disabled={isLaunched}
-      >
-        {t("previous")}
-      </button>
-    )}
-
-    {(
-      // Show "Next" for reverse on steps 1–5 and 7
-      (formData.auctionType === "reverse" && (currentStep < 5 || currentStep === 6)) ||
-      // Show "Next" for normal auctions on steps 1–5
-      (formData.auctionType !== "reverse" && currentStep < 5)
-    ) ? (
-      <button
-        type="button"
-        className="btn-primary btn-md active-scale"
-        onClick={handleNext}
-        disabled={isLaunched}
-      >
-        {t("next")}
-      </button>
-    ) : (
-      // Show "Launch" on step 6 for both types
-      <button
-        type="button"
-        className="btn-primary btn-md active-scale"
-        onClick={handleLaunchAuction}
-        disabled={isLaunched}
-      >
-        {t("launchAuction")}
-      </button>
-    )}
-  </div>
-</div>
 
         {/* Launch Confirmation */}
         {isLaunched && (
@@ -2948,9 +3404,15 @@ const getCurrencySymbol = (currency: Currency) => {
               <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 text-center mb-4">
                 {t("auctionLaunched")}
               </h2>
-              <p className="text-gray-600 dark:text-gray-300 text-center mb-6">{t("auctionLaunchedSuccessfully")}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
+                {t("auctionLaunchedSuccessfully")}
+              </p>
               <div className="flex justify-center">
-                <button type="button" className="btn-primary btn-md active-scale" onClick={handleGoToDashboard}>
+                <button
+                  type="button"
+                  className="btn-primary btn-md active-scale"
+                  onClick={handleGoToDashboard}
+                >
                   {t("goToDashboard")}
                 </button>
               </div>
@@ -2962,15 +3424,26 @@ const getCurrencySymbol = (currency: Currency) => {
         {showDeleteModal && (
           <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-md shadow-lg">
-              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">{t("confirmDeletion")}</h2>
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
+                {t("confirmDeletion")}
+              </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t("areYouSureRemove")} <b>{deletionInfo.name}</b> {t("fromParticipantList")}
+                {t("areYouSureRemove")} <b>{deletionInfo.name}</b>{" "}
+                {t("fromParticipantList")}
               </p>
               <div className="mt-6 flex justify-end">
-                <button type="button" className="btn-secondary btn-md mr-2 active-scale" onClick={handleCancelDelete}>
+                <button
+                  type="button"
+                  className="btn-secondary btn-md mr-2 active-scale"
+                  onClick={handleCancelDelete}
+                >
                   {t("cancel")}
                 </button>
-                <button type="button" className="btn-destructive btn-md active-scale" onClick={handleConfirmDelete}>
+                <button
+                  type="button"
+                  className="btn-destructive btn-md active-scale"
+                  onClick={handleConfirmDelete}
+                >
                   {t("delete")}
                 </button>
               </div>
@@ -2979,19 +3452,22 @@ const getCurrencySymbol = (currency: Currency) => {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function AuctionBuilderWizard() {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>("en")
+  const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
 
   const handleLanguageChange = (language: Language) => {
-    setCurrentLanguage(language)
-  }
+    setCurrentLanguage(language);
+  };
 
   return (
     <I18nProvider language={currentLanguage}>
-      <AuctionWizardContent language={currentLanguage} onLanguageChange={handleLanguageChange} />
+      <AuctionWizardContent
+        language={currentLanguage}
+        onLanguageChange={handleLanguageChange}
+      />
     </I18nProvider>
-  )
+  );
 }

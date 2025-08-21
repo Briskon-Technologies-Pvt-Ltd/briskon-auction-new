@@ -372,8 +372,8 @@ export default function AuctionDetailPage() {
       return;
     }
 
-    if (!user?.role || (user.role !== "buyer" && user.role !== "both")) {
-      alert("Only buyers can place bids. Please update your account type.");
+    if (!user?.role || ( user.role == "both")) {
+      alert("Only buyers and seller can place bids. Please update your account type.");
       return;
     }
 

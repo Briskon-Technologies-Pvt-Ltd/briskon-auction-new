@@ -4,162 +4,81 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-interface bidRecevied {
-  id: number;
-  productname: string;
-  currentbid:number;
-  currentbidder: string;
-  auctiontype: string | null;
-  auctionsubtype: string | null;
-  scheduledstart?: string;
-  startprice:number;
-  categoryid:string;
-  targetprice:number;
-  productimages: string[];
-  auctionduration?: { days?: number; hours?: number; minutes?: number } | null;
-  profiles: { fname: string; lname: string }[] | { fname: string; lname: string };
-}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const userId = url.searchParams.get("id");
   const userEmail = url.searchParams.get("email");
 
-  if (!userId || !userEmail) {
-    return NextResponse.json({ error: "User ID and email are required" }, { status: 400 });
+  if (!userEmail) {
+    return NextResponse.json({ error: "User email is required" }, { status: 400 });
   }
 
   try {
-    // Step 1: Fetch user's bids
-    const { data: userBids, error: bidsError } = await supabase
-      .from("bids")
-      .select("auction_id, amount, created_at")
-      .eq("user_id", userId);
-
-    if (bidsError) throw bidsError;
-
-    const auctionIds = userBids.map((bid) => bid.auction_id);
-
-    // Step 2: Fetch relevant auctions
+    // Step 1: Fetch auctions created by the user
     const { data: auctionsRaw, error: auctionsError } = await supabase
       .from("auctions")
       .select(`
         id,
         productname,
-        currentbidder,
-        currentbid,
         categoryid,
         auctiontype,
-        startprice,
         auctionsubtype,
-        auctionduration,
-        scheduledstart,
-        profiles:seller (fname, lname),
-        productimages,
+        startprice,
         targetprice,
-        createdat
+        productimages
       `)
-    //   .in("id", auctionIds)
-.eq("createdby", userEmail)
-  .eq("approved", true)
-  .gt("bidder_count", 0)
-  .order("createdat", { ascending: false }) // latest bid first
-  .returns<bidRecevied[]>();
+      .eq("createdby", userEmail)
+      .eq("approved", true)
+      .gt("bidder_count", 0)
+      .order("createdat", { ascending: false });
 
     if (auctionsError) throw auctionsError;
 
-    const auctions = auctionsRaw as bidRecevied[];
-    
-const now = new Date();
-await Promise.all(
-  auctions.map(async (auction) => {
-    if (auction.scheduledstart && auction.auctionduration) {
-      const startTime = new Date(auction.scheduledstart);
-      const duration = auction.auctionduration;
-      const endTime = new Date(startTime);
-      if (duration.days) endTime.setDate(endTime.getDate() + duration.days);
-      if (duration.hours) endTime.setHours(endTime.getHours() + duration.hours);
-      if (duration.minutes) endTime.setMinutes(endTime.getMinutes() + duration.minutes);
+    const auctionIds = auctionsRaw?.map(a => a.id) || [];
+    if (auctionIds.length === 0) return NextResponse.json([]);
 
-      if (now > endTime) {
-        await supabase
-          .from("auctions")
-          .update({ ended: true })
-          .eq("id", auction.id);
-      }
-    }
-  })
-);
-    // Step 3: Find latest bid by user per auction
-    const latestBidsMap = new Map<string | number, { amount: number }>();
-    userBids
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .forEach((bid) => {
-        if (!latestBidsMap.has(bid.auction_id)) {
-          latestBidsMap.set(bid.auction_id, { amount: bid.amount });
-        }
-      });
-
-    // Step 4: For each auction, get all bids to calculate positions
-    const rankings: Record<number, { userId: string; amount: number }[]> = {};
-    await Promise.all(
-  auctionIds.map(async (auctionId) => {
-    const { data: allBids, error } = await supabase
+    // Step 2: Fetch bids for these auctions
+    const { data: bidsRaw, error: bidsError } = await supabase
       .from("bids")
-      .select("user_id, amount")
-      .eq("auction_id", auctionId);
+      .select("id,auction_id, amount, user_id")
+      .in("auction_id", auctionIds);
 
-    if (!error && allBids) {
-      // 1. Map of user to highest bid
-      const userMaxBids: Record<string, number> = {};
+    if (bidsError) throw bidsError;
 
-      for (const bid of allBids) {
-        if (!userMaxBids[bid.user_id] || bid.amount > userMaxBids[bid.user_id]) {
-          userMaxBids[bid.user_id] = bid.amount;
-        }
-      }
+    // Step 3: Fetch profiles for all bidders
+    const userIds = [...new Set(bidsRaw.map(b => b.user_id))];
+    const { data: profilesRaw } = await supabase
+      .from("profiles")
+      .select("id, fname, lname")
+      .in("id", userIds);
+       const profiles = profilesRaw || []; 
+    // Step 4: Map bids to auctions and include seller names
+    const response = bidsRaw.map(bid => {
+      const auction = auctionsRaw.find(a => a.id === bid.auction_id);
+      const profile = profiles.find(p => p.id === bid.user_id);
 
-      // 2. Convert to array and sort descending
-      const sorted = Object.entries(userMaxBids)
-        .map(([userId, amount]) => ({ userId, amount }))
-        .sort((a, b) => b.amount - a.amount);
 
-      rankings[auctionId] = sorted;
-    }
-  })
-);
-    // Step 5: Build response
-    const activeBids = auctions.map((auction) => {
-      const userBid = latestBidsMap.get(auction.id);
-      const productimage = Array.isArray(auction.productimages) && auction.productimages.length > 0
-  ? auction.productimages[0]
-  : "/placeholder.svg"; // fallback image
-      const bidList = rankings[auction.id] || [];
-      const position = bidList.findIndex((b) => b.userId === userId);
       return {
-        auctionId: auction.id,
-        productName: auction.productname,
-        sellerName: Array.isArray(auction.profiles)
-          ? auction.profiles[0]?.fname ?? "Unknown"
-          : auction.profiles?.fname ?? "Unknown",
-        auctionType: auction.auctiontype || "standard",
-        auctionsubtype:auction.auctionsubtype,
-        productimage,
-        scheduledstart: auction.scheduledstart ?? null,
-        auctionduration: auction.auctionduration ?? null,
-        bidAmount: userBid?.amount || 0,
-        totalBids: bidList.length,
-        isWinningBid: auction.currentbidder === userEmail,
-        currentbid: auction.currentbid ?? 0,
-        categoryid:auction.categoryid,
-        targetprice:auction.targetprice,
-        startAmount:auction.startprice,
-        position: position !== -1 ? position + 1 : null,
+        auctionId: auction?.id,
+        bidId: bid.id,  
+        productName: auction?.productname,
+        categoryid: auction?.categoryid,
+        auctionType: auction?.auctiontype,
+        auctionSubtype: auction?.auctionsubtype,
+        startAmount: auction?.startprice,
+        targetPrice: auction?.targetprice,
+        productImage:
+          Array.isArray(auction?.productimages) && auction.productimages.length > 0
+            ? auction.productimages[0]
+            : "/placeholder.svg",
+        bidAmount: bid.amount,
+        sellerName: profile ? `${profile.fname} ${profile.lname}` : "Unknown",
       };
     });
 
-    return NextResponse.json(activeBids);
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching active bids:", error);
+    console.error("Error fetching bids received:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       .from("profiles")
       .select("id")
       .eq("email", userEmail)
+      .eq("auctiontype", "forward")
       .single();
 
     if (profileError || !profileData) {

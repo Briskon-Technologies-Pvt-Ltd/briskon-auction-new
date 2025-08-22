@@ -995,7 +995,14 @@ export default function ReverseAuctionDetailPage() {
                       </span>
                     )}
                   </p>
-
+   <p>
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      Minimum Increment:
+                    </span>{" "}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {auction.minimumincrement ?? 0}
+                    </span>
+                  </p>
                   <p>
                     <span className="font-medium text-gray-800 dark:text-gray-200">
                       Total Bidders:
@@ -1022,6 +1029,7 @@ export default function ReverseAuctionDetailPage() {
                       <span className="text-gray-500 font-semibold">Ended</span>
                     )}
                   </p>
+                
                 </div>
               </CardContent>
             </Card>

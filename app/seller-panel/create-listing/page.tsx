@@ -39,7 +39,7 @@ if (!user || !["seller", "buyer", "both"].includes(user.role)) return null;
   return (
   // <div className="min-h-screen py-6 md:py-10 bg-gray-100 dark:bg-gray-950">
 <div className="w-full">
-  <div className=" max-w-8xl mx-auto rounded-lg p-3 bg-white dark:bg-gray-900 shadow-sm border-0">
+  <div className=" max-w-8xl mx-auto rounded-lg bg-white dark:bg-gray-900 shadow-sm border-0">
     <AuctionBuilderWizard />
   </div>
 </div>

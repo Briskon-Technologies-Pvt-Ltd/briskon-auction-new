@@ -1204,11 +1204,11 @@ FOCUS: ${formData.auctionType === "reverse"
   // Updated render section with translations
   return (
     <div
-      className={`min-h-screen p-4 md:p-16 transition-colors duration-300 ${inter.className}`}
+      className={`min-h-screen p-2 md:p-8 transition-colors duration-300 ${inter.className}`}
     >
       <div className="card">
         {/* Header with Theme Toggle */}
-        <div className="w-full bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700 flex justify-between items-center">
+        <div className="w-full bg-white dark:bg-gray-800 p-2 border-b dark:border-gray-700 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {t("auctionBuilder")}
           </h1>

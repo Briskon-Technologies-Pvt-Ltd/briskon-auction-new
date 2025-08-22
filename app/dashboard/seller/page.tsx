@@ -1284,8 +1284,8 @@ export default function SellerDashboard() {
                                 )
                               )}
                             </td>
-
-                            {/* <td className="p-2 flex space-x-1">
+                            {/* 
+                            <td className="p-2 flex space-x-1">
                               <Button
                                 variant="outline"
                                 size="icon"

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-interface closedAuction {
+interface upcomingAuction {
   id: string;
   productname: string;
   currentbid: number | null;
@@ -10,8 +9,6 @@ interface closedAuction {
   auctiontype: string;
   auctionsubtype: string;
   categoryid: string;
-  targetprice:number;
-  bidder_count:number;
   scheduledstart:string;
   auctionduration:{ days?: number; hours?: number; minutes?: number };
 }
@@ -43,11 +40,12 @@ export async function GET(req: Request) {
   // Fetch upcoming auctions count
   const { data: auctionsData,count, error: countError } = await supabase
     .from("auctions")
-    .select(`id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, scheduledstart,  auctionduration, targetprice, bidder_count`,
+    .select(`id, productname, currentbid, productimages, startprice, auctiontype, auctionsubtype, categoryid, scheduledstart,  auctionduration`,
        { count: "exact"})
-    .eq("createdby", userEmail) // use seller ID 
-    .eq("ended", true)
-    .order("productname", { ascending: true });    
+    .eq("createdby", userEmail) // use seller ID
+    .gt("scheduledstart", now)
+    .eq("auctiontype", "reverse")       // upscoming
+    .eq("ended", false);        
          // not ended
    if (countError) {
       return NextResponse.json(
@@ -55,7 +53,7 @@ export async function GET(req: Request) {
         { status: 500 }
       );
     }
-    const closed: closedAuction[] = (auctionsData || []).map((auction) => {
+    const upcoming: upcomingAuction[] = (auctionsData || []).map((auction) => {
   // Check if productimages is truthy and has a 'length' property > 0 (likely an array)
   const productimages =
     auction.productimages && auction.productimages.length > 0
@@ -72,8 +70,6 @@ export async function GET(req: Request) {
     auctionsubtype: auction.auctionsubtype,
     categoryid: auction.categoryid,
     scheduledstart:auction.scheduledstart,
-    targetprice:auction.targetprice,
-    bidder_count:auction.bidder_count,
     auctionduration:auction.auctionduration
   };
 });
@@ -82,6 +78,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: countError});
   }
 
-  return NextResponse.json({ success: true, count, data: closed });
+  return NextResponse.json({ success: true, count, data: upcoming });
 
 }

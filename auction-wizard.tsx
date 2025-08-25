@@ -5,7 +5,7 @@ import Select from "react-select";
 
 import { useState, useRef, useEffect } from "react";
 import { Inter } from "next/font/google";
-import { Clock, Users, CheckCircle, AlertCircle, Calendar } from "lucide-react";
+import { Clock, Users, CheckCircle, AlertCircle, Calendar, Hammer } from "lucide-react";
 import FileUploader from "@/components/file-uploader";
 import TemplateSelector from "./components/template-selector";
 import QualificationCriteriaManager from "./components/qualification-criteria";
@@ -1204,14 +1204,20 @@ FOCUS: ${formData.auctionType === "reverse"
   // Updated render section with translations
   return (
     <div
-      className={`min-h-screen p-2 md:p-8 transition-colors duration-300 ${inter.className}`}
+      className={`h-auto p-2 md:p-8 transition-colors duration-300 ${inter.className}`}
+
     >
       <div className="card">
         {/* Header with Theme Toggle */}
         <div className="w-full bg-white dark:bg-gray-800 p-2 border-b dark:border-gray-700 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-            {t("auctionBuilder")}
-          </h1>
+
+         <div className="flex items-cen ter gap-2">
+           <Hammer className="h-5 w-5 text-gray-700  animate-bounce" />
+             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+           {t("auctionBuilder")}
+         </h1>
+         </div>
+
           <div className="flex items-center space-x-2">
             {/* <div className="mr-2">
               <LanguageSelector value={formData.language} onChange={handleLanguageChange} />
